@@ -275,13 +275,14 @@ inline auto object_schema(const JSON &value) -> bool {
          type->to_string() == "object";
 }
 
-inline auto base(const JSON &value) -> bool {
+inline auto base(const JSON &value, const bool received = false) -> bool {
   return value.is_object() &&
          string_field(value, "name", sourcemeta::core::MCP_HASH_NAME, true) &&
          string_field(value, "title", sourcemeta::core::MCP_HASH_TITLE) &&
          string_field(value, "description",
                       sourcemeta::core::MCP_HASH_DESCRIPTION) &&
-         sourcemeta::core::internal::valid_meta(value) && icons(value);
+         sourcemeta::core::internal::valid_meta(value) &&
+         icons(value, received);
 }
 
 // A key is an optional prefix followed by a name. The prefix reads like a
@@ -914,7 +915,8 @@ inline auto valid_resource(const MCPProtocolVersion version, const JSON &value,
   }
   const auto *size{
       validation::field(value, "size", sourcemeta::core::MCP_HASH_SIZE)};
-  return validation::base(value) && validation::annotations(value) &&
+  return validation::base(value, received) &&
+         validation::annotations(value, received) &&
          ((size == nullptr) || (size->is_integer() && size->to_integer() >= 0));
 }
 

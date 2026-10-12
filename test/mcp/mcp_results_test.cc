@@ -4782,6 +4782,38 @@ TEST(validate_continuation_accepts_loose_formats_from_a_peer) {
       "state"));
 }
 
+// A sampled response carries text, an image or audio and nothing else, so a
+// resource block is refused for its type rather than for anything about the
+// fields on it. This is why the format rules never arise for a received
+// resource
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#createmessageresult
+TEST(validate_continuation_rejects_a_resource_link_in_a_sampled_response) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state",
+    "inputResponses": {
+      "sample": {
+        "role": "assistant",
+        "model": "model",
+        "content": {
+          "type": "resource_link",
+          "name": "r",
+          "uri": "file:///r"
+        }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "sample": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "state"));
+}
+
 TEST(validate_continuation_rejects_a_different_state_token) {
   const auto parameters{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
