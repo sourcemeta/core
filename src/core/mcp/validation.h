@@ -25,7 +25,7 @@ inline auto require(const bool condition, const char *message) -> void {
 }
 
 inline auto valid_id(const JSON &identifier) noexcept -> bool {
-  return identifier.is_string() || identifier.is_integer();
+  return identifier.is_string() || identifier.is_integral();
 }
 
 inline auto valid_implementation(MCPProtocolVersion version, const JSON &value,
@@ -917,7 +917,7 @@ inline auto valid_resource(const MCPProtocolVersion version, const JSON &value,
       validation::field(value, "size", sourcemeta::core::MCP_HASH_SIZE)};
   return validation::base(value, received) &&
          validation::annotations(value, received) &&
-         ((size == nullptr) || (size->is_integer() && size->to_integer() >= 0));
+         ((size == nullptr) || (size->is_integral() && *size >= JSON{0}));
 }
 
 inline auto valid_content(const MCPProtocolVersion version, const JSON &value,

@@ -96,6 +96,15 @@ TEST(tool_success_with_object_result) {
   EXPECT_EQ(envelope, expected);
 }
 
+TEST(tool_success_preserves_integral_decimal_identifier) {
+  const auto identifier{sourcemeta::core::parse_json("18446744073709551617")};
+  const auto envelope{sourcemeta::core::mcp_make_tool_success(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+      sourcemeta::core::JSON::make_object())};
+  EXPECT_EQ(envelope.at("id"), identifier);
+  EXPECT_TRUE(envelope.at("id").is_decimal());
+}
+
 TEST(tool_success_with_array_result) {
   const auto identifier{sourcemeta::core::JSON{"abc"}};
   const auto envelope{sourcemeta::core::mcp_make_tool_success(
@@ -2657,6 +2666,46 @@ TEST(tool_descriptor_rejects_a_non_object_schema_2026_07_28) {
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tool", "",
           sourcemeta::core::parse_json(R"JSON({ "type": "string" })JSON")),
       "Invalid MCP tool descriptor");
+}
+
+TEST(resources_list_result_accepts_integral_real_size) {
+  const auto entries{sourcemeta::core::parse_json(R"JSON([
+    { "name": "x", "uri": "file:///x", "size": 42.0 }
+  ])JSON")};
+  const auto result{sourcemeta::core::mcp_make_resources_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, entries, std::nullopt,
+      {})};
+  EXPECT_EQ(result.at("resources"), entries);
+}
+
+TEST(resources_list_result_accepts_integral_decimal_size) {
+  const auto entries{sourcemeta::core::parse_json(R"JSON([
+    { "name": "x", "uri": "file:///x", "size": 18446744073709551617 }
+  ])JSON")};
+  const auto result{sourcemeta::core::mcp_make_resources_list_result(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, entries, std::nullopt,
+      {})};
+  EXPECT_EQ(result.at("resources"), entries);
+}
+
+TEST(resources_list_result_rejects_negative_integral_real_size) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+            { "name": "x", "uri": "file:///x", "size": -42.0 }
+          ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(resources_list_result_rejects_fractional_decimal_size) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+            { "name": "x", "uri": "file:///x", "size": 42.00000000000000000001 }
+          ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
 }
 
 TEST(resources_list_result_rejects_a_nameless_resource_2025_03_26) {

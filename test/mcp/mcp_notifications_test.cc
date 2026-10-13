@@ -324,6 +324,19 @@ TEST(make_subscription_acknowledged_notification_with_integer_identifier) {
   })JSON"));
 }
 
+TEST(
+    make_subscription_acknowledged_notification_with_integral_real_identifier) {
+  sourcemeta::core::MCPSubscriptionFilter filter;
+  const sourcemeta::core::JSON identifier{42.0};
+  const auto notification{
+      sourcemeta::core::mcp_make_subscription_acknowledged_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, identifier,
+          filter, filter)};
+  EXPECT_EQ(notification.at("params").at("_meta").at(
+                "io.modelcontextprotocol/subscriptionId"),
+            identifier);
+}
+
 TEST(make_subscription_acknowledged_notification_with_every_event) {
   sourcemeta::core::MCPSubscriptionFilter filter;
   filter.tools_list_changed = true;
@@ -516,6 +529,38 @@ TEST(request_subscription_id_integer) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, notification)};
   EXPECT_NE(identifier, nullptr);
   EXPECT_EQ(*identifier, sourcemeta::core::JSON{42});
+}
+
+TEST(request_subscription_id_integral_real) {
+  const auto notification{sourcemeta::core::parse_json(R"JSON({
+    "params": { "_meta": { "io.modelcontextprotocol/subscriptionId": 42.0 } }
+  })JSON")};
+  EXPECT_EQ(
+      sourcemeta::core::mcp_request_subscription_id(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, notification),
+      &notification.at("params").at("_meta").at(
+          "io.modelcontextprotocol/subscriptionId"));
+}
+
+TEST(request_subscription_id_integral_decimal) {
+  const auto response{sourcemeta::core::parse_json(R"JSON({
+    "result": { "_meta": {
+      "io.modelcontextprotocol/subscriptionId": 18446744073709551617
+    } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_subscription_id(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, response),
+            &response.at("result").at("_meta").at(
+                "io.modelcontextprotocol/subscriptionId"));
+}
+
+TEST(request_subscription_id_rejects_fractional_decimal) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({
+    "_meta": { "io.modelcontextprotocol/subscriptionId": 42.00000000000000000001 }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_subscription_id(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, metadata),
+            nullptr);
 }
 
 TEST(request_subscription_id_from_bare_metadata) {
