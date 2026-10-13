@@ -7,6 +7,7 @@
 #include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint16_t
+#include <span>        // std::span
 #include <string_view> // std::string_view
 #include <utility>     // std::pair
 

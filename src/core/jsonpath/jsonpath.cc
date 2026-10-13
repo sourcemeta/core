@@ -920,7 +920,11 @@ inline auto filter_matches(const JSONPath::FilterExpression &expression,
           candidate, root);
   }
 
+    // Clang settles that no other value arrives, so only GCC and MSVC
+    // need to be told that the end of this function is never reached
+#if !defined(__clang__)
   std::unreachable();
+#endif
 }
 
 // The main walk is iterative over an explicit stack, so document depth

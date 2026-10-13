@@ -3,6 +3,16 @@
 set -o errexit
 set -o nounset
 
+# A program that dies on a fatal signal never reaches the point where counters
+# are written out, so ask for the ones that stay up to date as they change.
+# Only a build that set this up puts a profile path in the environment, and the
+# programs that path applies to are built to honour the request
+if [ -n "${LLVM_PROFILE_FILE:-}" ]
+then
+  LLVM_PROFILE_FILE="$(dirname "$LLVM_PROFILE_FILE")/%c$(basename "$LLVM_PROFILE_FILE")"
+  export LLVM_PROFILE_FILE
+fi
+
 STACKTRACE_ON_DEMAND_MAIN="$1"
 WORKDIR="$2"
 STACKTRACE_LIBRARY="$3"

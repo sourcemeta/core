@@ -5533,3 +5533,71 @@ TEST(flow_entry_following_an_empty_value) {
   EXPECT_EQ(result,
             sourcemeta::core::parse_json(R"JSON({ "a": null, "b": 1 })JSON"));
 }
+
+// A block mapping may run to the end of the input with its last value left
+// out, with nothing following the separator to mark where the document stops
+TEST(block_mapping_in_a_sequence_entry_ending_without_a_newline) {
+  const auto result{sourcemeta::core::parse_yaml("- a:")};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON([
+    { "a": null }
+  ])JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(nested_block_mapping_ending_without_a_newline) {
+  const auto result{sourcemeta::core::parse_yaml("a:\n  b:")};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "a": { "b": null }
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(block_mapping_in_a_sequence_entry_with_a_later_value_left_out) {
+  const auto result{sourcemeta::core::parse_yaml("- a: 1\n  b:")};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON([
+    { "a": 1, "b": null }
+  ])JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+// The end of a document may be marked explicitly, which leaves the value of
+// the key before it out just as the end of the input does
+TEST(block_mapping_followed_by_an_explicit_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("- a:\n...\n")};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON([
+    { "a": null }
+  ])JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+// A comment carries no value, so a key followed by one holds the null that the
+// absent value reads as
+TEST(block_mapping_key_with_no_value_followed_by_a_comment) {
+  const auto result{sourcemeta::core::parse_yaml("- a:\n# trailing\n")};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON([
+    { "a": null }
+  ])JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+// An explicitly marked key stands on its own, with the value it would be
+// paired with left out entirely
+TEST(explicit_key_with_no_value) {
+  const auto result{sourcemeta::core::parse_yaml("? a\n")};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "a": null
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}

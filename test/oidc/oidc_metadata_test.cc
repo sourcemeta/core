@@ -853,3 +853,64 @@ TEST(from_exposes_the_document) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().data(), VALID_PROVIDER_DOCUMENT);
 }
+
+// RP-Initiated Logout 1.0 Section 2.1 gives the logout endpoint its own
+// document and requires it over https, the same as the one above it
+TEST(make_rejects_a_non_https_end_session_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+  config.end_session_endpoint = "http://server.example/logout";
+
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_make_provider_metadata(config).has_value());
+}
+
+// Session Management 1.0 Section 3.3 gives the session iframe the same
+// requirement again
+TEST(make_rejects_a_non_https_check_session_iframe) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+  config.check_session_iframe = "http://server.example/session";
+
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_make_provider_metadata(config).has_value());
+}
+
+// The flag is left out where it matches its default, so the document says so
+// only when a provider does accept a request object by value
+TEST(make_emits_the_request_parameter_capability_when_supported) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+  config.request_parameter_supported = true;
+
+  const auto document{sourcemeta::core::oidc_make_provider_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_TRUE(document.value().at("request_parameter_supported").to_boolean());
+}

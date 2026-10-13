@@ -1,0 +1,4 @@
+TAP version 14
+1..1
+ok 1 - injected_environment_without_a_value.clitest
+# 1 passed, 0 failed

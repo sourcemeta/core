@@ -124,6 +124,7 @@ add_clitest_run_test(error_stat_field_is_not_mtime 1)
 add_clitest_run_test(error_stat_usage 1)
 add_clitest_run_test(error_tree_destination_preposition 1)
 add_clitest_run_test(error_tree_usage 1)
+add_clitest_run_test(error_replace_in_a_directory 1)
 add_clitest_run_test(error_undefined_variable 1)
 add_clitest_run_test(error_unknown_command 1)
 add_clitest_run_test(run_arguments_are_expanded 0)
@@ -165,6 +166,8 @@ add_clitest_run_test(run_write_creates_parents 0)
 # reported, and Windows words it differently
 if(NOT WIN32)
   add_clitest_run_test(error_copy_missing_file 1)
+  add_clitest_run_test(error_tree_missing_directory 1)
+  add_clitest_run_test(error_stat_mtime_missing_file 1)
 endif()
 
 # Bindings injected on the command line are ordinary ones, and reach the
@@ -178,6 +181,28 @@ add_test(NAME core.clitest.injected_environment COMMAND ${SOURCEMETA_CORE_TEST_R
 set_tests_properties(core.clitest.injected_environment PROPERTIES
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# A binding given no value binds an empty one, which is still a binding the
+# script may read
+add_test(NAME core.clitest.injected_environment_without_a_value COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_clitest>" 0
+  "${CMAKE_CURRENT_SOURCE_DIR}/injected_environment_without_a_value.txt"
+  "injected_environment_without_a_value.clitest"
+  --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>"
+  --environment INJECTED)
+set_tests_properties(core.clitest.injected_environment_without_a_value PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# A value given no name binds nothing, and the runner stops rather than
+# guessing which name was meant
+add_test(NAME core.clitest.injected_environment_without_a_name COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
+  "${CMAKE_CURRENT_SOURCE_DIR}/injected_environment_without_a_name.txt"
+  "injected_environment_without_a_name.clitest"
+  --binary "$<TARGET_FILE:sourcemeta_core_clitest_stub>"
+  --environment "=orphan")
+set_tests_properties(core.clitest.injected_environment_without_a_name PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
 # The runner reports a script it cannot read against the file rather than
 # against a line, since there is no line to blame yet
 add_test(NAME core.clitest.missing_script COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
@@ -185,6 +210,24 @@ add_test(NAME core.clitest.missing_script COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
   "${CMAKE_CURRENT_SOURCE_DIR}/missing_script.txt"
   "nonexistent.clitest" --check)
 set_tests_properties(core.clitest.missing_script PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# A directory named where a script belongs is reported the same way, against
+# the path rather than against a line
+add_test(NAME core.clitest.directory_script COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
+  "${CMAKE_CURRENT_SOURCE_DIR}/directory_script.txt"
+  "." --check)
+set_tests_properties(core.clitest.directory_script PROPERTIES
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# A program that is nowhere on the path is reported where the script asks to
+# run it, rather than as a failure of the run itself
+add_test(NAME core.clitest.missing_program COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_clitest>" 1
+  "${CMAKE_CURRENT_SOURCE_DIR}/missing_program.txt"
+  "missing_program.clitest" --binary nonexistent-program)
+set_tests_properties(core.clitest.missing_program PROPERTIES
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Running a script needs something to run, and saying so is more use than

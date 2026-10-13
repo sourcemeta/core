@@ -3,6 +3,7 @@
 
 #include <sourcemeta/core/json.h>
 
+#include <algorithm>   // std::all_of
 #include <string_view> // std::string_view, std::string_view_literals
 
 namespace sourcemeta::core {
@@ -274,6 +275,59 @@ inline constexpr auto MCP_HASH_TRACESTATE{
     sourcemeta::core::JSON::Object::hash("tracestate"sv)};
 inline constexpr auto MCP_HASH_VALUES{
     sourcemeta::core::JSON::Object::hash("values"sv)};
+
+// A value travels literally when it can be carried in a field without help.
+// The specification names when it cannot, and so must be encoded instead:
+// "it contains non-ASCII characters, control characters, or has
+// leading/trailing whitespace".
+//
+// This is narrower than what a field value may hold, and deliberately so. The
+// same passage says such a value may carry "visible ASCII characters
+// (0x21-0x7E), space (0x20), and horizontal tab (0x09)", yet a horizontal tab
+// is itself a control character, which the sentence above sends to the encoded
+// form. The two readings only disagree about the tab, and encoding it is the
+// safe side of that disagreement, since an encoded value is always
+// understood while a tab in a field value is the kind of thing an
+// intermediary may fold or strip.
+//
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+inline auto mcp_is_plain_header_value(const JSON::StringView value) noexcept
+    -> bool {
+  if (!value.empty() && (value.front() == ' ' || value.back() == ' ')) {
+    return false;
+  }
+
+  return std::all_of(value.begin(), value.end(), [](const char character) {
+    const auto byte{static_cast<unsigned char>(character)};
+    return byte >= 0x20 && byte < 0x7f;
+  });
+}
+
+// The markers "are case-sensitive and MUST appear exactly as shown
+// (lowercase)", so these are compared rather than matched loosely
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+inline constexpr auto MCP_HEADER_SENTINEL_PREFIX{"=?base64?"sv};
+inline constexpr auto MCP_HEADER_SENTINEL_SUFFIX{"?="sv};
+
+// The shortest form accepted is the two markers alone, around an empty body.
+// A conforming producer never emits one, since a value that encodes to nothing
+// is empty and an empty value needs no encoding, but reading one back costs
+// nothing and the original rule was no stricter
+inline auto mcp_is_encoded_header_value(const JSON::StringView value) noexcept
+    -> bool {
+  return value.starts_with(MCP_HEADER_SENTINEL_PREFIX) &&
+         value.ends_with(MCP_HEADER_SENTINEL_SUFFIX) &&
+         value.size() >= MCP_HEADER_SENTINEL_PREFIX.size() +
+                             MCP_HEADER_SENTINEL_SUFFIX.size();
+}
+
+// What the two markers enclose, which is the base64 the encoded form carries
+inline auto mcp_header_sentinel_body(const JSON::StringView value) noexcept
+    -> JSON::StringView {
+  return value.substr(MCP_HEADER_SENTINEL_PREFIX.size(),
+                      value.size() - MCP_HEADER_SENTINEL_PREFIX.size() -
+                          MCP_HEADER_SENTINEL_SUFFIX.size());
+}
 
 } // namespace sourcemeta::core
 

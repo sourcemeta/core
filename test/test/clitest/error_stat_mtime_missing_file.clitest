@@ -1,0 +1,2 @@
+STAT MTIME missing.txt INTO out.txt
+COMPARE out.txt AGAINST expected.txt

@@ -1,0 +1,2 @@
+MAKE DIRECTORY folder
+REPLACE x WITH y IN folder

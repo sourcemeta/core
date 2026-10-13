@@ -1908,81 +1908,6 @@ TEST(request_metadata_rejects_boolean_baggage) {
                    .second.has_value());
 }
 
-TEST(traceparent_rejects_zero_trace) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "00-00000000000000000000000000000000-0123456789abcdef-01"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(traceparent_rejects_zero_parent) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "00-0123456789abcdef0123456789abcdef-0000000000000000-01"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(traceparent_rejects_reserved_version) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "ff-0123456789abcdef0123456789abcdef-0123456789abcdef-01"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(traceparent_rejects_uppercase_hex) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "00-0123456789ABCDEF0123456789abcdef-0123456789abcdef-01"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(traceparent_rejects_extra_fields) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "traceparent",
-      sourcemeta::core::JSON{
-          "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01-extra"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
 TEST(request_metadata_accepts_tracing_whitespace_and_escapes) {
   auto value{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
@@ -2042,65 +1967,10 @@ TEST(a_malformed_traceparent_is_still_rejected_with_a_good_tracestate) {
                    .second.has_value());
 }
 
-TEST(tracestate_rejects_duplicate_key) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "tracestate",
-      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
-  value.at("_meta").assign(
-      "baggage",
-      sourcemeta::core::JSON{
-          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  value.at("_meta").assign("tracestate", sourcemeta::core::JSON{"a=b,a=c"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(tracestate_rejects_uppercase_key) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "tracestate",
-      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
-  value.at("_meta").assign(
-      "baggage",
-      sourcemeta::core::JSON{
-          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  value.at("_meta").assign("tracestate", sourcemeta::core::JSON{"UPPER=value"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(tracestate_rejects_extra_equals) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign(
-      "tracestate",
-      sourcemeta::core::JSON{"\tvendor=state,1tenant@system=value\t"});
-  value.at("_meta").assign(
-      "baggage",
-      sourcemeta::core::JSON{
-          "\tuser=alice;property=value,region=us%20east,path=%2f%2F\t"});
-  value.at("_meta").assign("tracestate",
-                           sourcemeta::core::JSON{"a=value=wrong"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(baggage_rejects_invalid_escape) {
+// A malformed tracing value is refused through the MCP path too, which is the
+// policy this module owns rather than the grammar the http module owns
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#_meta
+TEST(request_metadata_rejects_a_malformed_baggage) {
   auto value{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
@@ -2112,40 +1982,30 @@ TEST(baggage_rejects_invalid_escape) {
                    .second.has_value());
 }
 
-TEST(baggage_rejects_bare_percent) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
+// The format checks apply to what this module builds, not to what a peer
+// sends, so a received timestamp that is not ISO 8601 does not cost the
+// message. Both reference implementations type this field as a plain string
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/index#general-fields
+TEST(a_received_icon_is_not_held_to_its_formats) {
+  const auto value{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "io.modelcontextprotocol/clientInfo": {
+        "name": "c",
+        "version": "1",
+        "icons": [
+          {
+            "src": "/relative",
+            "mimeType": "not a media type",
+            "sizes": [ "big" ]
+          }
+        ]
+      }
     }
   })JSON")};
-  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=%"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(baggage_rejects_short_escape) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=%2"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
-}
-
-TEST(baggage_rejects_newline) {
-  auto value{sourcemeta::core::parse_json(R"JSON({
-    "_meta": {
-      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": {}
-    }
-  })JSON")};
-  value.at("_meta").assign("baggage", sourcemeta::core::JSON{"a=value\n"});
-  EXPECT_FALSE(sourcemeta::core::mcp_validate_request_parameters(value)
-                   .second.has_value());
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(value).first,
+            sourcemeta::core::MCPRequestMetaStatus::Valid);
 }
 
 TEST(legacy_result_allows_unreserved_traceparent) {
@@ -2760,6 +2620,38 @@ TEST(encoded_name_header_roundtrip_base64_marker) {
                    sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                    "2026-07-28", "tools/call", encoded, value, SUPPORTED)
                    .has_value());
+}
+
+// A space between the visible characters is printable ASCII, so a value
+// carrying one travels literally. Only a leading or trailing space forces the
+// encoded form
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+TEST(an_interior_space_travels_literally) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("get weather"),
+            "get weather");
+}
+
+TEST(a_leading_space_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value(" weather"),
+            "=?base64?IHdlYXRoZXI=?=");
+}
+
+TEST(a_trailing_space_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("weather "),
+            "=?base64?d2VhdGhlciA=?=");
+}
+
+// A horizontal tab is a control character, which the specification sends to
+// the encoded form even though the same passage lists it among what a field
+// value may carry. Encoding is the safe side of that disagreement
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding
+TEST(a_horizontal_tab_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("a\tb"),
+            "=?base64?YQli?=");
+}
+
+TEST(a_tilde_travels_literally) {
+  EXPECT_EQ(sourcemeta::core::mcp_encode_header_value("a~b"), "a~b");
 }
 
 TEST(encoded_name_header_roundtrip_padded) {

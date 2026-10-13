@@ -339,29 +339,14 @@ private:
       case NodeType::Paragraph:
       case NodeType::Heading:
         return is_inline_type(child);
-      case NodeType::CodeBlock:
-      case NodeType::HTMLBlock:
-      case NodeType::ThematicBreak:
-      case NodeType::TableCell:
-      case NodeType::Text:
-      case NodeType::SoftBreak:
-      case NodeType::LineBreak:
-      case NodeType::Code:
-      case NodeType::HTMLInline:
-      case NodeType::Emphasis:
-      case NodeType::Strong:
-      case NodeType::Link:
-      case NodeType::Image:
-      case NodeType::FootnoteReference:
-      case NodeType::Strikethrough:
+      // GFM section 4 makes a leaf block out of the lines it is written on, so
+      // it holds none of its own, and the walk that asks this climbs out of
+      // whatever cannot take what arrived. Naming the rule rather than every
+      // type it holds for is what keeps a type added later from having to be
+      // named here to be read as holding nothing
+      default:
         return false;
     }
-
-      // Clang settles that no other value arrives, so only GCC and MSVC
-      // need to be told that the end of this function is never reached
-#if !defined(__clang__)
-    std::unreachable();
-#endif
   }
 
   auto add_child(std::uint32_t parent, const NodeType type) -> std::uint32_t {
@@ -492,10 +477,10 @@ private:
       return;
     }
 
+    // Held to the same reading as the case above, where the content is built
+    // from lines that each end with a line feed
     auto position{content.find('\n')};
-    if (position == std::string_view::npos) {
-      position = content.size();
-    }
+    assert(position != std::string_view::npos);
 
     this->value_buffer_.clear();
     decode_escapes_and_references(this->value_buffer_,
