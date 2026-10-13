@@ -5605,3 +5605,23 @@ TEST_F(URITemplateRouterViewTest, view_of_an_unaligned_buffer_of_whole_words) {
   EXPECT_EQ(view.size(), 1);
   EXPECT_TRUE(view.describes("/users"));
 }
+
+// A write that fails after the file opened leaves the saved data incomplete,
+// which is reported rather than passed over as a save that went through. Only
+// Linux offers a destination that accepts the open and refuses every write
+#if defined(__linux__)
+TEST_F(URITemplateRouterViewTest, save_to_a_destination_with_no_room_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_1", 1);
+  const std::filesystem::path target{"/dev/full"};
+  try {
+    sourcemeta::core::URITemplateRouterView::save(router, target);
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterSaveError &error) {
+    EXPECT_STREQ(error.what(), "Failed to write router data to file");
+    EXPECT_EQ(error.path(), target);
+  } catch (...) {
+    FAIL();
+  }
+}
+#endif

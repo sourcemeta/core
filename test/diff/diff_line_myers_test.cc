@@ -1203,3 +1203,18 @@ TEST(line_writer_embedded_null_length_safe) {
   expected += "changed\n";
   EXPECT_EQ(stream.str(), expected);
 }
+
+// A change that sits on one of several equal lines is shifted to the last of
+// them, so the hunk reads as a change to the end of the run rather than to an
+// arbitrary line within it
+TEST(deleting_one_of_two_equal_lines_shifts_the_hunk_to_the_last) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nb\nc\n", "a\nb\nc\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -2,3 +2,2 @@\n"
+                               " b\n"
+                               "-b\n"
+                               " c\n");
+}

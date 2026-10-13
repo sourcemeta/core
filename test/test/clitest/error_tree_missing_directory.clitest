@@ -1,0 +1,2 @@
+TREE missing INTO out.txt
+COMPARE out.txt AGAINST expected.txt

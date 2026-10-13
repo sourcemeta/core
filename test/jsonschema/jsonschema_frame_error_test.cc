@@ -2818,6 +2818,8 @@ TEST(a_metaschema_outside_the_selected_schema_is_out_of_scope) {
     }
   })JSON");
 
+  const sourcemeta::core::Pointer selected{"selected"};
+
   try {
     [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References,
@@ -2827,8 +2829,7 @@ TEST(a_metaschema_outside_the_selected_schema_is_out_of_scope) {
         "https://json-schema.org/draft/2020-12/schema",
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
-        {sourcemeta::core::to_weak_pointer(
-            sourcemeta::core::Pointer{"selected"})}};
+        {sourcemeta::core::to_weak_pointer(selected)}};
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
@@ -2860,6 +2861,9 @@ TEST(a_metaschema_carried_by_another_selected_path_is_out_of_scope) {
     }
   })JSON");
 
+  const sourcemeta::core::Pointer first{"a"};
+  const sourcemeta::core::Pointer second{"b"};
+
   try {
     [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References,
@@ -2869,8 +2873,8 @@ TEST(a_metaschema_carried_by_another_selected_path_is_out_of_scope) {
         "https://json-schema.org/draft/2020-12/schema",
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
-        {sourcemeta::core::to_weak_pointer(sourcemeta::core::Pointer{"a"}),
-         sourcemeta::core::to_weak_pointer(sourcemeta::core::Pointer{"b"})}};
+        {sourcemeta::core::to_weak_pointer(first),
+         sourcemeta::core::to_weak_pointer(second)}};
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
@@ -3181,6 +3185,94 @@ TEST(subschema_dialect_that_is_not_a_uri) {
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
     EXPECT_EQ(error.keyword(), "$schema");
     EXPECT_EQ(error.value(), "http://example.com:99999999999/");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A dialect is a URI, so one that cannot be parsed as such is refused where it
+// is read rather than carried as far as whatever would resolve it
+TEST(embedded_resource_whose_dialect_is_unparseable) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "embedded": {
+        "$id": "https://example.com/embedded",
+        "$schema": "http://[vA.123456"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "http://[vA.123456");
+    EXPECT_STREQ(error.what(), "The dialect is not a valid URI");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Framing only the given paths leaves the document itself unregistered, so
+// there is no root to read a meta-schema off of
+TEST(metaschema_of_a_frame_that_never_registered_the_document) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "wrapper": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    }
+  })JSON");
+
+  const sourcemeta::core::Pointer wrapper{"wrapper"};
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "",
+      sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+      {sourcemeta::core::to_weak_pointer(wrapper)}};
+
+  try {
+    [[maybe_unused]] const auto &metaschema{
+        frame.metaschema(sourcemeta::core::schema_resolver)};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(), "The schema has no root location");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A document may carry the meta-schema it declares, and settling a base
+// dialect then walks from that copy to whatever it declares in turn. A copy
+// that names itself as its own dialect ends that walk nowhere
+TEST(embedded_metaschema_that_declares_itself) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://example.com/meta"
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not determine the base dialect of the schema");
   } catch (...) {
     FAIL();
   }

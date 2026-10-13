@@ -1,15 +1,16 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/test.h>
 
-#include <array>      // std::array
-#include <cstddef>    // std::byte
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::ifstream, std::istreambuf_iterator, std::ofstream
-#include <ios>        // std::ios::binary
-#include <ostream>    // std::ostream
-#include <span>       // std::span
-#include <stdexcept>  // std::runtime_error
-#include <string>     // std::string
+#include <array>       // std::array
+#include <cstddef>     // std::byte
+#include <filesystem>  // std::filesystem
+#include <fstream>     // std::ifstream, std::istreambuf_iterator, std::ofstream
+#include <ios>         // std::ios::binary
+#include <ostream>     // std::ostream
+#include <span>        // std::span
+#include <stdexcept>   // std::runtime_error
+#include <string>      // std::string
+#include <string_view> // std::string_view
 #include <system_error> // std::error_code
 
 class IOWriteFileTest {
@@ -169,3 +170,19 @@ TEST_F(IOWriteFileTest, read_only_parent_throws_permission_error) {
   }
 }
 #endif
+
+// A path that names a directory refuses the open for a reason of its own, and
+// what the standard library raised for it is what reaches the caller, since
+// only a refusal over permissions carries a meaning worth restating
+TEST_F(IOWriteFileTest, path_that_names_a_directory) {
+  const auto path{this->workspace_ / "folder"};
+  std::filesystem::create_directories(path);
+  try {
+    sourcemeta::core::write_file(path, "hello");
+    FAIL();
+  } catch (const sourcemeta::core::IOFilePermissionError &) {
+    FAIL();
+  } catch (const std::exception &error) {
+    EXPECT_FALSE(std::string_view{error.what()}.empty());
+  }
+}

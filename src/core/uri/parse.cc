@@ -655,10 +655,10 @@ auto do_parse(const std::string_view input,
     }
   }
 
-  if (position < input.size()) [[unlikely]] {
-    throw sourcemeta::core::URIParseError{
-        static_cast<std::uint64_t>(position + 1)};
-  }
+  // Each of the three above either takes what it reads or refuses it outright,
+  // and the last reads to the end rather than stopping at a delimiter, so none
+  // of them hands back an input with anything of it left over
+  assert(position == input.size());
 
   return has_scheme;
 }

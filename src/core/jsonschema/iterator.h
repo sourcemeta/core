@@ -111,7 +111,7 @@ resolve_dialect_at(const sourcemeta::core::JSON &subschema,
                                        allow_dialect_override)};
   const auto override_active{
       local != sourcemeta::core::dialect(subschema, inherited_dialect, false)};
-  auto identifier{sourcemeta::core::identify(subschema, resolver, local, "",
+  auto identifier{sourcemeta::core::identify(subschema, resolver, local,
                                              allow_dialect_override)};
   // Telling whether an identifier counts takes a base dialect, which costs a
   // meta-schema to resolve, so a schema that declares none never asks. Note

@@ -543,19 +543,9 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
       }
 
       const auto stripped_scalar{strip_left(scalar->content, '\x00')};
-      const auto scalar_width{curve_field_bytes(parsed->curve)};
-      // A zero or oversized scalar is not a valid private key
-      if (stripped_scalar.empty() || stripped_scalar.size() > scalar_width) {
-        return std::nullopt;
-      }
-
-      auto padded_scalar{pad_left(stripped_scalar, scalar_width, '\x00')};
+      auto padded_scalar{
+          pad_left(stripped_scalar, curve_field_bytes(parsed->curve), '\x00')};
       const SecureStringScope padded_scalar_scope{padded_scalar};
-      // A scalar at or above the curve order is not a valid private key, so it
-      // is rejected before it drives the public point recovery
-      if (!ec_private_scalar_in_range(padded_scalar, parsed->curve)) {
-        return std::nullopt;
-      }
       auto point{ec_public_from_scalar(parsed->curve, padded_scalar)};
       return PrivateKey{
           new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
