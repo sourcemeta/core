@@ -473,7 +473,8 @@ TEST(openapi_3_0_nullable) {
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), OPENAPI_3_0_BASE);
-  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(std::ranges::equal(result.dependencies,
+                                 std::to_array<std::string_view>({"type"})));
   EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
