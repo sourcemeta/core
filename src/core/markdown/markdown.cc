@@ -11,8 +11,6 @@
 
 #include <algorithm>   // std::min
 #include <cstddef>     // std::size_t
-#include <cstdint>     // std::uint32_t
-#include <limits>      // std::numeric_limits
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view

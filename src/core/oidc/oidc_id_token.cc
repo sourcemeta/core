@@ -8,9 +8,9 @@
 
 #include <chrono> // std::chrono::system_clock, std::chrono::seconds, std::chrono::duration, std::chrono::duration_cast
 #include <cstdint>     // std::int64_t
-#include <optional>    // std::optional
+#include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
-#include <stdexcept>   // std::out_of_range, std::nullopt
+#include <stdexcept>   // std::out_of_range
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
