@@ -554,6 +554,31 @@ TEST(to_integral_already_integer) {
   EXPECT_EQ(value.to_integral(), expected);
 }
 
+// Rounding up the last nine of a coefficient carries into a digit that was not
+// there before, so the result is one digit wider than what it came from
+TEST(to_integral_rounds_up_into_an_extra_digit) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"9.5"}.to_integral(),
+            sourcemeta::core::Decimal{10});
+  EXPECT_EQ(sourcemeta::core::Decimal{"9.9"}.to_integral(),
+            sourcemeta::core::Decimal{10});
+  EXPECT_EQ(sourcemeta::core::Decimal{"99.9"}.to_integral(),
+            sourcemeta::core::Decimal{100});
+}
+
+TEST(to_integral_below_the_tie_keeps_the_digit_count) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"9.4"}.to_integral(),
+            sourcemeta::core::Decimal{9});
+}
+
+TEST(to_integral_rounds_a_negative_up_into_an_extra_digit) {
+  EXPECT_EQ(sourcemeta::core::Decimal{"-9.5"}.to_integral(),
+            sourcemeta::core::Decimal{-10});
+  EXPECT_EQ(sourcemeta::core::Decimal{"-9.9"}.to_integral(),
+            sourcemeta::core::Decimal{-10});
+  EXPECT_EQ(sourcemeta::core::Decimal{"-99.9"}.to_integral(),
+            sourcemeta::core::Decimal{-100});
+}
+
 TEST(factory_nan) {
   const auto nan_value{sourcemeta::core::Decimal::nan()};
   EXPECT_TRUE(nan_value.is_nan());
@@ -5758,6 +5783,57 @@ TEST(add_negative_scaled_zero_to_positive_zero) {
   EXPECT_FALSE(result.is_signed());
 }
 
+// A sum of zeros is positive unless both operands were negative, and the
+// quantum it keeps is the finer of the two, even with one operand stored at the
+// top of the exponent range and the other at the bottom
+TEST(add_a_negative_zero_far_below_a_zero_gives_a_positive_zero) {
+  const sourcemeta::core::Decimal left{"0e2147483647"};
+  const sourcemeta::core::Decimal right{"-0e-2147483648"};
+  const sourcemeta::core::Decimal quantum{"0e-2147483648"};
+  const auto forward{left + right};
+  const auto reverse{right + left};
+  EXPECT_TRUE(forward.is_zero());
+  EXPECT_FALSE(forward.is_signed());
+  EXPECT_FALSE(forward.is_integer());
+  EXPECT_TRUE(forward.same_quantum(quantum));
+  EXPECT_TRUE(reverse.is_zero());
+  EXPECT_FALSE(reverse.is_signed());
+  EXPECT_FALSE(reverse.is_integer());
+  EXPECT_TRUE(reverse.same_quantum(quantum));
+}
+
+TEST(add_a_zero_far_below_a_negative_zero_gives_a_positive_zero) {
+  const sourcemeta::core::Decimal left{"-0e2147483647"};
+  const sourcemeta::core::Decimal right{"0e-2147483648"};
+  const sourcemeta::core::Decimal quantum{"0e-2147483648"};
+  const auto forward{left + right};
+  const auto reverse{right + left};
+  EXPECT_TRUE(forward.is_zero());
+  EXPECT_FALSE(forward.is_signed());
+  EXPECT_FALSE(forward.is_integer());
+  EXPECT_TRUE(forward.same_quantum(quantum));
+  EXPECT_TRUE(reverse.is_zero());
+  EXPECT_FALSE(reverse.is_signed());
+  EXPECT_FALSE(reverse.is_integer());
+  EXPECT_TRUE(reverse.same_quantum(quantum));
+}
+
+TEST(add_two_negative_zeros_at_opposite_ends_of_the_exponent_range) {
+  const sourcemeta::core::Decimal left{"-0e2147483647"};
+  const sourcemeta::core::Decimal right{"-0e-2147483648"};
+  const sourcemeta::core::Decimal quantum{"0e-2147483648"};
+  const auto forward{left + right};
+  const auto reverse{right + left};
+  EXPECT_TRUE(forward.is_zero());
+  EXPECT_TRUE(forward.is_signed());
+  EXPECT_FALSE(forward.is_integer());
+  EXPECT_TRUE(forward.same_quantum(quantum));
+  EXPECT_TRUE(reverse.is_zero());
+  EXPECT_TRUE(reverse.is_signed());
+  EXPECT_FALSE(reverse.is_integer());
+  EXPECT_TRUE(reverse.same_quantum(quantum));
+}
+
 TEST(add_opposite_signs_gives_positive_zero) {
   const sourcemeta::core::Decimal left{-5};
   const sourcemeta::core::Decimal right{5};
@@ -6488,6 +6564,51 @@ TEST(to_integral_of_a_big_value_at_the_bottom_of_the_exponent_range_is_zero) {
       "1234567890123456789012345e-2147483648"};
   const auto result{value.to_integral()};
   EXPECT_TRUE(result.is_zero());
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+// A decimal point that sits past every digit the coefficient holds leaves no
+// digit on the integer side to round towards, and the zero that comes out of
+// it keeps the sign it went in with
+TEST(to_integral_of_a_zero_scaled_below_the_integer_boundary_is_zero) {
+  const sourcemeta::core::Decimal value{"0e-18"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+TEST(to_integral_of_a_negative_zero_scaled_down_keeps_its_sign) {
+  const sourcemeta::core::Decimal value{"-0e-36"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+TEST(to_integral_of_a_value_below_the_integer_boundary_is_zero) {
+  const sourcemeta::core::Decimal value{"600000000000000000e-36"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+TEST(to_integral_of_a_negative_below_the_integer_boundary_keeps_its_sign) {
+  const sourcemeta::core::Decimal value{"-600000000000000000e-36"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.is_signed());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+TEST(to_integral_below_the_integer_boundary_matches_the_exponent_form) {
+  const sourcemeta::core::Decimal full{"600000000000000000e-36"};
+  const sourcemeta::core::Decimal exponential{"6e-19"};
+  const auto result{exponential.to_integral()};
+  EXPECT_EQ(full.to_integral(), result);
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_FALSE(result.is_signed());
   EXPECT_EQ(result.to_string(), "0");
 }
 

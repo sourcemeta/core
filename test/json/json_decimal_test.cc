@@ -1299,3 +1299,19 @@ TEST(divisible_by_across_the_whole_exponent_range_is_false) {
       sourcemeta::core::Decimal{"3e-2147483648"}};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
+
+// Spelling the same divisor out in full digits rather than as a power of ten
+// takes more room to hold, and the verdict cannot turn on which spelling the
+// caller reached for, however far the dividend sits above it
+TEST(divisible_by_a_wide_exponent_gap_with_the_divisor_in_full_digits) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e100"}};
+  const sourcemeta::core::JSON divisor{
+      sourcemeta::core::Decimal{"10000000000000000000"}};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_a_wide_exponent_gap_with_the_divisor_in_exponent_form) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e100"}};
+  const sourcemeta::core::JSON divisor{sourcemeta::core::Decimal{"1e19"}};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
