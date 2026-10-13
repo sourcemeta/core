@@ -76,8 +76,6 @@ enum class KnownSchema : std::uint8_t {
   OAS_3_0_DIALECT_2024_10_18,
   OAS_3_0_DIALECT_2021_09_28,
 
-  OAS_2_0_DIALECT_2017_08_27,
-
   UNKNOWN
 };
 
@@ -467,15 +465,6 @@ static auto parse_identifier(const std::string_view identifier) -> KnownSchema {
     return KnownSchema::OAS_3_0_DIALECT_2021_09_28;
   }
 
-  // Swagger v2.0
-  //
-  // The Schema Object of this revision goes by no dialect identifier either,
-  // so we mint one the same way. Only one release of the document schema that
-  // carries it was ever published, so there is only one to mint
-  if (identifier == "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect") {
-    return KnownSchema::OAS_2_0_DIALECT_2017_08_27;
-  }
-
   return KnownSchema::UNKNOWN;
 }
 
@@ -813,30 +802,6 @@ auto sourcemeta::core::schema_resolver(const std::string_view identifier)
 })EOF")};
       return SCHEMA;
     }
-    // This revision describes its Schema Object within its document schema
-    // too, so the dialect encapsulates that document for the same reasons.
-    // Two things set it apart. A schema of this dialect is either a Schema
-    // Object or the narrower form a response uses to describe a file, rather
-    // than a Schema Object or a reference, since this revision spells a
-    // reference as a member of the Schema Object itself. And its document
-    // schema leans on the meta-schema of its own base dialect for a number of
-    // keyword definitions rather than restating them, so reading a schema
-    // against this dialect reaches for that meta-schema as well
-    case KnownSchema::OAS_2_0_DIALECT_2017_08_27: {
-      static const auto SCHEMA{sourcemeta::core::parse_json(R"EOF({
-  "id": "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect",
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "The Swagger v2.0 Schema Object dialect",
-  "anyOf": [
-    { "$ref": "#/definitions/swagger/definitions/schema" },
-    { "$ref": "#/definitions/swagger/definitions/fileSchema" }
-  ],
-  "definitions": {
-    "swagger": @OPENAPI_OAS_2_0_SCHEMA_2017_08_27@
-  }
-})EOF")};
-      return SCHEMA;
-    }
     case KnownSchema::UNKNOWN:
       return std::nullopt;
   }
@@ -914,7 +879,6 @@ auto sourcemeta::core::schema_is_official(
     case KnownSchema::OAS_3_1_META_2024_10_25:
     case KnownSchema::OAS_3_0_DIALECT_2024_10_18:
     case KnownSchema::OAS_3_0_DIALECT_2021_09_28:
-    case KnownSchema::OAS_2_0_DIALECT_2017_08_27:
     case KnownSchema::UNKNOWN:
       return false;
   }

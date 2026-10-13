@@ -533,15 +533,6 @@ auto pre_vocabulary_dialect_to_known(const std::string_view dialect)
     return SchemaVocabularies::Known::OPENAPI_3_0_BASE;
   }
 
-  // The Swagger v2.0 Schema Object describes itself through the same Draft 4
-  // meta-schema, so it lands on the same base dialect that predates
-  // vocabularies. Its keyword set is a subset of that base dialect's plus five
-  // additions of its own, so reading it as that base dialect would honour
-  // keywords it does not define and leave its own unrecognised
-  if (dialect == "tag:spec.openapis.org,2017-08-27:oas/2.0/dialect") {
-    return SchemaVocabularies::Known::OPENAPI_2_0_BASE;
-  }
-
   return std::nullopt;
 }
 

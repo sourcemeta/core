@@ -74,11 +74,6 @@
   X(OPENAPI_3_0_BASE, "tag:spec.openapis.org,2017:oas/3.0/vocab/base")         \
   X(OPENAPI_3_1_BASE, "https://spec.openapis.org/oas/3.1/vocab/base")          \
   X(OPENAPI_3_2_BASE, "https://spec.openapis.org/oas/3.2/vocab/base")          \
-  /* The Schema Object of the oldest revision went by the Swagger name, and    \
-     the authority of that name is the one the only identifier it ever         \
-     carried was minted under, so this tag names it too. Its date is that of   \
-     the specification, which predates the authority the later tags name */    \
-  X(OPENAPI_2_0_BASE, "tag:swagger.io,2014:oas/2.0/vocab/base")                \
   /* Sourcemeta vocabularies */                                                \
   X(SOURCEMETA_EXTENSION_V1, "tag:sourcemeta.com,2026:extension/v1")
 
