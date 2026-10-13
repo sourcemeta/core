@@ -1023,3 +1023,25 @@ TEST(missing_stored_block_length) {
                                         0x00, 0x00, 0x00, 0xff, 0x01};
   EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
 }
+
+// RFC 1951 section 3.2.7 sanctions an incomplete code that holds a single
+// one-bit codeword, which leaves the other half of the table standing for no
+// symbol at all, so a code-length read landing there names nothing
+TEST(dynamic_block_code_length_outside_an_incomplete_table) {
+  const std::vector<std::uint8_t> input{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x05, 0x00, 0x02, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Invalid Huffman code");
+}
+
+// The same code read off the padding that stands in for input that never
+// arrived says only that the source ended, since the bits it turned on were
+// never the author's to begin with
+TEST(dynamic_block_code_length_read_past_the_end) {
+  const std::vector<std::uint8_t> input{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                        0x00, 0x00, 0x00, 0x00, 0xff,
+                                        0x05, 0x00, 0x02, 0x20};
+  EXPECT_GZIP_DECOMPRESS_ERROR(input, "Unexpected end of source stream");
+}

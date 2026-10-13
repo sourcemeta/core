@@ -1434,3 +1434,25 @@ TEST(validate_rejects_a_required_code_hash_that_does_not_match) {
       "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
+
+// A value past what a double stands for cannot be read as one in the first
+// place, which is a different refusal from a value that reads but names a time
+// the clock cannot hold
+TEST(validate_treats_an_auth_time_past_the_double_range_as_absent) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "auth_time": 1e400,
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_authentication_age = std::chrono::hours{2};
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(rejected.has_value());
+}

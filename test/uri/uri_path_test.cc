@@ -1161,3 +1161,18 @@ TEST(append_path_rvalue_reference_on_a_relative_reference) {
   uri.append_path(std::move(reference));
   EXPECT_EQ(uri.recompose(), "base/extra");
 }
+
+// A reference with an authority but no scheme still names a root for its path
+// to hang off, so what decides the leading slash is the authority rather than
+// the scheme that is missing
+TEST(append_path_to_an_authority_without_a_scheme) {
+  sourcemeta::core::URI uri{"//example.com"};
+  uri.append_path("test");
+  EXPECT_EQ(uri.recompose(), "//example.com/test");
+}
+
+TEST(append_path_to_a_urn) {
+  sourcemeta::core::URI uri{"urn:example:a"};
+  uri.append_path("b");
+  EXPECT_EQ(uri.recompose(), "urn:example:a/b");
+}

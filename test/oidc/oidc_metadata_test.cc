@@ -914,3 +914,23 @@ TEST(make_emits_the_request_parameter_capability_when_supported) {
   EXPECT_TRUE(document.has_value());
   EXPECT_TRUE(document.value().at("request_parameter_supported").to_boolean());
 }
+
+// RFC 8414 Section 2 makes the issuer a REQUIRED issuer identifier, which the
+// provider document is built on top of, so an issuer the layer below refuses
+// leaves nothing for this one to add to
+TEST(make_refuses_an_issuer_the_underlying_document_rejects) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example/path?query=1";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_make_provider_metadata(config).has_value());
+}

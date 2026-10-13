@@ -354,3 +354,47 @@ TEST(unclosed_inline_declarations) {
       sourcemeta::core::markdown_to_html("x" + repeat("<!A ", 5000))};
   EXPECT_EQ(result, "<p>x" + repeat("&lt;!A ", 4999) + "&lt;!A</p>\n");
 }
+
+// The parser addresses its input through 32-bit offsets, which is a reach no
+// caller can widen, but a caller with less to spend than that may hold a
+// conversion to a smaller input than the one it was handed
+TEST(input_past_the_bound_the_caller_allows) {
+  try {
+    sourcemeta::core::markdown_to_html("Hello **world**", true, 8);
+    FAIL();
+  } catch (const sourcemeta::core::MarkdownError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The input is larger than the supported size bound");
+  }
+
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("Hello **world**", true, 15),
+            "<p>Hello <strong>world</strong></p>\n");
+}
+
+TEST(input_past_the_bound_the_caller_allows_when_unsafe) {
+  try {
+    sourcemeta::core::markdown_to_html("<b>x</b>", false, 4);
+    FAIL();
+  } catch (const sourcemeta::core::MarkdownError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The input is larger than the supported size bound");
+  }
+
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("<b>x</b>", false, 8),
+            "<p><b>x</b></p>\n");
+}
+
+// The replacement a malformed byte sequence goes through stands in for it
+// before the bound is read, so what the bound counts is what the parser is
+// handed rather than what the caller wrote. Two bytes arrive and four are
+// parsed, so a bound of two passes on what was written and fails on what the
+// repair made of it
+TEST(input_past_the_bound_the_caller_allows_after_replacement) {
+  try {
+    sourcemeta::core::markdown_to_html("a\xFF", true, 2);
+    FAIL();
+  } catch (const sourcemeta::core::MarkdownError &error) {
+    EXPECT_STREQ(error.what(),
+                 "The input is larger than the supported size bound");
+  }
+}

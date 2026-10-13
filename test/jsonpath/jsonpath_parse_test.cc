@@ -569,3 +569,31 @@ TEST(parse_rejects_an_integer_literal_too_large_to_hold) {
 TEST(parse_rejects_an_integer_literal_below_the_allowed_range) {
   EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==-9007199254740992]", 26);
 }
+
+// RFC 9535 Section 2.4.1 writes a function expression as the function name
+// followed by its arguments in parentheses, so a name standing on its own is
+// not one however well the name itself reads
+TEST(jsonpath_parse_function_name_without_arguments) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?length]", 10);
+}
+
+// RFC 9535 Section 2.1 restricts a query to I-JSON, which RFC 7493 Section 2.2
+// keeps within the range the double precision format reaches, so a literal
+// written past that range names no value a query may carry
+TEST(jsonpath_parse_number_literal_past_every_representable_value) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == 1e99999999999999999999]", 33);
+}
+
+// RFC 9535 Section 2.4.1 writes a function expression as the function name
+// followed by its arguments in parentheses, so a name standing alone is not
+// one, which a logical-not leaves nowhere else to be read as
+TEST(jsonpath_parse_function_name_without_parentheses) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?!length]", 11);
+}
+
+// The I-JSON range above is a bound on the value, which a literal of zero
+// passes however large an exponent it is spelled with, leaving a scale that no
+// decimal can carry for the reading itself to turn down
+TEST(jsonpath_parse_zero_with_an_exponent_past_every_scale) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == 0e2147483648]", 23);
+}

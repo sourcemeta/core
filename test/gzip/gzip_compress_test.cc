@@ -615,3 +615,12 @@ TEST(compress_long_repeat_at_a_short_non_overlapping_distance_round_trips) {
   EXPECT_GZIP_DECOMPRESS(compressed, input);
   EXPECT_LT(compressed.size(), input.size());
 }
+
+// A match found one position before the end of the search window is held back
+// in case the next position does better, and the window closes before that
+// next position is reached, so the held match is what the block ends on
+TEST(compress_match_deferred_as_the_search_window_closes_round_trips) {
+  const std::string input{"MATCHfghijklmnopqrstuvwxyMATCHabc"};
+  const auto compressed{compress(input, 9)};
+  EXPECT_GZIP_DECOMPRESS(compressed, input);
+}

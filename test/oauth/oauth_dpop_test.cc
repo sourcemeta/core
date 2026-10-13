@@ -1330,3 +1330,63 @@ TEST(replay_store_zero_capacity_falls_back_to_the_default) {
   EXPECT_FALSE(store.check_and_insert("id", "https://server.example.com/token",
                                       FIXED_TIME, std::chrono::seconds{300}));
 }
+
+// RFC 9449 Section 4.2 signs the target URI, which RFC 9110 Section 4.2.1
+// gives an authority, so a URI that names a scheme and no authority at all
+// names no target to bind the proof to however well it parses
+TEST(proofer_rejects_a_target_without_an_authority) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  sourcemeta::core::OAuthDPoPProofer proofer{
+      std::move(key.value()), sourcemeta::core::JWSAlgorithm::ES256};
+  std::string proof;
+  EXPECT_FALSE(proofer.proof("https://server.example.com", "POST",
+                             "urn:example:token", "", FIXED_TIME, proof));
+  EXPECT_TRUE(proof.empty());
+}
+
+// RFC 9449 Section 4.3 check 7 turns down a proof whose embedded key carries
+// private material, which leaves a key that is an object holding none of it
+// still to be read as a key before anything can be bound to it
+TEST(proof_thumbprint_rejects_a_jwk_header_that_is_not_a_key) {
+  const std::string proof{
+      "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7Imt0eSI6Im9vcHMifX0"
+      ".eyJodHUiOiJodHRwczovL3JzLmV4YW1wbGUuY29tL3giLCJodG0iOiJQT1NUIiwianRpIjo"
+      "i"
+      "YWJjIiwiaWF0IjoxNzAwMDAwMDAwfQ.c2ln"};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_dpop_proof_thumbprint(proof).has_value());
+}
+
+// RFC 9449 Section 4.2 binds the proof to the public half of the key that
+// signed it, which a symmetric key has none of, so naming an asymmetric
+// algorithm over one leaves nothing to embed even though the algorithm passes
+TEST(proofer_rejects_a_key_with_no_public_half) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  sourcemeta::core::OAuthDPoPProofer proofer{
+      std::move(key.value()), sourcemeta::core::JWSAlgorithm::ES256};
+  std::string proof;
+  EXPECT_FALSE(proofer.proof("https://server.example.com", "POST",
+                             "https://server.example.com/token", "", FIXED_TIME,
+                             proof));
+  EXPECT_TRUE(proof.empty());
+}
+
+// An algorithm the signing key cannot answer for leaves nothing to sign the
+// proof with, which is settled where the signature is taken rather than when
+// the two were put together
+TEST(proofer_rejects_an_algorithm_the_key_cannot_sign_with) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  sourcemeta::core::OAuthDPoPProofer proofer{
+      std::move(key.value()), sourcemeta::core::JWSAlgorithm::RS256};
+  std::string proof;
+  EXPECT_FALSE(proofer.proof("https://server.example.com", "POST",
+                             "https://server.example.com/token", "", FIXED_TIME,
+                             proof));
+  EXPECT_TRUE(proof.empty());
+}

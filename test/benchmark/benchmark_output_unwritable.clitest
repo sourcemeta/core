@@ -1,0 +1,9 @@
+RUN --filter nothingmatchesthis --output . STDIN /dev/null IN . INTO result.txt EXPECTING 1
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "error: [^\n]+" WITH "error: <message>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+2> error: <message>
+2>   at file path .
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

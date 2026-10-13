@@ -195,3 +195,13 @@ TEST(non_ascii_label_with_a_label_over_63_octets_rejected) {
   const std::u32string label(60, U'\u00E9');
   EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(label));
 }
+
+// RFC 5891 §4.2.4 holds a label to 63 octets in A-label form, which is
+// measured by encoding it, so a label written far past that length is turned
+// down by the encoding running out of room to count with rather than by the
+// comparison that would have followed
+TEST(u_label_longer_than_the_encoding_can_count) {
+  std::u32string label(33000, U'a');
+  label.push_back(U'\x20000');
+  EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(label));
+}
