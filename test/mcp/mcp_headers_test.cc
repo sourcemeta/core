@@ -3677,3 +3677,326 @@ TEST(validate_request_headers_accepts_resources_unsubscribe_on_2025_11_25) {
                    envelope, SUPPORTED)
                    .has_value());
 }
+
+// MCP writes a metadata key as an optional reverse-DNS prefix, a solidus and a
+// name, so a key that opens with the separator names no prefix at all and one
+// that carries a second separator names more than the grammar allows
+TEST(request_meta_validation_rejects_a_key_opening_with_a_separator) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { "/name": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
+TEST(request_meta_validation_rejects_a_key_with_two_separators) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { "example.com/a/b": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
+// Each label of the prefix stands between dots, so a dot with no label before
+// it, a label opening with something other than a letter, a character the
+// grammar does not admit, and a prefix closing on a dot all name no prefix
+TEST(request_meta_validation_rejects_a_prefix_opening_with_a_dot) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { ".example/name": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
+TEST(request_meta_validation_rejects_a_prefix_label_opening_with_a_digit) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { "1example/name": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
+TEST(request_meta_validation_rejects_a_prefix_carrying_an_underscore) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { "exam_ple/name": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
+TEST(request_meta_validation_rejects_a_prefix_closing_on_a_dot) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { "example./name": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
+// A value that cannot travel in a header as it stands is carried base64
+// encoded between the markers, so what the comparison sees is what the
+// encoding spells out rather than the encoded form itself
+TEST(parameter_string_accepts_an_encoded_value) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::JSON{"hello"});
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{"Mcp-Param-Value", "=?base64?aGVsbG8=?="}}};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
+                   .has_value());
+}
+
+TEST(parameter_string_rejects_an_encoded_value_that_is_not_base64) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::JSON{"hello"});
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{"Mcp-Param-Value", "=?base64?!!!!?="}}};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_parameter_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  sourcemeta::core::JSON{0}, descriptors, arguments, views)
+                  .has_value());
+}
+
+// A header value carrying a byte no header may hold says nothing the
+// comparison can read, encoded or not
+TEST(parameter_string_rejects_a_value_with_a_forbidden_byte) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::JSON{"hello"});
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{"Mcp-Param-Value", "hel\x01lo"}}};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_parameter_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  sourcemeta::core::JSON{0}, descriptors, arguments, views)
+                  .has_value());
+}
+
+// A resource operation names what it acts on through its uri, so one whose
+// parameters carry no such name leaves the request unnamed rather than
+// falling back on a name meant for other operations
+TEST(request_name_from_body_of_a_resource_read_without_a_uri) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({
+        "method": "resources/read",
+        "params": { "name": "not-a-uri" }
+      })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::mcp_request_name_from_body(envelope).has_value());
+}
+
+// An operation that is not one of the resource ones is named by whichever of
+// the two it carries, so one carrying only a uri is named by that
+TEST(request_name_from_body_of_a_subscription_listen_with_a_uri) {
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({
+        "method": "subscriptions/listen",
+        "params": { "uri": "file:///a" }
+      })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_name_from_body(envelope).value(),
+            "file:///a");
+}
+
+// A protocol version travels as a header value, so one carrying a byte no
+// header may hold names no revision at all
+TEST(legacy_headers_reject_a_protocol_version_with_a_forbidden_byte) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 0, "method": "tools/list" })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "2025-\x01-26", "ignored", "ignored", envelope, SUPPORTED)
+                .value()
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Invalid protocol version header");
+}
+
+// A revision the server knows is still the wrong one to name once a session
+// has settled on another
+TEST(legacy_headers_reject_a_protocol_version_other_than_the_session_one) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 3> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25"}};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 0, "method": "tools/list" })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+                "2025-06-18", "ignored", "ignored", envelope, SUPPORTED)
+                .value()
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Protocol version disagrees with session");
+}
+
+// The name a request routes on travels in its own header, which a duplicate
+// of any routing header turns down before the request is read
+TEST(validate_request_headers_reject_a_duplicate_name_header) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 0, "method": "tools/call",
+    "params": {
+      "name": "weather",
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"mcp-protocol-version", "2026-07-28"},
+              {"Mcp-Method", "tools/call"},
+              {"Mcp-Name", "weather"},
+              {"mcp-name", "weather"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, headers,
+                envelope, SUPPORTED)
+                .value()
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Duplicate routing header");
+}
+
+// Before the routing headers existed, naming the protocol twice was a
+// malformed request rather than a routing conflict
+TEST(
+    validate_request_headers_reject_a_duplicate_protocol_header_on_2025_11_25) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
+      {"2025-11-25", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(
+      R"JSON({ "jsonrpc": "2.0", "id": 0, "method": "tools/list" })JSON")};
+  const std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                              sourcemeta::core::JSON::StringView>>
+      headers{{"mcp-protocol-version", "2025-11-25"},
+              {"MCP-Protocol-Version", "2025-11-25"}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2025_11_25, headers,
+                envelope, SUPPORTED)
+                .value()
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Duplicate protocol header");
+}
+
+// A revision the deployment lists as supported is still the wrong one to name
+// once this session speaks another, which is settled after the header and the
+// body have been held to each other
+TEST(validate_request_headers_reject_a_version_the_session_does_not_speak) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
+      {"2024-01-01", "2026-07-28"}};
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 0, "method": "tools/list",
+    "params": {
+      "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2024-01-01",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "2024-01-01", "tools/list", std::nullopt, envelope, SUPPORTED)
+                .value()
+                .at("error")
+                .at("code"),
+            sourcemeta::core::JSON{-32020});
+}
+
+// The arguments a call mirrors into headers are the object the call was made
+// with, so anything else mirrors nothing
+TEST(parameter_headers_reject_arguments_that_are_not_an_object) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0}, descriptors,
+                sourcemeta::core::JSON{42}, {})
+                .value()
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Invalid tool arguments");
+}
+
+// A nested parameter is reached by walking the path it names, which stops at
+// the first step that holds no further members, leaving the parameter absent
+TEST(parameter_headers_ignore_a_path_through_a_non_object) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"a", "b"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("a", sourcemeta::core::JSON{42});
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                   sourcemeta::core::JSON{0}, descriptors, arguments, {})
+                   .has_value());
+}
+
+// A header claiming a parameter the call never passed mirrors an argument
+// that is not there
+TEST(parameter_headers_reject_a_header_for_an_absent_parameter) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"a", "b"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("a", sourcemeta::core::JSON{42});
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{"Mcp-Param-Value", "anything"}}};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_parameter_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  sourcemeta::core::JSON{0}, descriptors, arguments, views)
+                  .has_value());
+}
+
+// An integer parameter is mirrored as the number it is, so a header that
+// spells no number at all matches nothing
+TEST(parameter_integer_rejects_a_header_that_is_not_a_number) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Value",
+        .path = {"value"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  auto arguments{sourcemeta::core::JSON::make_object()};
+  arguments.assign("value", sourcemeta::core::JSON{42});
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   1>
+      views{{{"Mcp-Param-Value", "forty two"}}};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_parameter_headers(
+                  sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                  sourcemeta::core::JSON{0}, descriptors, arguments, views)
+                  .has_value());
+}

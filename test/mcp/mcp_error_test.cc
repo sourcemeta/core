@@ -1034,9 +1034,13 @@ TEST(error_code_to_http_status_method_not_found_2026_07_28) {
 // travels on a 200, so there is no status to report for any code
 // https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
 TEST(error_code_to_http_status_method_not_found_2025_11_25) {
+  // The revision is held in a variable that is not itself constant, as a
+  // mapping handed nothing but constants is answered where it is written
+  // rather than where it is defined
+  sourcemeta::core::MCPProtocolVersion version{
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
   EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
-                   sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-                   sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND)
+                   version, sourcemeta::core::JSONRPC_CODE_METHOD_NOT_FOUND)
                    .has_value());
 }
 
@@ -1132,8 +1136,9 @@ TEST(error_code_to_http_status_resource_not_found) {
 }
 
 TEST(error_code_to_http_status_unmapped_code) {
+  std::int64_t code{-99999};
   EXPECT_FALSE(sourcemeta::core::mcp_error_code_to_http_status(
-                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, -99999)
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, code)
                    .has_value());
 }
 

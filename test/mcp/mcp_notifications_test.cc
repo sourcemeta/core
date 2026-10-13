@@ -1434,3 +1434,161 @@ TEST(validate_continuation_requires_a_present_empty_state_for_an_empty_echo) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
       ""));
 }
+
+// A tool result block names the call it answers and carries the content that
+// answers it, so a block missing either names no result
+// https://modelcontextprotocol.io/specification/2026-07-28/client/sampling
+TEST(validate_continuation_rejects_a_tool_result_without_content) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s1": {
+      "role": "assistant",
+      "model": "a-model",
+      "content": { "type": "tool_result", "toolUseId": "t1" }
+    } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "s1": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_tool_result_holding_a_bad_block) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s1": {
+      "role": "assistant",
+      "model": "a-model",
+      "content": {
+        "type": "tool_result",
+        "toolUseId": "t1",
+        "content": [ { "type": "text" } ]
+      }
+    } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "s1": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// The prior request a response answers is an object naming the method it was
+// sent for, so an entry that is anything else describes no request to match
+// the response against
+TEST(validate_continuation_rejects_a_prior_request_that_is_not_an_object) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s1": { "action": "decline" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({ "s1": 42 })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// A listing of roots is an array of them, so a response that carries no such
+// listing answers nothing that was asked
+TEST(validate_continuation_rejects_a_roots_response_without_roots) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "r": {} }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "roots/list" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// What a form comes back with is a flat answer per field, so a field answered
+// with a structure is not an answer the form asked for
+TEST(validate_continuation_rejects_a_structured_elicitation_answer) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "form": { "action": "accept", "content": { "x": { "y": 1 } } }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "form": {
+      "method": "elicitation/create",
+      "params": { "mode": "form", "message": "ask" }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// Only the three operations that may ask for input have an answer to read, so
+// anything else has no answer to be held against
+TEST(validate_continuation_rejects_a_response_to_an_unknown_request) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "r": {} }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "tools/list" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// What a tool handed back may point at a resource, and a link arriving from
+// the client is read as the text it is rather than being resolved here
+TEST(validate_continuation_accepts_a_received_resource_link) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": {
+      "s": {
+        "role": "assistant",
+        "model": "m",
+        "content": {
+          "type": "tool_result",
+          "toolUseId": "t",
+          "content": [
+            {
+              "type": "resource_link",
+              "uri": "file:///a",
+              "name": "a",
+              "mimeType": "text/plain"
+            }
+          ]
+        }
+      }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "s": { "method": "sampling/createMessage" }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
