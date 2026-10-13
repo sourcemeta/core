@@ -917,7 +917,7 @@ inline auto valid_resource(const MCPProtocolVersion version, const JSON &value,
       validation::field(value, "size", sourcemeta::core::MCP_HASH_SIZE)};
   return validation::base(value, received) &&
          validation::annotations(value, received) &&
-         ((size == nullptr) || (size->is_integer() && size->to_integer() >= 0));
+         ((size == nullptr) || (size->is_integral() && *size >= JSON{0}));
 }
 
 inline auto valid_content(const MCPProtocolVersion version, const JSON &value,
