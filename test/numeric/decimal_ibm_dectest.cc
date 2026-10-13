@@ -622,6 +622,16 @@ static auto should_skip_file(const std::string &filename) -> bool {
   const auto lower{to_lower(filename)};
   if (lower.starts_with("dd") || lower.starts_with("dq") ||
       lower.starts_with("ds")) {
+    // The fixed-format files set a precision and a rounding this Decimal
+    // cannot be asked for, so their arithmetic cannot be judged here. Copying,
+    // comparing and asking whether two operands share a quantum reach no
+    // context at all, and those families carry rows no other file does
+    if (lower.find("copy") != std::string::npos ||
+        lower.find("compare") != std::string::npos ||
+        lower.find("samequantum") != std::string::npos) {
+      return false;
+    }
+
     return true;
   }
   return lower.find("randoms") != std::string::npos ||
