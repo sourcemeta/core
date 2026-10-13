@@ -8854,3 +8854,872 @@ TEST(make_initialize_result_returns_invalid_request_when_params_is_an_array) {
   EXPECT_EQ(envelope.at("error").at("code").to_integer(),
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
+
+// MCP gives an annotation priority as a number from 0 to 1, so a value
+// outside that interval, or one that is no number at all, annotates nothing
+// the protocol can read
+
+TEST(make_resources_list_with_a_priority_above_the_interval) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(R"JSON([ {
+            "uri": "file:///a",
+            "name": "a",
+            "mimeType": "text/plain",
+            "annotations": { "priority": 2 }
+          } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(make_resources_list_with_a_priority_that_is_not_a_number) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(R"JSON([ {
+            "uri": "file:///a",
+            "name": "a",
+            "mimeType": "text/plain",
+            "annotations": { "priority": "high" }
+          } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+// The audience an annotation names is a list of roles, so neither a single
+// role standing on its own nor a role the protocol does not define says who
+// the annotation is for
+
+TEST(make_resources_list_with_an_audience_that_is_not_a_list) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(R"JSON([ {
+            "uri": "file:///a",
+            "name": "a",
+            "mimeType": "text/plain",
+            "annotations": { "audience": "user" }
+          } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(make_resources_list_with_an_audience_role_the_protocol_lacks) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(R"JSON([ {
+            "uri": "file:///a",
+            "name": "a",
+            "mimeType": "text/plain",
+            "annotations": { "audience": [ "administrator" ] }
+          } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+// Icons are a list of objects, each naming the sizes it comes in as
+// strings, so neither a lone icon nor a size that is not spelled out reads
+// as one
+
+TEST(make_resources_list_with_icons_that_are_not_a_list) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(R"JSON([ {
+            "uri": "file:///a",
+            "name": "a",
+            "mimeType": "text/plain",
+            "icons": { "src": "file:///icon.png" }
+          } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+TEST(make_resources_list_with_icon_sizes_that_are_not_strings) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
+                         sourcemeta::core::parse_json(R"JSON([ {
+            "uri": "file:///a",
+            "name": "a",
+            "mimeType": "text/plain",
+            "icons": [ { "src": "file:///icon.png", "sizes": [ 48 ] } ]
+          } ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP resource descriptor entry");
+}
+
+// MCP gives a sampling request a list of messages, each naming the role that
+// sent it and the content it carries, so neither a bare value in place of the
+// list nor a role the protocol does not define describes a conversation
+// https://modelcontextprotocol.io/specification/2026-07-28/client/sampling
+
+TEST(input_required_with_messages_that_are_not_a_list) {
+  const sourcemeta::core::JSON identifier{1};
+  auto input_requests{sourcemeta::core::JSON::make_object()};
+  input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
+    "method": "sampling/createMessage",
+    "params": { "messages": "hello", "maxTokens": 10 }
+  })JSON"));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_input_required_response(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
+          identifier, std::move(input_requests), "state-token",
+          sourcemeta::core::MCPClientCapabilities{.sampling = true}),
+      "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_with_a_message_role_the_protocol_lacks) {
+  const sourcemeta::core::JSON identifier{1};
+  auto input_requests{sourcemeta::core::JSON::make_object()};
+  input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
+    "method": "sampling/createMessage",
+    "params": { "messages": [ { "role": "system", "content": { "type": "text", "text": "x" } } ], "maxTokens": 10 }
+  })JSON"));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_input_required_response(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
+          identifier, std::move(input_requests), "state-token",
+          sourcemeta::core::MCPClientCapabilities{.sampling = true}),
+      "Invalid or unsupported nested input requests");
+}
+
+// The options a sampling request carries alongside its messages each have a
+// shape of their own, so a prompt that is not text and stop sequences that are
+// not a list of text describe nothing the sampler can act on
+
+TEST(input_required_with_a_system_prompt_that_is_not_a_string) {
+  const sourcemeta::core::JSON identifier{1};
+  auto input_requests{sourcemeta::core::JSON::make_object()};
+  input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
+    "method": "sampling/createMessage",
+    "params": { "systemPrompt": 1, "messages": [ { "role": "user", "content": { "type": "text", "text": "x" } } ], "maxTokens": 10 }
+  })JSON"));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_input_required_response(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
+          identifier, std::move(input_requests), "state-token",
+          sourcemeta::core::MCPClientCapabilities{.sampling = true}),
+      "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_with_stop_sequences_that_are_not_strings) {
+  const sourcemeta::core::JSON identifier{1};
+  auto input_requests{sourcemeta::core::JSON::make_object()};
+  input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
+    "method": "sampling/createMessage",
+    "params": { "stopSequences": [ 1 ], "messages": [ { "role": "user", "content": { "type": "text", "text": "x" } } ], "maxTokens": 10 }
+  })JSON"));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_input_required_response(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
+          identifier, std::move(input_requests), "state-token",
+          sourcemeta::core::MCPClientCapabilities{.sampling = true}),
+      "Invalid or unsupported nested input requests");
+}
+
+// A tool call must be answered by the message that immediately follows it, so
+// a turn that answers only some of the calls it was given leaves the rest
+// unresolved and the conversation incomplete
+// https://modelcontextprotocol.io/specification/2026-07-28/client/sampling
+TEST(input_required_with_a_tool_call_left_unanswered) {
+  const sourcemeta::core::JSON identifier{1};
+  auto input_requests{sourcemeta::core::JSON::make_object()};
+  input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
+    "method": "sampling/createMessage",
+    "params": {
+      "maxTokens": 10,
+      "messages": [
+        {
+          "role": "assistant",
+          "content": [
+            { "type": "tool_use", "id": "t1", "name": "a", "input": {} },
+            { "type": "tool_use", "id": "t2", "name": "b", "input": {} }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            { "type": "tool_result", "toolUseId": "t1", "content": [] }
+          ]
+        }
+      ]
+    }
+  })JSON"));
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_input_required_response(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/call",
+          identifier, std::move(input_requests), "state-token",
+          sourcemeta::core::MCPClientCapabilities{.sampling = true,
+                                                  .sampling_tools = true}),
+      "Invalid or unsupported nested input requests");
+}
+
+// What a retried request carries is read only off a request that could be
+// retried in the first place, so an envelope with no usable identifier, one
+// whose method is not retriable, and one carrying no parameters all answer
+// with nothing rather than reaching for members that may not be there
+TEST(mrtr_accessors_ignore_an_envelope_without_an_identifier) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "method": "tools/call",
+    "params": { "inputResponses": {}, "requestState": "s" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_input_responses(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope),
+            nullptr);
+  EXPECT_FALSE(sourcemeta::core::mcp_request_state(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope)
+                   .has_value());
+}
+
+TEST(mrtr_accessors_ignore_a_method_that_cannot_be_retried) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "initialize",
+    "params": { "inputResponses": {}, "requestState": "s" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_input_responses(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope),
+            nullptr);
+  EXPECT_FALSE(sourcemeta::core::mcp_request_state(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope)
+                   .has_value());
+}
+
+TEST(mrtr_accessors_ignore_an_envelope_whose_parameters_are_not_an_object) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": []
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_input_responses(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope),
+            nullptr);
+  EXPECT_FALSE(sourcemeta::core::mcp_request_state(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope)
+                   .has_value());
+}
+
+// Both members are optional, so parameters that carry neither, or carry them
+// as something other than what they are read as, leave nothing to hand back
+TEST(mrtr_accessors_ignore_members_of_the_wrong_shape) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+    "params": { "inputResponses": 42, "requestState": 42 }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_request_input_responses(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope),
+            nullptr);
+  EXPECT_FALSE(sourcemeta::core::mcp_request_state(
+                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28, envelope)
+                   .has_value());
+}
+
+// A discovery result may carry instructions for the client, which are text,
+// so one carrying them as anything else describes nothing to follow
+TEST(write_result_server_discover_rejects_non_string_instructions) {
+  std::ostringstream stream;
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_write_result(
+          stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          "server/discover", sourcemeta::core::JSON{1},
+          sourcemeta::core::parse_json(R"JSON({
+            "supportedVersions": [ "2026-07-28" ],
+            "capabilities": {},
+            "instructions": 42
+          })JSON"),
+          sourcemeta::core::MCPCachePolicy{
+              .ttl_ms = 0, .scope = sourcemeta::core::MCPCacheScope::Private}),
+      "Invalid discovery instructions");
+}
+
+// The arguments of a tool call are read only off a tool call, so an envelope
+// with no usable identifier and one naming another operation both answer with
+// nothing
+TEST(tool_call_arguments_ignore_an_envelope_without_an_identifier) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "method": "tools/call",
+    "params": { "name": "foo", "arguments": {} }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
+}
+
+TEST(tool_call_arguments_ignore_another_operation) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "name": "foo", "arguments": {} }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
+}
+
+// A client names itself alongside what it supports, so a handshake whose
+// client is described as something other than an implementation is turned
+// down once the revision to answer in has been settled
+TEST(make_initialize_result_malformed_client_info_is_invalid_params) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 4> SUPPORTED{
+      {"2025-03-26", "2025-06-18", "2025-11-25", "2026-07-28"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "clientInfo": { "version": "1.0.0" },
+      "capabilities": {}
+    }
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": { "code": -32602, "message": "Invalid params" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED),
+            expected);
+}
+
+// A server may picture itself with icons, which travel alongside the rest of
+// what it says about itself
+TEST(make_initialize_result_carries_server_icons) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2025-11-25"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "clientInfo": { "name": "client", "version": "1.0.0" },
+      "capabilities": {}
+    }
+  })JSON")};
+  const auto icons{sourcemeta::core::parse_json(
+      R"JSON([ { "src": "https://example.com/a.png", "mimeType": "image/png" } ])JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {},
+                                                   .icons = &icons};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED)
+                .at("result")
+                .at("serverInfo")
+                .at("icons"),
+            icons);
+}
+
+// An icon says where it is drawn from, so one that says nothing pictures
+// nothing
+TEST(make_initialize_result_rejects_a_server_icon_without_a_source) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2025-11-25"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "clientInfo": { "name": "client", "version": "1.0.0" },
+      "capabilities": {}
+    }
+  })JSON")};
+  const auto icons{sourcemeta::core::parse_json(
+      R"JSON([ { "mimeType": "image/png" } ])JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {},
+                                                   .icons = &icons};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_initialize_response(
+                         request, capabilities, server, SUPPORTED),
+                     "Invalid MCP implementation information");
+}
+
+// A client's title is text, so a handshake describing it as anything else
+// describes no client
+TEST(make_initialize_result_non_string_client_title_is_invalid_params) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2025-11-25"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "clientInfo": { "name": "client", "version": "1.0.0", "title": 42 },
+      "capabilities": {}
+    }
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED)
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Invalid params");
+}
+
+// The nested requests are named one by one, so anything that does not name
+// them carries no request at all
+TEST(input_required_result_rejects_input_requests_that_are_not_an_object) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON([])JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A nested request is named by the envelope that carries it, so it names no
+// identifier and no protocol of its own
+TEST(input_required_result_rejects_a_nested_request_with_an_identifier) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "roots/list", "id": 1 }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A server only asks for what the client said it could answer
+TEST(input_required_result_rejects_roots_without_the_capability) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "roots/list" }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// What the user is being asked is the one thing an elicitation cannot leave
+// out
+TEST(input_required_result_rejects_an_elicitation_without_a_message) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "elicitation/create" }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// An elicitation is answered either in a form or at an address, and naming
+// any other way of asking names none of them
+TEST(input_required_result_rejects_an_unknown_elicitation_mode) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_form = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": { "mode": "chat", "message": "ask" }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Sending the user out of band is its own capability, which a client that
+// never claimed it cannot be asked to act on
+TEST(input_required_result_rejects_a_url_elicitation_without_the_capability) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url",
+        "message": "visit",
+        "url": "https://example.com"
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A client may say which models it would rather be served by, naming each as
+// a hint the server is free to read or ignore
+TEST(input_required_result_accepts_sampling_model_hints) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_EQ(sourcemeta::core::mcp_make_input_required_response(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                "tools/call", sourcemeta::core::JSON{0},
+                sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "modelPreferences": {
+          "costPriority": 0.5,
+          "hints": [ { "name": "claude" } ]
+        },
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                std::nullopt, capabilities)
+                .at("result")
+                .at("resultType"),
+            sourcemeta::core::JSON{"input_required"});
+}
+
+TEST(input_required_result_rejects_sampling_hints_that_are_not_an_array) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "modelPreferences": { "hints": "claude" },
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A hint hints at a model by naming it, so one naming nothing hints at
+// nothing
+TEST(input_required_result_rejects_a_sampling_hint_without_a_name) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "modelPreferences": { "hints": [ { "name": 42 } ] },
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_sampling_tools_that_are_not_an_array) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "tools": {},
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_a_malformed_sampling_tool) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_tools = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "tools": [ { "description": "no name" } ],
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// How much surrounding conversation to draw on is named out of a closed set
+TEST(input_required_result_rejects_a_non_string_include_context) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_context = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "includeContext": 42,
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+TEST(input_required_result_rejects_an_unknown_include_context) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_context = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "includeContext": "everywhere",
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Drawing on anything beyond the request itself is its own capability, so a
+// client that never claimed it is only ever asked for none
+TEST(input_required_result_rejects_include_context_without_the_capability) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "includeContext": "thisServer",
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// A link stands in for a resource without carrying it, so it is held to the
+// same description the resource itself would be
+TEST(tool_success_accepts_a_resource_link_block) {
+  EXPECT_EQ(sourcemeta::core::mcp_make_tool_success(
+                sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                sourcemeta::core::JSON{0},
+                sourcemeta::core::JSON::make_object(),
+                sourcemeta::core::parse_json(R"JSON([
+    {
+      "type": "resource_link",
+      "uri": "file:///a",
+      "name": "a",
+      "mimeType": "text/plain"
+    }
+  ])JSON"))
+                .at("result")
+                .at("content")
+                .at(0)
+                .at("type"),
+            sourcemeta::core::JSON{"resource_link"});
+}
+
+// What a resource is written in is a media type, so a link describing it as
+// something that names no type describes nothing
+TEST(tool_success_rejects_a_resource_link_with_a_malformed_media_type) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_success(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON{0},
+                         sourcemeta::core::JSON::make_object(),
+                         sourcemeta::core::parse_json(R"JSON([
+    { "type": "resource_link", "uri": "file:///a", "name": "a",
+      "mimeType": "not a media type" }
+  ])JSON")),
+                     "Invalid MCP content block");
+}
+
+TEST(tool_success_rejects_a_content_block_that_is_not_an_object) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tool_success(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::JSON{0},
+                         sourcemeta::core::JSON::make_object(),
+                         sourcemeta::core::parse_json(R"JSON([ 42 ])JSON")),
+                     "Invalid MCP content block");
+}
+
+// Each hint answers yes or no about how a tool behaves
+TEST(tools_list_rejects_a_non_boolean_tool_hint) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_tools_list_result(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         sourcemeta::core::parse_json(R"JSON([
+    {
+      "name": "weather",
+      "inputSchema": { "type": "object" },
+      "annotations": { "readOnlyHint": "yes" }
+    }
+  ])JSON"),
+                         std::nullopt, {}),
+                     "Invalid MCP tool descriptor entry");
+}
+
+// What a client can be asked for is described one operation at a time, each
+// as its own object
+TEST(make_initialize_result_rejects_malformed_client_request_capabilities) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2025-11-25"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-11-25",
+      "clientInfo": { "name": "client", "version": "1.0.0" },
+      "capabilities": { "tasks": { "requests": { "sampling": 42 } } }
+    }
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED)
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Invalid params");
+}
+
+TEST(make_initialize_result_rejects_malformed_client_elicitation_capability) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 1> SUPPORTED{
+      {"2025-06-18"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "clientInfo": { "name": "client", "version": "1.0.0" },
+      "capabilities": { "elicitation": 42 }
+    }
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED)
+                .at("error")
+                .at("message")
+                .to_string(),
+            "Invalid params");
+}
+
+// Every content block says what kind it is before anything else about it can
+// be read
+TEST(tool_success_rejects_a_content_block_without_a_type) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_tool_success(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          sourcemeta::core::JSON{0}, sourcemeta::core::JSON::make_object(),
+          sourcemeta::core::parse_json(R"JSON([ { "text": "hi" } ])JSON")),
+      "Invalid MCP content block");
+}
+
+// Offering the model tools to call is its own capability
+TEST(input_required_result_rejects_sampling_tools_without_the_capability) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": {
+      "method": "sampling/createMessage",
+      "params": {
+        "maxTokens": 10,
+        "tools": [],
+        "messages": [
+          { "role": "user", "content": { "type": "text", "text": "hi" } }
+        ]
+      }
+    }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}
+
+// Only three operations ask the client for input, so nesting any other one
+// asks for nothing it could answer
+TEST(input_required_result_rejects_a_nested_request_of_another_operation) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.sampling = true;
+  capabilities.elicitation = true;
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_input_required_response(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "tools/call", sourcemeta::core::JSON{0},
+                         sourcemeta::core::parse_json(R"JSON({
+    "r": { "method": "tools/list" }
+  })JSON"),
+                         std::nullopt, capabilities),
+                     "Invalid or unsupported nested input requests");
+}

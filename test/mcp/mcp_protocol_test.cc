@@ -3624,3 +3624,96 @@ TEST(supports_method_on_parsed_input) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_method(
       version.value(), document.at("method").to_string()));
 }
+
+// The name is held in a variable rather than written out at the call, as a
+// predicate handed nothing but constants is answered where it is written
+// rather than where it is defined
+TEST(no_revision_claims_an_unknown_request_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(no_revision_claims_an_unknown_server_request_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(no_revision_claims_an_unknown_notification_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(no_revision_claims_an_unknown_input_request_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_input_request_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(no_revision_supports_an_unknown_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(no_revision_claims_an_unknown_client_notification_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_client_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(no_revision_claims_an_unknown_server_notification_method) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_server_notification_method(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, unknown));
+}
+
+TEST(an_unknown_method_is_neither_retriable_nor_cacheable) {
+  const std::string unknown{"nothing/here"};
+  EXPECT_FALSE(sourcemeta::core::mcp_is_mrtr_method(unknown));
+  EXPECT_FALSE(sourcemeta::core::mcp_is_cacheable_method(unknown));
+}
