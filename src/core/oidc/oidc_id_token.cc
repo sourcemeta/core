@@ -10,7 +10,6 @@
 #include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
-#include <stdexcept>   // std::out_of_range
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -170,16 +169,12 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
   std::optional<std::chrono::system_clock::time_point> authentication_time;
   const auto *auth_time{payload.try_at("auth_time"sv, HASH_AUTH_TIME)};
   if (auth_time != nullptr && auth_time->is_number()) {
-    // A NumericDate may be non-integer (RFC 7519 Section 2), and a value beyond
-    // the range of a double cannot stand for a usable timestamp, so it is
-    // treated as absent rather than aborting, matching how the JWT layer reads
-    // the registered time claims
-    try {
-      authentication_time = from_unix_timestamp(
-          std::chrono::duration<double>{auth_time->as_real()});
-    } catch (const std::out_of_range &) {
-      authentication_time = std::nullopt;
-    }
+    // A NumericDate may be non-integer (RFC 7519 Section 2), and a value the
+    // clock cannot stand for comes back as no time at all, which reads as an
+    // absent claim rather than aborting, matching how the JWT layer reads the
+    // registered time claims
+    authentication_time = from_unix_timestamp(
+        std::chrono::duration<double>{auth_time->as_real()});
   }
 
   if (options.maximum_authentication_age.has_value()) {

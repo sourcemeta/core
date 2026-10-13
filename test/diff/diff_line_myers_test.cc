@@ -1218,3 +1218,25 @@ TEST(deleting_one_of_two_equal_lines_shifts_the_hunk_to_the_last) {
                                "-b\n"
                                " c\n");
 }
+
+// A run of changed lines that begins with the same line as the one just past
+// it leaves the hunk free to sit either side of that line, so the run is slid
+// along until it cannot move, which is what lines a deletion up with the last
+// of the repeats it could have taken
+TEST(deleted_run_slides_along_a_repeated_line) {
+  const auto result{
+      sourcemeta::core::diff("p\nS\nq\nS\nr\nS\ns\nS\nt\n", "p\nS\nr\nS\nt\n",
+                             sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -2,8 +2,4 @@\n"
+                               " S\n"
+                               "-q\n"
+                               "-S\n"
+                               " r\n"
+                               " S\n"
+                               "-s\n"
+                               "-S\n"
+                               " t\n");
+}

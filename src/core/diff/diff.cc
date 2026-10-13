@@ -224,9 +224,10 @@ auto diff(const std::string_view original, const std::string_view modified,
   std::vector<bool> original_changed(original_size, false);
   std::vector<bool> modified_changed(modified_size, false);
 
+  internal::MyersWorkspace workspace;
+
   switch (algorithm) {
-    case Diff::Algorithm::Myers: {
-      internal::MyersWorkspace workspace;
+    case Diff::Algorithm::Myers:
       // A search only needs its workspace once both sides have something left,
       // as any other case resolves to a plain insertion or deletion
       if (original_end > prefix && modified_end > prefix) {
@@ -240,7 +241,6 @@ auto diff(const std::string_view original, const std::string_view modified,
                               modified_identities, prefix, modified_end,
                               original_changed, modified_changed, workspace);
       break;
-    }
   }
 
   compact_changes(result.original, result.original_ends_with_newline,

@@ -431,3 +431,42 @@ TEST(error_digit_just_past_the_decimal_run) {
     EXPECT_STREQ(error.what(), "Invalid digit");
   }
 }
+
+// The bound a decode answers to counts the bytes it was handed rather than the
+// code points they stand for, as the position counter walks the encoded form
+TEST(decode_refuses_more_bytes_than_the_caller_allows) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::punycode_to_utf32("Mnchen-3ya", 9)};
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Input is too large");
+  }
+}
+
+TEST(decode_accepts_exactly_as_many_bytes_as_the_caller_allows) {
+  EXPECT_EQ(sourcemeta::core::punycode_to_utf8("Mnchen-3ya", 10),
+            "M\xC3\xBCnchen");
+}
+
+TEST(decode_to_utf8_refuses_more_bytes_than_the_caller_allows) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::punycode_to_utf8("Mnchen-3ya", 9)};
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Input is too large");
+  }
+}
+
+TEST(decode_to_utf8_stream_refuses_more_bytes_than_the_caller_allows) {
+  std::istringstream input{"Mnchen-3ya"};
+  std::ostringstream output;
+
+  try {
+    sourcemeta::core::punycode_to_utf8(input, output, 9);
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Input is too large");
+  }
+}

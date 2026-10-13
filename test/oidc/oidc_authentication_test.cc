@@ -697,3 +697,22 @@ TEST(parse_drops_offline_access_scope_with_prompt_none) {
       storage, request, sourcemeta::core::OIDCProfile::Legacy));
   EXPECT_EQ(request.scope, "openid");
 }
+
+// OpenID Connect Core 1.0 Section 3.1.2.1 makes the client identifier and the
+// redirection URI REQUIRED, so the convenience has nothing to build a URL out
+// of when either is missing, whatever else it fills in for the caller
+TEST(authorization_url_convenience_without_a_client_identifier) {
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_authorization_url(
+          "https://server.example/authorize", "", "https://client.example/cb",
+          "xyz", "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "n-0S6_WzA2Mj")
+          .has_value());
+}
+
+TEST(authorization_url_convenience_without_a_redirection_uri) {
+  EXPECT_FALSE(sourcemeta::core::oidc_authorization_url(
+                   "https://server.example/authorize", "s6BhdRkqt3", "", "xyz",
+                   "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+                   "n-0S6_WzA2Mj")
+                   .has_value());
+}

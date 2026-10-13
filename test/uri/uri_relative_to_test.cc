@@ -650,3 +650,12 @@ TEST(ip_literal_base_and_registered_name_target_stay_absolute) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://v1.x/a/c");
 }
+
+// A URN carries its hierarchy inside the path rather than under a slashed
+// root, so walking up from its parent runs out of separators before reaching
+// one, which is where the walk gives up rather than stepping past the start
+TEST(relative_to_a_urn_whose_parent_has_no_further_separator) {
+  sourcemeta::core::URI uri{"urn:other:x"};
+  uri.relative_to(sourcemeta::core::URI{"urn:example:a/b"});
+  EXPECT_EQ(uri.recompose(), "urn:other:x");
+}

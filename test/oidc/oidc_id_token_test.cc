@@ -1434,3 +1434,25 @@ TEST(validate_rejects_a_required_code_hash_that_does_not_match) {
       "client-id", REFERENCE_NOW, options)};
   EXPECT_FALSE(identity.has_value());
 }
+
+// RFC 7519 Section 2 lets a NumericDate be non-integer, so a value past what a
+// timestamp can stand for is read as no authentication time at all rather than
+// aborting, which a freshness window then has nothing to measure against
+TEST(validate_rejects_an_auth_time_beyond_the_representable_range) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "auth_time": 1e300,
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_authentication_age = std::chrono::hours{2};
+  const auto rejected{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
+      "client-id", REFERENCE_NOW, options)};
+  EXPECT_FALSE(rejected.has_value());
+}

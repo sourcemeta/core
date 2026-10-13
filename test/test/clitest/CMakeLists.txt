@@ -84,6 +84,7 @@ add_clitest_test(write_without_until 1)
 
 
 add_clitest_run_test(error_bad_pattern 1)
+add_clitest_run_test(error_drop_bad_pattern 1)
 add_clitest_run_test(error_checksum_algorithm_is_not_sha256 1)
 add_clitest_run_test(error_checksum_binding_preposition 1)
 add_clitest_run_test(error_checksum_usage 1)

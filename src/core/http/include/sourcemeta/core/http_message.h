@@ -397,26 +397,24 @@ inline auto http_serialize_headers(const Headers &headers) -> std::string {
       continue;
     }
 
-    // RFC 9112 §5.1 notes that "a single SP preceding the field line
-    // value is preferred for consistent readability by humans"
+    // A field value either carries its own bytes or already is the bytes, so
+    // which of the two it is settles only what gets read out of it here
+    std::string_view bytes;
     if constexpr (requires { value.bytes(); }) {
-      if (http_field_line_has_forbidden_byte(value.bytes())) {
-        continue;
-      }
-
-      result += name;
-      result += ": ";
-      result += value.bytes();
+      bytes = value.bytes();
     } else {
-      if (http_field_line_has_forbidden_byte(value)) {
-        continue;
-      }
-
-      result += name;
-      result += ": ";
-      result += value;
+      bytes = value;
     }
 
+    if (http_field_line_has_forbidden_byte(bytes)) {
+      continue;
+    }
+
+    // RFC 9112 §5.1 notes that "a single SP preceding the field line
+    // value is preferred for consistent readability by humans"
+    result += name;
+    result += ": ";
+    result += bytes;
     result += "\r\n";
   }
 

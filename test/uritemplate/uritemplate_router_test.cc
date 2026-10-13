@@ -3284,3 +3284,21 @@ TEST(a_route_of_a_single_variable) {
   EXPECT_TRUE(router.describes("/anything"));
   EXPECT_FALSE(router.describes("/anything/else"));
 }
+
+// A segment that opens with a literal, turns into an expression and then
+// carries on in literal text again is reported whole, so the span widens past
+// the expression to wherever the segment actually ends
+TEST(add_rejects_a_literal_variable_literal_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/a{x}b", "op_bad", 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Path segment cannot mix literals and variables");
+    EXPECT_EQ(error.segment(), "a{x}b");
+  } catch (...) {
+    FAIL();
+  }
+}

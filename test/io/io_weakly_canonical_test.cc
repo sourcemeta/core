@@ -154,3 +154,27 @@ TEST(posix_relative_fifo) {
 }
 
 #endif
+
+// Creating symlinks on Windows requires elevated privileges, which CI
+// runners typically lack.
+#if !defined(_WIN32)
+// A symlink pointing at itself resolves to a loop, which is neither a missing
+// file nor anything else this maps, so it travels on as it came
+TEST(unmapped_error_surfaces_as_filesystem_error) {
+  const auto loop_path{std::filesystem::path{BUILD_DIRECTORY} /
+                       "sourcemeta_core_io_weakly_canonical_loop"};
+  std::filesystem::remove(loop_path);
+  std::filesystem::create_symlink(loop_path, loop_path);
+
+  try {
+    sourcemeta::core::weakly_canonical(loop_path);
+    FAIL();
+  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+    FAIL();
+  } catch (const std::filesystem::filesystem_error &error) {
+    EXPECT_EQ(error.path1(), loop_path);
+  }
+
+  std::filesystem::remove(loop_path);
+}
+#endif

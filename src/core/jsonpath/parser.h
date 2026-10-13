@@ -886,11 +886,10 @@ private:
       return JSON{exact.value()};
     }
 
-    try {
-      return JSON{Decimal{text}};
-    } catch (const DecimalParseError &) {
-      this->fail();
-    }
+    // The range check above holds the literal to what the double precision
+    // format reaches, which sits far inside the exponent a decimal carries, so
+    // reading it as one always answers
+    return JSON{Decimal{text}};
   }
 
   // filter-query = rel-query / jsonpath-query

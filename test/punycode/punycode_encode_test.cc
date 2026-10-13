@@ -414,3 +414,47 @@ TEST(error_encode_overflow) {
     EXPECT_STREQ(error.what(), "Encode overflow");
   }
 }
+
+// RFC 3492 Section 6.4 leaves bounding the input to the implementation, so a
+// caller may hold an encode to fewer code points than the position counters
+// could address
+TEST(encode_refuses_more_code_points_than_the_caller_allows) {
+  const std::u32string input{0x004D, 0x00FC, 0x006E, 0x0063,
+                             0x0068, 0x0065, 0x006E};
+
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::utf32_to_punycode(input, 6)};
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Input is too large");
+  }
+}
+
+TEST(encode_accepts_exactly_as_many_code_points_as_the_caller_allows) {
+  const std::u32string input{0x004D, 0x00FC, 0x006E, 0x0063,
+                             0x0068, 0x0065, 0x006E};
+  EXPECT_EQ(sourcemeta::core::utf32_to_punycode(input, 7), "Mnchen-3ya");
+}
+
+TEST(encode_from_utf8_refuses_more_code_points_than_the_caller_allows) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::utf8_to_punycode("M\xC3\xBCnchen", 6)};
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Input is too large");
+  }
+}
+
+TEST(encode_from_utf8_stream_refuses_more_code_points_than_the_caller_allows) {
+  std::istringstream input{"M\xC3\xBCnchen"};
+  std::ostringstream output;
+
+  try {
+    sourcemeta::core::utf8_to_punycode(input, output, 6);
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Input is too large");
+  }
+}

@@ -6,7 +6,7 @@
 #include <array>      // std::array
 #include <climits>    // INT64_MIN, INT64_MAX
 #include <cstdint>    // std::uint8_t, std::int64_t
-#include <cstring>    // std::memset
+#include <cstring>    // std::memset, std::memcpy
 #include <filesystem> // std::filesystem::path, std::filesystem::remove, std::filesystem::temp_directory_path
 #include <fstream>    // std::ifstream
 #include <iterator>   // std::istreambuf_iterator
@@ -5625,3 +5625,45 @@ TEST_F(URITemplateRouterViewTest, save_to_a_destination_with_no_room_throws) {
   }
 }
 #endif
+
+// A node naming its capture outside the string table has no name to hand back,
+// so the walk gives up where it reaches that node rather than reading past the
+// table it was handed
+TEST_F(URITemplateRouterViewTest,
+       match_rejects_an_optional_expansion_naming_a_string_past_the_table) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/list{/path*}", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path_, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  // The nodes follow the 48 byte header one after another, each 32 bytes wide,
+  // carrying the kind they are at offset 20 and the string they name at 0
+  std::uint32_t node_count{0};
+  std::memcpy(&node_count, blob.data() + 8, sizeof(node_count));
+  std::size_t optional_expansion{0};
+  for (std::uint32_t index = 0; index < node_count; ++index) {
+    if (blob.at(48 + (index * 32) + 20) == 4) {
+      optional_expansion = 48 + (index * 32);
+    }
+  }
+
+  EXPECT_TRUE(optional_expansion != 0);
+  const std::uint32_t past_the_table{0xFFFFFFFF};
+  std::memcpy(blob.data() + optional_expansion, &past_the_table,
+              sizeof(past_the_table));
+
+  const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
+  EXPECT_ROUTER_MATCH(view, "/list", 0, 0, captures);
+  EXPECT_TRUE(captures.empty());
+}

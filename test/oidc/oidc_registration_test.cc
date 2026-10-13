@@ -575,3 +575,24 @@ TEST(accepts_the_largest_representable_default_max_age) {
   EXPECT_EQ(metadata.value().default_max_age().value(),
             std::chrono::seconds::max());
 }
+
+// RFC 7591 Section 2 describes client metadata as a JSON object, so a document
+// that is anything else is turned down by the registration layer this one
+// builds on rather than by any rule of its own
+TEST(from_rejects_a_document_that_is_not_an_object) {
+  auto document{sourcemeta::core::parse_json("[]")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+// RFC 7591 Section 2: "The `jwks_uri` and `jwks` parameters MUST NOT both be
+// present in the same request or response"
+TEST(from_rejects_both_a_key_set_and_a_key_set_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "jwks_uri": "https://client.example/jwks.json",
+    "jwks": { "keys": [] }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}

@@ -3,7 +3,6 @@
 
 #include <cassert> // assert
 #include <cstddef> // std::size_t, std::ptrdiff_t
-#include <utility> // std::unreachable
 #include <vector>  // std::vector
 
 namespace sourcemeta::core::internal {
@@ -46,8 +45,13 @@ inline auto myers_middle_snake(const std::vector<std::size_t> &original,
   workspace.forward[static_cast<std::size_t>(offset + 1)] = 0;
   workspace.backward[static_cast<std::size_t>(offset + 1)] = 0;
 
-  const auto limit{(original_size + modified_size + 1) / 2};
-  for (std::ptrdiff_t depth{0}; depth <= limit; ++depth) {
+  [[maybe_unused]] const auto limit{(original_size + modified_size + 1) / 2};
+  // A middle snake always lands within the bounds the search was given, so one
+  // of the returns below is always taken. Spelling the search as a loop with no
+  // exit of its own is what says as much to every compiler, which otherwise has
+  // to be told separately that the end of the function is never reached
+  for (std::ptrdiff_t depth{0};; ++depth) {
+    assert(depth <= limit);
     for (std::ptrdiff_t diagonal{-depth}; diagonal <= depth; diagonal += 2) {
       const auto lower{
           workspace.forward[static_cast<std::size_t>(offset + diagonal - 1)]};
@@ -121,13 +125,6 @@ inline auto myers_middle_snake(const std::vector<std::size_t> &original,
       }
     }
   }
-
-  // A middle snake always lands within the bounds the search was given, so the
-  // loop above returns rather than running out. Unlike a function that ends
-  // after an exhaustive switch, the search is a loop whose returns are all
-  // conditional, so every compiler has to be told the end is never reached
-  assert(false);
-  std::unreachable();
 }
 
 inline auto myers_compare(const std::vector<std::size_t> &original,
@@ -137,17 +134,16 @@ inline auto myers_compare(const std::vector<std::size_t> &original,
                           std::vector<bool> &original_changed,
                           std::vector<bool> &modified_changed,
                           MyersWorkspace &workspace) -> void {
-  while (original_start < original_end && modified_start < modified_end &&
-         original[original_start] == modified[modified_start]) {
-    original_start += 1;
-    modified_start += 1;
-  }
-
-  while (original_start < original_end && modified_start < modified_end &&
-         original[original_end - 1] == modified[modified_end - 1]) {
-    original_end -= 1;
-    modified_end -= 1;
-  }
+  // The lines the two sides share at the head and at the tail are taken off
+  // before any of this is reached, which is what sizes the identity tables and
+  // the workspace, so no run of equal lines is left at either end to slide
+  // past here. A sub-problem begins and ends where a slide of the search
+  // stopped, and a slide stops exactly where the two sides differ, so the same
+  // holds of what the recursion hands back to itself
+  assert(original_start == original_end || modified_start == modified_end ||
+         original[original_start] != modified[modified_start]);
+  assert(original_start == original_end || modified_start == modified_end ||
+         original[original_end - 1] != modified[modified_end - 1]);
 
   if (original_start == original_end) {
     for (auto index{modified_start}; index < modified_end; ++index) {

@@ -945,3 +945,46 @@ TEST(reserved_expansion_of_a_percent_sign_with_no_hexadecimal) {
 
   EXPECT_EQ(result, "a%25zb");
 }
+
+// RFC 6570 Section 3.2.9 writes an exploded named expansion as a repetition of
+// "name=value", so a member that is the empty string still contributes its
+// name and the separator that would have introduced a value
+TEST(list_explode_query_with_an_empty_member) {
+  const sourcemeta::core::URITemplate uri_template{"{?list*}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?list=&list=x");
+}
+
+// A caller answering that more values follow and then handing over none has
+// nothing left to append, so the expansion stops where it was rather than
+// writing a separator for a value that never arrives
+TEST(list_explode_query_promising_more_than_it_gives) {
+  const sourcemeta::core::URITemplate uri_template{"{?list*}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?list=a");
+}
