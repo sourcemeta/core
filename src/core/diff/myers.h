@@ -134,16 +134,22 @@ inline auto myers_compare(const std::vector<std::size_t> &original,
                           std::vector<bool> &original_changed,
                           std::vector<bool> &modified_changed,
                           MyersWorkspace &workspace) -> void {
-  // The lines the two sides share at the head and at the tail are taken off
-  // before any of this is reached, which is what sizes the identity tables and
-  // the workspace, so no run of equal lines is left at either end to slide
-  // past here. A sub-problem begins and ends where a slide of the search
-  // stopped, and a slide stops exactly where the two sides differ, so the same
-  // holds of what the recursion hands back to itself
-  assert(original_start == original_end || modified_start == modified_end ||
-         original[original_start] != modified[modified_start]);
-  assert(original_start == original_end || modified_start == modified_end ||
-         original[original_end - 1] != modified[modified_end - 1]);
+  // The caller takes off the lines the two sides share at the head and at the
+  // tail before the search begins, but a middle snake can still leave a
+  // sub-problem whose own ends match: a forward search never looks behind
+  // where its snake starts, and a backward search never looks past where its
+  // snake ends, so each recursion trims again for itself
+  while (original_start < original_end && modified_start < modified_end &&
+         original[original_start] == modified[modified_start]) {
+    original_start += 1;
+    modified_start += 1;
+  }
+
+  while (original_start < original_end && modified_start < modified_end &&
+         original[original_end - 1] == modified[modified_end - 1]) {
+    original_end -= 1;
+    modified_end -= 1;
+  }
 
   if (original_start == original_end) {
     for (auto index{modified_start}; index < modified_end; ++index) {

@@ -590,3 +590,10 @@ TEST(jsonpath_parse_number_literal_past_every_representable_value) {
 TEST(jsonpath_parse_function_name_without_parentheses) {
   EXPECT_JSONPATH_PARSE_ERROR("$[?!length]", 11);
 }
+
+// The I-JSON range above is a bound on the value, which a literal of zero
+// passes however large an exponent it is spelled with, leaving a scale that no
+// decimal can carry for the reading itself to turn down
+TEST(jsonpath_parse_zero_with_an_exponent_past_every_scale) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == 0e2147483648]", 23);
+}

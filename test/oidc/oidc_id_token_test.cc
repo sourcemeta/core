@@ -1435,15 +1435,15 @@ TEST(validate_rejects_a_required_code_hash_that_does_not_match) {
   EXPECT_FALSE(identity.has_value());
 }
 
-// RFC 7519 Section 2 lets a NumericDate be non-integer, so a value past what a
-// timestamp can stand for is read as no authentication time at all rather than
-// aborting, which a freshness window then has nothing to measure against
-TEST(validate_rejects_an_auth_time_beyond_the_representable_range) {
+// A value past what a double stands for cannot be read as one in the first
+// place, which is a different refusal from a value that reads but names a time
+// the clock cannot hold
+TEST(validate_treats_an_auth_time_past_the_double_range_as_absent) {
   const auto compact{sign_id_token(R"JSON({
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
-    "auth_time": 1e300,
+    "auth_time": 1e400,
     "iat": 1699996400,
     "exp": 2000000000
   })JSON")};

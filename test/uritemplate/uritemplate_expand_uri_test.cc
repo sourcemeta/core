@@ -946,7 +946,7 @@ TEST(reserved_expansion_of_a_percent_sign_with_no_hexadecimal) {
   EXPECT_EQ(result, "a%25zb");
 }
 
-// RFC 6570 Section 3.2.9 writes an exploded named expansion as a repetition of
+// RFC 6570 Section 3.2.8 writes an exploded named expansion as a repetition of
 // "name=value", so a member that is the empty string still contributes its
 // name and the separator that would have introduced a value
 TEST(list_explode_query_with_an_empty_member) {

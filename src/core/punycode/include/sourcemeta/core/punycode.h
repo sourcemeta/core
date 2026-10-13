@@ -63,7 +63,8 @@ inline constexpr std::size_t PUNYCODE_MAXIMUM_ENCODED_BYTES{
 /// because the C++ standard library does not define the required locale facets
 /// (`std::ctype<char32_t>`) for `std::basic_istream<char32_t>` and
 /// `std::basic_ostream<char32_t>` to function properly.
-/// A bound smaller than the default refuses a larger input outright.
+///
+/// A bound smaller than the default refuses a larger input.
 SOURCEMETA_CORE_PUNYCODE_EXPORT
 auto utf32_to_punycode(std::u32string_view input,
                        std::size_t maximum_code_points =
@@ -82,7 +83,8 @@ auto utf32_to_punycode(std::u32string_view input,
 /// sourcemeta::core::utf8_to_punycode(input, output);
 /// assert(output.str() == "Mnchen-3ya");
 /// ```
-/// A bound smaller than the default refuses a larger input outright.
+///
+/// A bound smaller than the default refuses a larger input.
 SOURCEMETA_CORE_PUNYCODE_EXPORT
 auto utf8_to_punycode(
     std::istream &input, std::ostream &output,
@@ -98,7 +100,8 @@ auto utf8_to_punycode(
 /// assert(sourcemeta::core::utf8_to_punycode("M\xC3\xBCnchen") ==
 /// "Mnchen-3ya");
 /// ```
-/// A bound smaller than the default refuses a larger input outright.
+///
+/// A bound smaller than the default refuses a larger input.
 SOURCEMETA_CORE_PUNYCODE_EXPORT
 auto utf8_to_punycode(const std::string_view input,
                       std::size_t maximum_code_points =
@@ -123,7 +126,8 @@ auto utf8_to_punycode(const std::string_view input,
 /// because the C++ standard library does not define the required locale facets
 /// (`std::ctype<char32_t>`) for `std::basic_istream<char32_t>` and
 /// `std::basic_ostream<char32_t>` to function properly.
-/// A bound smaller than the default refuses a larger input outright.
+///
+/// A bound smaller than the default refuses a larger input.
 SOURCEMETA_CORE_PUNYCODE_EXPORT
 auto punycode_to_utf32(const std::string_view input,
                        std::size_t maximum_encoded_bytes =
@@ -142,7 +146,8 @@ auto punycode_to_utf32(const std::string_view input,
 /// sourcemeta::core::punycode_to_utf8(input, output);
 /// assert(output.str() == "M\xC3\xBCnchen");
 /// ```
-/// A bound smaller than the default refuses a larger input outright.
+///
+/// A bound smaller than the default refuses a larger input.
 SOURCEMETA_CORE_PUNYCODE_EXPORT
 auto punycode_to_utf8(
     std::istream &input, std::ostream &output,
@@ -158,7 +163,8 @@ auto punycode_to_utf8(
 /// assert(sourcemeta::core::punycode_to_utf8("Mnchen-3ya") ==
 /// "M\xC3\xBCnchen");
 /// ```
-/// A bound smaller than the default refuses a larger input outright.
+///
+/// A bound smaller than the default refuses a larger input.
 SOURCEMETA_CORE_PUNYCODE_EXPORT
 auto punycode_to_utf8(const std::string_view input,
                       std::size_t maximum_encoded_bytes =

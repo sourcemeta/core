@@ -46,7 +46,9 @@ inline constexpr std::size_t MARKDOWN_MAXIMUM_INPUT_BYTES{
 /// once the rendered link references expand past the larger of 16 times the
 /// input size and 1,048,576 bytes, or once a table inserts more than 524,288
 /// empty cells. A bound smaller than the default refuses a larger input
-/// outright. For example:
+/// outright, counted after a NUL or a malformed byte sequence has been
+/// replaced, so a repaired input may exceed a bound the written one meets.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/markdown.h>

@@ -386,10 +386,12 @@ TEST(input_past_the_bound_the_caller_allows_when_unsafe) {
 
 // The replacement a malformed byte sequence goes through stands in for it
 // before the bound is read, so what the bound counts is what the parser is
-// handed rather than what the caller wrote
+// handed rather than what the caller wrote. Two bytes arrive and four are
+// parsed, so a bound of two passes on what was written and fails on what the
+// repair made of it
 TEST(input_past_the_bound_the_caller_allows_after_replacement) {
   try {
-    sourcemeta::core::markdown_to_html("a\xFF", true, 1);
+    sourcemeta::core::markdown_to_html("a\xFF", true, 2);
     FAIL();
   } catch (const sourcemeta::core::MarkdownError &error) {
     EXPECT_STREQ(error.what(),

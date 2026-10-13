@@ -318,10 +318,17 @@ auto utf8_to_punycode(std::istream &input, std::ostream &output,
 
 auto punycode_to_utf8(std::istream &input, std::ostream &output,
                       const std::size_t maximum_encoded_bytes) -> void {
+  // The bound is held to while the stream is read rather than once it has all
+  // arrived, so that what a caller refuses is never taken in to begin with
+  const auto bound{
+      std::min(maximum_encoded_bytes, PUNYCODE_MAXIMUM_ENCODED_BYTES)};
   std::string encoded;
   char character{0};
   while (input.get(character)) {
     encoded.push_back(character);
+    if (encoded.size() > bound) {
+      throw PunycodeError("Input is too large");
+    }
   }
 
   std::u32string decoded;

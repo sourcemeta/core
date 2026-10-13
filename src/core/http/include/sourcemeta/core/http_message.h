@@ -9,6 +9,7 @@
 #include <optional>    // std::nullopt, std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <type_traits> // std::is_same_v
 #include <utility>     // std::move
 
 namespace sourcemeta::core {
@@ -398,9 +399,14 @@ inline auto http_serialize_headers(const Headers &headers) -> std::string {
     }
 
     // A field value either carries its own bytes or already is the bytes, so
-    // which of the two it is settles only what gets read out of it here
+    // which of the two it is settles only what gets read out of it here. A
+    // value that carries them hands back a view of storage it keeps, which is
+    // what lets the view below outlive the call that produced it
     std::string_view bytes;
     if constexpr (requires { value.bytes(); }) {
+      static_assert(std::is_same_v<decltype(value.bytes()), std::string_view>,
+                    "A field value must hand back a view of bytes it keeps, "
+                    "as an owning result would leave nothing to write out");
       bytes = value.bytes();
     } else {
       bytes = value;

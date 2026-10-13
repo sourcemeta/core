@@ -1240,3 +1240,34 @@ TEST(deleted_run_slides_along_a_repeated_line) {
                                "-S\n"
                                " t\n");
 }
+
+// A middle snake can leave a sub-problem whose own head or tail still matches,
+// since a forward search never looks behind where its snake starts and a
+// backward search never looks past where its snake ends, so each recursion has
+// to trim for itself rather than trusting what the caller trimmed
+TEST(recursion_left_with_a_shared_head) {
+  const auto result{sourcemeta::core::diff(
+      "a\n", "b\na\na\nb\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1 +1,4 @@\n"
+                               "+b\n"
+                               "+a\n"
+                               " a\n"
+                               "+b\n");
+}
+
+TEST(recursion_left_with_a_shared_tail) {
+  const auto result{sourcemeta::core::diff(
+      "a\na\nb\n", "c\na\nb\nd\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,4 @@\n"
+                               "+c\n"
+                               " a\n"
+                               "-a\n"
+                               " b\n"
+                               "+d\n");
+}
