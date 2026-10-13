@@ -2818,6 +2818,8 @@ TEST(a_metaschema_outside_the_selected_schema_is_out_of_scope) {
     }
   })JSON");
 
+  const sourcemeta::core::Pointer selected{"selected"};
+
   try {
     [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References,
@@ -2827,8 +2829,7 @@ TEST(a_metaschema_outside_the_selected_schema_is_out_of_scope) {
         "https://json-schema.org/draft/2020-12/schema",
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
-        {sourcemeta::core::to_weak_pointer(
-            sourcemeta::core::Pointer{"selected"})}};
+        {sourcemeta::core::to_weak_pointer(selected)}};
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
@@ -2860,6 +2861,9 @@ TEST(a_metaschema_carried_by_another_selected_path_is_out_of_scope) {
     }
   })JSON");
 
+  const sourcemeta::core::Pointer first{"a"};
+  const sourcemeta::core::Pointer second{"b"};
+
   try {
     [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References,
@@ -2869,8 +2873,8 @@ TEST(a_metaschema_carried_by_another_selected_path_is_out_of_scope) {
         "https://json-schema.org/draft/2020-12/schema",
         "",
         sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
-        {sourcemeta::core::to_weak_pointer(sourcemeta::core::Pointer{"a"}),
-         sourcemeta::core::to_weak_pointer(sourcemeta::core::Pointer{"b"})}};
+        {sourcemeta::core::to_weak_pointer(first),
+         sourcemeta::core::to_weak_pointer(second)}};
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
@@ -3224,6 +3228,7 @@ TEST(metaschema_of_a_frame_that_never_registered_the_document) {
     }
   })JSON");
 
+  const sourcemeta::core::Pointer wrapper{"wrapper"};
   const sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References,
       document,
@@ -3232,8 +3237,7 @@ TEST(metaschema_of_a_frame_that_never_registered_the_document) {
       "",
       "",
       sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
-      {sourcemeta::core::to_weak_pointer(
-          sourcemeta::core::Pointer{"wrapper"})}};
+      {sourcemeta::core::to_weak_pointer(wrapper)}};
 
   try {
     [[maybe_unused]] const auto &metaschema{

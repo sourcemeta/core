@@ -394,7 +394,10 @@ auto parse_expression(const std::string_view input)
 
     std::size_t var_start;
     if constexpr (HasOp<T>::value) {
-      if (input.size() < 3 || input[1] != T::OPERATOR) {
+      // The operator settles which expansion stands here, so once it is read,
+      // running out of input is the template failing to name a variable rather
+      // than this reading of it not applying
+      if (input.size() < 2 || input[1] != T::OPERATOR) {
         return std::nullopt;
       }
       var_start = 2;

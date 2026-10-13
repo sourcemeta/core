@@ -203,3 +203,31 @@ TEST(varname_after_explode) { EXPECT_URITEMPLATE_PARSE_ERROR("{a*b}", 4); }
 TEST(prefix_colon_not_followed_by_positive_digit) {
   EXPECT_URITEMPLATE_PARSE_ERROR("{a:x}", 4);
 }
+
+TEST(reserved_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{+", 3);
+}
+
+TEST(fragment_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{#", 3);
+}
+
+TEST(label_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{.", 3);
+}
+
+TEST(path_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{/", 3);
+}
+
+TEST(path_parameter_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{;", 3);
+}
+
+TEST(query_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{?", 3);
+}
+
+TEST(query_continuation_expansion_with_nothing_after_the_operator) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{&", 3);
+}

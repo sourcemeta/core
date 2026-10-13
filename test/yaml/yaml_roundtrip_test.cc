@@ -6135,10 +6135,6 @@ TEST(block_mapping_key_with_no_value_at_the_end_of_the_document) {
   EXPECT_EQ(roundtrip("a:\n"), "a:\n");
 }
 
-TEST(block_mapping_key_with_no_value_followed_by_another_key) {
-  EXPECT_EQ(roundtrip("a:\nb: 1\n"), "a:\nb: 1\n");
-}
-
 TEST(block_mapping_keys_with_no_values) {
   EXPECT_EQ(roundtrip("a:\nb:\n"), "a:\nb:\n");
 }

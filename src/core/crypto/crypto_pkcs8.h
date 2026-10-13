@@ -150,13 +150,21 @@ inline auto read_rsa_private_key(const std::string_view key)
 // not apply the rule
 inline auto ec_private_key_acceptable(const std::string_view key,
                                       const EllipticCurve curve) -> bool {
+  // A canonical ECPrivateKey is exactly one SEQUENCE, so bytes trailing it mark
+  // a malformed encoding (X.690 Section 10.1), the same rule the enclosing
+  // PrivateKeyInfo is held to
   const auto sequence{der_read(key)};
-  if (!sequence.has_value() || sequence->tag != 0x30) {
+  if (!sequence.has_value() || sequence->tag != 0x30 ||
+      !sequence->rest.empty()) {
     return false;
   }
 
+  // RFC 5915 Section 3 constrains the version to ecPrivkeyVer1, saying it
+  // "SHALL be set to ecPrivkeyVer1, which is of type INTEGER and whose value is
+  // one (1)", so no other value names a key this reads
   const auto version{der_read(sequence->content)};
-  if (!version.has_value() || version->tag != 0x02) {
+  if (!version.has_value() || version->tag != 0x02 ||
+      version->content.size() != 1 || version->content.front() != '\x01') {
     return false;
   }
 

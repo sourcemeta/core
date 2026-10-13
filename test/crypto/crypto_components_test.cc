@@ -271,3 +271,30 @@ TEST(ec_private_key_whose_scalar_is_above_the_order) {
       "-----END PRIVATE KEY-----\n"};
   EXPECT_FALSE(sourcemeta::core::make_private_key(pem).has_value());
 }
+
+// RFC 5915 Section 3 constrains the version of an ECPrivateKey to
+// ecPrivkeyVer1, saying it "SHALL be set to ecPrivkeyVer1, which is of type
+// INTEGER and whose value is one (1)", so a key sound in every other respect
+// still names nothing when it carries another version
+TEST(ec_private_key_whose_version_is_not_one) {
+  const std::string pem{
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAgQgUJlZcx3akefhQkHy\n"
+      "hdm0LyliIIFyGpXJmWGGe30hqBChRANCAAQrQCBl4pxLtKex84zvju8dntvZF1Dm\n"
+      "etJQhjqZwh81vCWJlgdqoA+F3pQN4jrapP2//GNWJ1pM+Yd7xZoDhKZI\n"
+      "-----END PRIVATE KEY-----\n"};
+  EXPECT_FALSE(sourcemeta::core::make_private_key(pem).has_value());
+}
+
+// X.690 Section 10.1 leaves one encoding for one value, so an ECPrivateKey
+// trailed by bytes of its own is malformed however well the structure ahead of
+// them reads
+TEST(ec_private_key_trailed_by_another_byte) {
+  const std::string pem{
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MIGIAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG4wawIBAQQgUJlZcx3akefhQkHy\n"
+      "hdm0LyliIIFyGpXJmWGGe30hqBChRANCAAQrQCBl4pxLtKex84zvju8dntvZF1Dm\n"
+      "etJQhjqZwh81vCWJlgdqoA+F3pQN4jrapP2//GNWJ1pM+Yd7xZoDhKZIAA==\n"
+      "-----END PRIVATE KEY-----\n"};
+  EXPECT_FALSE(sourcemeta::core::make_private_key(pem).has_value());
+}
