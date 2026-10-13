@@ -8855,10 +8855,6 @@ TEST(make_initialize_result_returns_invalid_request_when_params_is_an_array) {
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
 
-// MCP gives an annotation priority as a number from 0 to 1, so a value
-// outside that interval, or one that is no number at all, annotates nothing
-// the protocol can read
-
 TEST(make_resources_list_with_a_priority_above_the_interval) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
                          sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
@@ -8884,10 +8880,6 @@ TEST(make_resources_list_with_a_priority_that_is_not_a_number) {
                          std::nullopt, {}),
                      "Invalid MCP resource descriptor entry");
 }
-
-// The audience an annotation names is a list of roles, so neither a single
-// role standing on its own nor a role the protocol does not define says who
-// the annotation is for
 
 TEST(make_resources_list_with_an_audience_that_is_not_a_list) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
@@ -8915,10 +8907,6 @@ TEST(make_resources_list_with_an_audience_role_the_protocol_lacks) {
                      "Invalid MCP resource descriptor entry");
 }
 
-// Icons are a list of objects, each naming the sizes it comes in as
-// strings, so neither a lone icon nor a size that is not spelled out reads
-// as one
-
 TEST(make_resources_list_with_icons_that_are_not_a_list) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_resources_list_result(
                          sourcemeta::core::MCPProtocolVersion::V_2025_06_18,
@@ -8944,11 +8932,6 @@ TEST(make_resources_list_with_icon_sizes_that_are_not_strings) {
                          std::nullopt, {}),
                      "Invalid MCP resource descriptor entry");
 }
-
-// MCP gives a sampling request a list of messages, each naming the role that
-// sent it and the content it carries, so neither a bare value in place of the
-// list nor a role the protocol does not define describes a conversation
-// https://modelcontextprotocol.io/specification/2026-07-28/client/sampling
 
 TEST(input_required_with_messages_that_are_not_a_list) {
   const sourcemeta::core::JSON identifier{1};
@@ -8979,10 +8962,6 @@ TEST(input_required_with_a_message_role_the_protocol_lacks) {
           sourcemeta::core::MCPClientCapabilities{.sampling = true}),
       "Invalid or unsupported nested input requests");
 }
-
-// The options a sampling request carries alongside its messages each have a
-// shape of their own, so a prompt that is not text and stop sequences that are
-// not a list of text describe nothing the sampler can act on
 
 TEST(input_required_with_a_system_prompt_that_is_not_a_string) {
   const sourcemeta::core::JSON identifier{1};
@@ -9318,7 +9297,12 @@ TEST(input_required_result_rejects_an_elicitation_without_a_message) {
                          sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                          "tools/call", sourcemeta::core::JSON{0},
                          sourcemeta::core::parse_json(R"JSON({
-    "r": { "method": "elicitation/create" }
+    "r": {
+      "method": "elicitation/create",
+      "params": {
+        "requestedSchema": { "type": "object", "properties": {} }
+      }
+    }
   })JSON"),
                          std::nullopt, capabilities),
                      "Invalid or unsupported nested input requests");
