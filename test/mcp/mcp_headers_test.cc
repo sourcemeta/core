@@ -3909,8 +3909,7 @@ TEST(
 // A revision the deployment lists as supported is still the wrong one to name
 // once this session speaks another, which is settled after the header and the
 // body have been held to each other
-TEST(
-    validate_request_headers_reject_a_supported_version_other_than_the_session_one) {
+TEST(validate_request_headers_reject_a_version_the_session_does_not_speak) {
   constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
       {"2024-01-01", "2026-07-28"}};
   const auto envelope{sourcemeta::core::parse_json(R"JSON({

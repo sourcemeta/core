@@ -8953,7 +8953,12 @@ TEST(input_required_with_a_message_role_the_protocol_lacks) {
   auto input_requests{sourcemeta::core::JSON::make_object()};
   input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
     "method": "sampling/createMessage",
-    "params": { "messages": [ { "role": "system", "content": { "type": "text", "text": "x" } } ], "maxTokens": 10 }
+    "params": {
+      "messages": [
+        { "role": "system", "content": { "type": "text", "text": "x" } }
+      ],
+      "maxTokens": 10
+    }
   })JSON"));
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_input_required_response(
@@ -8968,7 +8973,13 @@ TEST(input_required_with_a_system_prompt_that_is_not_a_string) {
   auto input_requests{sourcemeta::core::JSON::make_object()};
   input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
     "method": "sampling/createMessage",
-    "params": { "systemPrompt": 1, "messages": [ { "role": "user", "content": { "type": "text", "text": "x" } } ], "maxTokens": 10 }
+    "params": {
+      "systemPrompt": 1,
+      "messages": [
+        { "role": "user", "content": { "type": "text", "text": "x" } }
+      ],
+      "maxTokens": 10
+    }
   })JSON"));
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_input_required_response(
@@ -8983,7 +8994,13 @@ TEST(input_required_with_stop_sequences_that_are_not_strings) {
   auto input_requests{sourcemeta::core::JSON::make_object()};
   input_requests.assign("s1", sourcemeta::core::parse_json(R"JSON({
     "method": "sampling/createMessage",
-    "params": { "stopSequences": [ 1 ], "messages": [ { "role": "user", "content": { "type": "text", "text": "x" } } ], "maxTokens": 10 }
+    "params": {
+      "stopSequences": [ 1 ],
+      "messages": [
+        { "role": "user", "content": { "type": "text", "text": "x" } }
+      ],
+      "maxTokens": 10
+    }
   })JSON"));
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_make_input_required_response(
@@ -9171,8 +9188,9 @@ TEST(make_initialize_result_carries_server_icons) {
       "capabilities": {}
     }
   })JSON")};
-  const auto icons{sourcemeta::core::parse_json(
-      R"JSON([ { "src": "https://example.com/a.png", "mimeType": "image/png" } ])JSON")};
+  const auto icons{sourcemeta::core::parse_json(R"JSON([
+    { "src": "https://example.com/a.png", "mimeType": "image/png" }
+  ])JSON")};
   const sourcemeta::core::MCPServerCapabilities capabilities;
   const sourcemeta::core::MCPImplementation server{.name = "srv",
                                                    .version = "1.0.0",
