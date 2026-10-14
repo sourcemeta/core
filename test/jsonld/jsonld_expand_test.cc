@@ -3439,19 +3439,6 @@ TEST(object_of_only_an_identifier_expands_to_nothing) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-// "If active property is null or @graph, drop free-floating values": a node
-// that says nothing but which node it is says nothing to keep
-// https://www.w3.org/TR/json-ld11-api/#expansion-algorithm
-TEST(free_floating_node_reference_is_dropped) {
-  const auto input = sourcemeta::core::parse_json(R"({
-    "@id": "http://example.com/bar"
-  })");
-
-  const auto expected = sourcemeta::core::parse_json("[]");
-
-  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
-}
-
 TEST(free_floating_node_reference_in_graph_is_dropped) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@graph": { "@id": "http://example.com/bar" }

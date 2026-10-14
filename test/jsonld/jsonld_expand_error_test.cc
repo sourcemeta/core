@@ -2708,6 +2708,21 @@ TEST(legacy_list_container_member_keeps_index) {
       "List of lists", "/p/1");
 }
 
+// A set hands its members to the property that stands over it, so a list
+// among them becomes a member of the list that property collects, which
+// JSON-LD 1.0 refuses just as it refuses one written in an array
+TEST(legacy_list_container_set_member_keeps_index) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "urn:p", "@container": "@list" } },
+    "p": { "@set": [ null, { "@list": [ "x" ] } ] }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "List of lists", "/p/@set/1");
+}
+
 TEST(protected_type_empty_redefinition) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": [ { "@type": { "@protected": true } }, { "@type": {} } ],
