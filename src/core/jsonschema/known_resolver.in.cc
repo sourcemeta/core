@@ -767,11 +767,12 @@ auto sourcemeta::core::schema_resolver(const std::string_view identifier)
       return SCHEMA;
     }
     // The published document schema describes the Schema Object as one of its
-    // definitions rather than on its own, and nothing else of it is of use
-    // here, so it is carried within the dialect instead of being exposed. The
-    // identifier it declares has to stay for the references it makes to
-    // itself to keep resolving against its own scope. Note a schema of this
-    // dialect is either a Schema Object or a Reference Object
+    // definitions rather than on its own, so the part of that document which
+    // the Schema Object reaches is carried within the dialect instead of being
+    // exposed, and the rest of it is left behind. The identifier it declares
+    // has to stay for the references it makes to itself to keep resolving
+    // against its own scope. Note a schema of this dialect is either a Schema
+    // Object or a Reference Object
     case KnownSchema::OAS_3_0_DIALECT_2024_10_18: {
       static const auto SCHEMA{sourcemeta::core::parse_json(R"EOF({
   "id": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
