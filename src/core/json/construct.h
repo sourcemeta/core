@@ -15,7 +15,7 @@
 #include <cstdint>     // std::uint64_t, std::uint32_t, std::uint8_t
 #include <functional>  // std::reference_wrapper
 #include <string_view> // std::string_view
-#include <utility>     // std::move, std::unreachable
+#include <utility>     // std::move
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -32,6 +32,23 @@ inline auto parse_hex4(const char *&position) -> unsigned long {
   }
 
   return value;
+}
+
+// The code point a `\u` escape names, read from the four digits the position
+// is on and leaving it on whatever follows them. A high surrogate is joined
+// with the low one the scan has already made sure comes after it
+inline auto parse_escaped_code_point(const char *&position,
+                                     [[maybe_unused]] const char *const end)
+    -> char32_t {
+  auto code_point{parse_hex4(position)};
+  if (code_point >= 0xD800 && code_point <= 0xDBFF) {
+    assert(position + 6 <= end);
+    position += 2;
+    const auto low{parse_hex4(position)};
+    code_point = 0x10000 + ((code_point - 0xD800) << 10) + (low - 0xDC00);
+  }
+
+  return static_cast<char32_t>(code_point);
 }
 
 inline auto unescape_string(const char *data, const std::uint32_t length,
@@ -65,7 +82,8 @@ inline auto unescape_string(const char *data, const std::uint32_t length,
     cursor++;
     assert(cursor < string_end);
 
-    switch (*cursor++) {
+    const auto escape{*cursor++};
+    switch (escape) {
       case '"':
         result.push_back('"');
         break;
@@ -90,23 +108,14 @@ inline auto unescape_string(const char *data, const std::uint32_t length,
       case 't':
         result.push_back('\t');
         break;
-      case 'u': {
-        auto code_point{parse_hex4(cursor)};
-        if (code_point >= 0xD800 && code_point <= 0xDBFF) {
-          assert(cursor + 6 <= string_end);
-          cursor += 2;
-          const auto low{parse_hex4(cursor)};
-          code_point = 0x10000 + ((code_point - 0xD800) << 10) + (low - 0xDC00);
-        }
-
-        sourcemeta::core::codepoint_to_utf8(static_cast<char32_t>(code_point),
-                                            result);
-        break;
-      }
-      // The scan accepted the escape, so what stands after the reverse solidus
-      // is one of the characters the grammar names
+      // The scan accepted the escape, so what stands after the reverse
+      // solidus is one of the characters the grammar names, and every one
+      // but the code point escape is spelled out above
       default:
-        std::unreachable();
+        assert(escape == 'u');
+        sourcemeta::core::codepoint_to_utf8(
+            parse_escaped_code_point(cursor, string_end), result);
+        break;
     }
   }
 

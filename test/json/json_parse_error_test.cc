@@ -2,9 +2,12 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <exception>
-#include <sstream>
-#include <string>
+#include <cstdint>     // std::uint32_t, std::uintmax_t
+#include <exception>   // std::exception
+#include <filesystem>  // std::filesystem
+#include <limits>      // std::numeric_limits
+#include <sstream>     // std::istringstream
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 using namespace std::literals::string_view_literals;
@@ -844,4 +847,24 @@ TEST(number_with_an_exponent_beyond_the_decimal_range) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
   }
+}
+
+// The scanner writes what it reads onto a tape whose entries address the
+// input with 32-bit offsets and lengths, so an input past what those carry is
+// turned down before any of it is read. The file behind it is left sparse and
+// mapped rather than filled, since nothing ever looks at what it holds
+TEST(input_beyond_what_a_tape_entry_can_address) {
+  const sourcemeta::core::TemporaryDirectory staging{
+      std::filesystem::temp_directory_path(), ".sourcemeta-core-json-"};
+  const auto path{staging.path() / "oversized.json"};
+  sourcemeta::core::write_file(path, "");
+  std::filesystem::resize_file(
+      path,
+      static_cast<std::uintmax_t>(std::numeric_limits<std::uint32_t>::max()) +
+          1);
+
+  const sourcemeta::core::FileView view{path};
+  const std::string_view input{view.as<char>(), view.size()};
+  EXPECT_FALSE(sourcemeta::core::try_parse_json(input).has_value());
+  EXPECT_PARSE_ERROR(input, 1, 0);
 }

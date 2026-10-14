@@ -11,11 +11,10 @@
 #include <cstdint>     // std::uint64_t
 #include <filesystem>  // std::filesystem
 #include <istream>     // std::basic_istream
-#include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
 #include <ostream>     // std::basic_ostream
 #include <type_traits> // std::conditional_t
-#include <utility>     // std::cmp_greater, std::move, std::unreachable
+#include <utility>     // std::move, std::unreachable
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -27,19 +26,7 @@ internal_parse_json(const char *&cursor, const char *end, std::uint64_t &line,
                     [[maybe_unused]] const bool track_positions, JSON &output)
     -> std::conditional_t<ShouldThrow, void, bool> {
   const char *buffer_start{cursor};
-  // Tape entries address the input with 32-bit offsets and lengths, so a larger
-  // input cannot be represented without truncation
-  if (std::cmp_greater(end - cursor,
-                       std::numeric_limits<std::uint32_t>::max())) {
-    if constexpr (ShouldThrow) {
-      throw JSONParseError(line, column);
-    } else {
-      return false;
-    }
-  }
-
   std::vector<TapeEntry> tape;
-  tape.reserve(static_cast<std::size_t>(end - cursor) / 8);
 
   if constexpr (ShouldThrow) {
     if (callback || track_positions) {

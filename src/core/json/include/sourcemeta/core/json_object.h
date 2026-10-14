@@ -9,7 +9,7 @@
 #include <iterator>         // std::advance
 #include <string_view>      // std::basic_string_view
 #include <type_traits>      // std::remove_cvref_t
-#include <utility>          // std::pair, std::move, std::unreachable
+#include <utility>          // std::pair, std::move
 #include <vector>           // std::vector
 
 namespace sourcemeta::core {
@@ -320,24 +320,11 @@ public:
   /// Access an object entry by its key name
   [[nodiscard]] auto at(const Key &key, const hash_type key_hash) const
       -> const mapped_type & {
-    assert(this->hash(key) == key_hash);
-
-    // Move the perfect hash condition out of the loop for extra performance
-    if (this->HASHER.is_perfect(key_hash)) {
-      for (const auto &entry : *this) {
-        if (entry.hash == key_hash && entry.first.size() == key.size()) {
-          return entry.second;
-        }
-      }
-    } else {
-      for (const auto &entry : *this) {
-        if (entry.hash == key_hash && entry.first == key) {
-          return entry.second;
-        }
-      }
-    }
-
-    std::unreachable();
+    const auto *const result{this->try_at(key, key_hash)};
+    // The caller states the entry is there, which is what tells this apart
+    // from the lookup that answers whether it is
+    assert(result != nullptr);
+    return *result;
   }
 
   /// Access an object entry by its key name
@@ -345,70 +332,25 @@ public:
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
   [[nodiscard]] auto at(T key, const hash_type key_hash) const
       -> const mapped_type & {
-    assert(this->hash(key) == key_hash);
-
-    // Move the perfect hash condition out of the loop for extra performance
-    if (this->HASHER.is_perfect(key_hash)) {
-      for (const auto &entry : *this) {
-        if (entry.hash == key_hash && entry.first.size() == key.size()) {
-          return entry.second;
-        }
-      }
-    } else {
-      for (const auto &entry : *this) {
-        if (entry.hash == key_hash && entry.first == key) {
-          return entry.second;
-        }
-      }
-    }
-
-    std::unreachable();
+    const auto *const result{this->try_at(key, key_hash)};
+    assert(result != nullptr);
+    return *result;
   }
 
   /// Access an object entry by its key name
   auto at(const Key &key, const hash_type key_hash) -> mapped_type & {
-    assert(this->hash(key) == key_hash);
-
-    // Move the perfect hash condition out of the loop for extra performance
-    if (this->HASHER.is_perfect(key_hash)) {
-      for (auto &entry : this->data_) {
-        if (entry.hash == key_hash && entry.first.size() == key.size()) {
-          return entry.second;
-        }
-      }
-    } else {
-      for (auto &entry : this->data_) {
-        if (entry.hash == key_hash && entry.first == key) {
-          return entry.second;
-        }
-      }
-    }
-
-    std::unreachable();
+    auto *const result{this->try_at(key, key_hash)};
+    assert(result != nullptr);
+    return *result;
   }
 
   /// Access an object entry by its key name
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
   auto at(T key, const hash_type key_hash) -> mapped_type & {
-    assert(this->hash(key) == key_hash);
-
-    // Move the perfect hash condition out of the loop for extra performance
-    if (this->HASHER.is_perfect(key_hash)) {
-      for (auto &entry : this->data_) {
-        if (entry.hash == key_hash && entry.first.size() == key.size()) {
-          return entry.second;
-        }
-      }
-    } else {
-      for (auto &entry : this->data_) {
-        if (entry.hash == key_hash && entry.first == key) {
-          return entry.second;
-        }
-      }
-    }
-
-    std::unreachable();
+    auto *const result{this->try_at(key, key_hash)};
+    assert(result != nullptr);
+    return *result;
   }
 
   /// Try to access an object entry by its key name

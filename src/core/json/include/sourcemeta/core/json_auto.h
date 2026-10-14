@@ -699,11 +699,10 @@ auto from_json(const JSON &value) -> std::optional<T> {
     return std::nullopt;
   }
 
-  const auto index{static_cast<std::size_t>(value.at(0).to_integer())};
-  if (index >= std::variant_size_v<T>) {
-    return std::nullopt;
-  }
-  return from_json_variant_impl<T>(value.at(1), index);
+  // An index past the alternatives is turned down where the walk over them
+  // runs out, rather than being judged twice
+  return from_json_variant_impl<T>(
+      value.at(1), static_cast<std::size_t>(value.at(0).to_integer()));
 }
 
 } // namespace sourcemeta::core

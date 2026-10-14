@@ -15,7 +15,7 @@
 #include <algorithm>        // std::any_of
 #include <bitset>           // std::bitset
 #include <cassert>          // assert
-#include <cmath>            // std::modf, std::trunc, std::isinf, std::isnan
+#include <cmath>            // std::trunc, std::isinf, std::isnan
 #include <concepts>         // std::same_as
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::int64_t, std::uint8_t
@@ -263,7 +263,7 @@ public:
   auto operator=(JSON &&other) noexcept -> JSON &;
 
   /// Destructor
-  ~JSON();
+  ~JSON() noexcept;
 
   /// This function creates an empty JSON array. For example:
   ///
@@ -490,10 +490,8 @@ public:
     switch (this->type()) {
       case Type::Integer:
         return true;
-      case Type::Real: {
-        Real integral_part = 0.0;
-        return std::modf(this->to_real(), &integral_part) == 0.0;
-      }
+      case Type::Real:
+        return std::trunc(this->to_real()) == this->to_real();
       case Type::Decimal:
         return this->to_decimal().is_integral();
       default:
@@ -2588,6 +2586,15 @@ private:
 #pragma warning(pop)
 #endif
   auto maybe_destruct_union() -> void;
+
+  // Tear this value down and take the scalar given in its place. The scalar
+  // arrives by value, which is what copies it out of a source that may be
+  // living inside what is torn down
+  auto replace_with(const bool value) -> void;
+  auto replace_with(const Integer value) -> void;
+  auto replace_with(const Real value) -> void;
+  auto replace_with(String value) -> void;
+  auto replace_with(Decimal value) -> void;
 };
 
 } // namespace sourcemeta::core

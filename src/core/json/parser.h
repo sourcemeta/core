@@ -12,6 +12,8 @@
 #include <cstddef> // std::size_t
 #include <cstdint> // std::uint64_t, std::uint32_t, std::uint8_t
 #include <cstring> // std::memcpy
+#include <limits>  // std::numeric_limits
+#include <utility> // std::cmp_greater
 #include <vector>  // std::vector
 
 namespace sourcemeta::core {
@@ -507,6 +509,15 @@ inline auto scan_json(const char *&cursor, const char *end,
                       std::uint64_t &column, std::vector<TapeEntry> &tape)
     -> void {
   using CharT = JSON::Char;
+  // A tape entry addresses the input with 32-bit offsets and lengths, so an
+  // input past what those carry cannot be written down without truncation
+  if (std::cmp_greater(end - cursor, std::numeric_limits<std::uint32_t>::max()))
+      [[unlikely]] {
+    throw JSONParseError(line, column);
+  }
+
+  tape.reserve(static_cast<std::size_t>(end - cursor) / 8);
+
   char character = 0;
   std::vector<internal::ContainerFrame> container_stack;
   container_stack.reserve(32);
