@@ -29,9 +29,10 @@ namespace sourcemeta::core {
 
 /// @ingroup markdown
 /// The most input bytes accepted when a caller names no bound of its own,
-/// which is what the offsets the parser addresses its input through can reach,
-/// so a caller may name a smaller bound but never a larger one.
-inline constexpr std::size_t MARKDOWN_MAXIMUM_INPUT_BYTES{
+/// which is what the offsets the parser addresses its input through can
+/// reach. A bound is carried in as many bits as those offsets, so a caller
+/// may name a smaller one and has no way to name a larger one.
+inline constexpr std::uint32_t MARKDOWN_MAXIMUM_INPUT_BYTES{
     std::numeric_limits<std::uint32_t>::max()};
 
 /// @ingroup markdown
@@ -60,7 +61,7 @@ inline constexpr std::size_t MARKDOWN_MAXIMUM_INPUT_BYTES{
 /// ```
 SOURCEMETA_CORE_MARKDOWN_EXPORT
 auto markdown_to_html(const std::string_view input, const bool safe = true,
-                      std::size_t maximum_input_bytes =
+                      std::uint32_t maximum_input_bytes =
                           MARKDOWN_MAXIMUM_INPUT_BYTES) -> std::string;
 
 } // namespace sourcemeta::core

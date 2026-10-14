@@ -8,9 +8,7 @@
 #include "parser.h"
 #include "stringify.h"
 
-#include <algorithm>   // std::min
-#include <cstddef>     // std::size_t
-#include <cstdint>     // std::uint64_t
+#include <cstdint>     // std::uint64_t, std::uint32_t
 #include <filesystem>  // std::filesystem
 #include <istream>     // std::basic_istream
 #include <optional>    // std::optional, std::nullopt
@@ -26,15 +24,15 @@ static auto
 internal_parse_json(const char *&cursor, const char *end, std::uint64_t &line,
                     std::uint64_t &column, const JSON::ParseCallback &callback,
                     [[maybe_unused]] const bool track_positions,
-                    const std::size_t maximum_input_bytes, JSON &output)
+                    const std::uint32_t maximum_input_bytes, JSON &output)
     -> std::conditional_t<ShouldThrow, void, bool> {
   const char *buffer_start{cursor};
   std::vector<TapeEntry> tape;
 
-  // A tape entry addresses the input through 32-bit offsets and lengths, so
-  // what a caller names only ever tightens the reach those offsets have
-  if (std::cmp_greater(end - cursor, std::min(maximum_input_bytes,
-                                              JSON_MAXIMUM_INPUT_BYTES))) {
+  // A tape entry addresses the input through 32-bit offsets and lengths,
+  // which is as many bits as the bound is carried in, so what a caller names
+  // only ever tightens the reach those offsets have
+  if (std::cmp_greater(end - cursor, maximum_input_bytes)) {
     if constexpr (ShouldThrow) {
       throw JSONParseError(line, column);
     } else {
@@ -92,7 +90,8 @@ internal_parse_json(const char *&cursor, const char *end, std::uint64_t &line,
 static auto internal_parse_json(
     const char *&cursor, const char *end, std::uint64_t &line,
     std::uint64_t &column, const bool track_positions,
-    const std::size_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES) -> JSON {
+    const std::uint32_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES)
+    -> JSON {
   JSON output{nullptr};
   internal_parse_json<true>(cursor, end, line, column, nullptr, track_positions,
                             maximum_input_bytes, output);
@@ -176,7 +175,7 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
 
 auto parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
-    const std::size_t maximum_input_bytes) -> JSON {
+    const std::uint32_t maximum_input_bytes) -> JSON {
   std::uint64_t line{1};
   std::uint64_t column{0};
   const char *begin{input.empty() ? "" : input.data()};
@@ -195,7 +194,7 @@ auto parse_json(
 
 auto try_parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
-    const std::size_t maximum_input_bytes) -> std::optional<JSON> {
+    const std::uint32_t maximum_input_bytes) -> std::optional<JSON> {
   std::uint64_t line{1};
   std::uint64_t column{0};
   const char *cursor{input.empty() ? "" : input.data()};

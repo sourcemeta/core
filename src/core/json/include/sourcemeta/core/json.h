@@ -41,9 +41,10 @@ namespace sourcemeta::core {
 
 /// @ingroup json
 /// The most input bytes accepted when a caller names no bound of its own,
-/// which is what the offsets the parser addresses its input through can reach,
-/// so a caller may name a smaller bound but never a larger one.
-inline constexpr std::size_t JSON_MAXIMUM_INPUT_BYTES{
+/// which is what the offsets the parser addresses its input through can
+/// reach. A bound is carried in as many bits as those offsets, so a caller
+/// may name a smaller one and has no way to name a larger one.
+inline constexpr std::uint32_t JSON_MAXIMUM_INPUT_BYTES{
     std::numeric_limits<std::uint32_t>::max()};
 
 /// @ingroup json
@@ -103,7 +104,7 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
 SOURCEMETA_CORE_JSON_EXPORT
 auto parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
-    const std::size_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES) -> JSON;
+    const std::uint32_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES) -> JSON;
 
 /// @ingroup json
 ///
@@ -126,7 +127,7 @@ auto parse_json(
 SOURCEMETA_CORE_JSON_EXPORT
 auto try_parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
-    const std::size_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES)
+    const std::uint32_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES)
     -> std::optional<JSON>;
 
 /// @ingroup json
