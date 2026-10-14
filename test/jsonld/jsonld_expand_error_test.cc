@@ -1386,6 +1386,55 @@ TEST(reverse_map_with_ambiguous_aliases_names_the_offender) {
                              "Invalid reverse property value", "/@reverse/b");
 }
 
+// Several keys of a reverse map may reach the same property, so each is
+// expanded again to find the one at fault, and a key carrying nothing but node
+// objects is passed over however many of them it holds
+TEST(reverse_map_with_ambiguous_aliases_over_an_array) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": "http://e/p", "b": "http://e/p" },
+    "@reverse": {
+      "a": [ { "@id": "http://e/s" }, { "@id": "http://e/t" } ],
+      "b": { "@value": "v" }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value", "/@reverse/b");
+}
+
+// An index map turns its keys into values of the property the map stands
+// under, which the search for the offending key cannot reproduce from the key
+// alone, so the map as a whole answers for it
+TEST(reverse_map_over_an_index_container_names_the_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://e/p", "@container": "@index" }
+    },
+    "@reverse": { "p": { "k": "v" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value", "/@reverse");
+}
+
+// An index map is read key by key, so a context entry among its keys is an
+// index like any other. Tracing the offending member back reads the map as the
+// object it looks like, where that entry is a context that does not process,
+// and the whole map answers for the member
+TEST(reverse_term_over_an_index_map_holding_a_context_entry) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "r": { "@reverse": "http://e/r", "@container": "@index" }
+    },
+    "r": { "@context": 42, "k": "v" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value", "/r");
+}
+
 TEST(reverse_term_with_an_array_container) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
@@ -2659,6 +2708,21 @@ TEST(legacy_list_container_member_keeps_index) {
       "List of lists", "/p/1");
 }
 
+// A set hands its members to the property that stands over it, so a list
+// among them becomes a member of the list that property collects, which
+// JSON-LD 1.0 refuses just as it refuses one written in an array
+TEST(legacy_list_container_set_member_keeps_index) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "urn:p", "@container": "@list" } },
+    "p": { "@set": [ null, { "@list": [ "x" ] } ] }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "List of lists", "/p/@set/1");
+}
+
 TEST(protected_type_empty_redefinition) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": [ { "@type": { "@protected": true } }, { "@type": {} } ],
@@ -3294,4 +3358,30 @@ TEST(list_of_lists_under_a_list_container_in_1_0) {
   } catch (const sourcemeta::core::JSONLDError &error) {
     EXPECT_STREQ(error.what(), "List of lists");
   }
+}
+
+// Several terms may name the same reverse property, and what they carry is
+// merged before it is inspected, so each is read again to find the one that
+// holds the offending member
+TEST(reverse_map_value_object_under_two_terms) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://e/p", "q": "http://e/p" },
+    "@reverse": { "p": { "@id": "http://e/o" }, "q": { "@value": "v" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property value", "/@reverse/q");
+}
+
+// Several terms may name the same property, and what they carry is merged
+// before the value object is inspected, so none of them can be held to
+// account for it and the object itself is named instead
+TEST(value_object_with_a_property_under_two_terms) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": "http://e/p", "b": "http://e/p" },
+    "http://e/q": { "@value": "x", "a": "1", "b": "2" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid value object", "/http:~1~1e~1q");
 }
