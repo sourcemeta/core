@@ -2917,6 +2917,38 @@ TEST(null_redefined_index_term_graph_container) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
+// The key of a graph index map joins whatever the graph object already says
+// under the property the term names its index with, rather than replacing it
+TEST(property_indexed_graph_container_prepends_to_its_own_index_property) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "i": "urn:i",
+      "p": {
+        "@id": "urn:p",
+        "@container": [ "@graph", "@index" ],
+        "@index": "i"
+      }
+    },
+    "p": {
+      "x": { "@graph": { "@id": "urn:n", "urn:q": "y" }, "i": "own" }
+    }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "urn:p": [
+        {
+          "@graph": [ { "@id": "urn:n", "urn:q": [ { "@value": "y" } ] } ],
+          "urn:i": [ { "@value": "x" }, { "@value": "own" } ]
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
 TEST(malformed_identifier_preserved_with_base) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@id": "bad%zz",
@@ -3402,6 +3434,45 @@ TEST(aliased_keyword_without_a_handler_adds_nothing) {
 TEST(object_of_only_an_identifier_expands_to_nothing) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@id": "http://example.com/a"
+  })");
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+// "If active property is null or @graph, drop free-floating values": a node
+// that says nothing but which node it is says nothing to keep
+// https://www.w3.org/TR/json-ld11-api/#expansion-algorithm
+TEST(free_floating_node_reference_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/bar"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(free_floating_node_reference_in_graph_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@graph": { "@id": "http://example.com/bar" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(empty_object_in_graph_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@graph": {} })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(free_floating_node_reference_in_set_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@set": { "@id": "http://example.com/bar" }
   })");
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);

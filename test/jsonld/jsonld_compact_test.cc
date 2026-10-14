@@ -6,6 +6,30 @@
 #include <string>  // std::string
 #include <utility> // std::move
 
+// A document-relative identifier that names nothing beyond the document
+// stays as it is when no base settles what it points at, and it compacts to
+// itself rather than through the context
+TEST(empty_identifier_without_a_base) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "",
+      "http://example.com/b": [ { "@value": "v" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "b": "http://example.com/b"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "",
+    "b": "v",
+    "@context": { "b": "http://example.com/b" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
 TEST(compact_to_relative_true_relativises_against_base) {
   const auto input = sourcemeta::core::parse_json(R"([
     {

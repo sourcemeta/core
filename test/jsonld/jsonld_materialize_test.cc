@@ -1043,6 +1043,138 @@ TEST(edge_attached_empty_node_below_root_is_kept) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
+// An annotation whose position the instance does not hold is scanned past
+// when the walk reaches the sibling that sorts after it
+TEST(annotation_for_an_absent_property_before_a_present_one) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "second": "X" })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"first"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/alternateName"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"second"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://schema.org/name": [ { "@value": "X" } ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// An index map entry that describes nothing and holds nothing contributes no
+// member, and the key it was filed under goes with it
+TEST(index_collection_skips_an_undescribed_null_entry) {
+  const auto instance = sourcemeta::core::parse_json(R"({
+    "identifiers": { "doi": null, "isbn": "978-0" }
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/book"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"identifiers"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/identifier"}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Index}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/identifier": [
+        { "@value": "978-0", "@index": "isbn" }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// A node that no edge attaches to is asserted on its own, and inside a named
+// graph it joins the members of that graph rather than the default one
+TEST(standalone_node_inside_named_graph_joins_the_graph) {
+  const auto instance = sourcemeta::core::parse_json(R"({
+    "prov": { "meta": { "label": "Y" }, "who": "X" }
+  })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://example.com/statedIn"}},
+          .value = sourcemeta::core::JSONLDNode{
+              .id = "https://example.com/graph", .graph = true}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"prov", "meta"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/meta"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "meta", "label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"prov", "who"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{.predicate = "https://schema.org/name"}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/statedIn": [
+        {
+          "@id": "https://example.com/graph",
+          "@graph": [
+            {
+              "@id": "https://example.com/graph",
+              "https://schema.org/name": [ { "@value": "X" } ]
+            },
+            {
+              "@id": "https://example.com/meta",
+              "https://schema.org/name": [ { "@value": "Y" } ]
+            }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
 TEST(named_graph) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "prov": { "who": "X" } })");

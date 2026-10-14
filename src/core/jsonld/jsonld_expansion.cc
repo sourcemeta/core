@@ -1200,22 +1200,12 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     // A @list container wraps the expanded value, including a @json-coerced
-    // one.
+    // one. What reaches here is not a list of its own, so wrapping it cannot
+    // make a list of lists, which the array form and the keyword form each
+    // turn down where they build the list
     if (container_includes(definition, KEYWORD_LIST) &&
-        !expanded_value.is_null() &&
-        !(expanded_value.is_object() &&
-          expanded_value.defines(KEYWORD_LIST, KEYWORD_LIST_HASH))) {
+        !expanded_value.is_null() && !is_list_object(expanded_value)) {
       expanded_value = into_array(std::move(expanded_value));
-      if (state.processing_1_0) {
-        for (const auto &item : expanded_value.as_array()) {
-          if (is_list_object(item)) {
-            throw JSONLDError("List of lists",
-                              forbidden_member_pointer(
-                                  state, active_context, property, entry.second,
-                                  entry_pointer, is_list_object));
-          }
-        }
-      }
       auto wrapper{JSON::make_object()};
       wrapper.assign_assume_new(JSON::String{KEYWORD_LIST},
                                 std::move(expanded_value), KEYWORD_LIST_HASH);
