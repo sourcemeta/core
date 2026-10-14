@@ -2,10 +2,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstdint>     // std::uint32_t, std::uintmax_t
 #include <exception>   // std::exception
 #include <filesystem>  // std::filesystem
-#include <limits>      // std::numeric_limits
 #include <sstream>     // std::istringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -849,22 +847,26 @@ TEST(number_with_an_exponent_beyond_the_decimal_range) {
   }
 }
 
-// The scanner writes what it reads onto a tape whose entries address the
-// input with 32-bit offsets and lengths, so an input past what those carry is
-// turned down before any of it is read. The file behind it is left sparse and
-// mapped rather than filled, since nothing ever looks at what it holds
-TEST(input_beyond_what_a_tape_entry_can_address) {
-  const sourcemeta::core::TemporaryDirectory staging{
-      std::filesystem::temp_directory_path(), ".sourcemeta-core-json-"};
-  const auto path{staging.path() / "oversized.json"};
-  sourcemeta::core::write_file(path, "");
-  std::filesystem::resize_file(
-      path,
-      static_cast<std::uintmax_t>(std::numeric_limits<std::uint32_t>::max()) +
-          1);
+// The parser addresses its input through 32-bit offsets, which is a reach no
+// caller can widen, but a caller holding an input it does not trust may hold
+// the parse to a smaller one of its own
+TEST(input_past_the_bound_the_caller_allows) {
+  try {
+    sourcemeta::core::parse_json("[ 1, 2, 3 ]", 8);
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_STREQ(error.what(), "Failed to parse the JSON document");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 0);
+  } catch (const std::exception &) {
+    FAIL();
+  }
 
-  const sourcemeta::core::FileView view{path};
-  const std::string_view input{view.as<char>(), view.size()};
-  EXPECT_FALSE(sourcemeta::core::try_parse_json(input).has_value());
-  EXPECT_PARSE_ERROR(input, 1, 0);
+  EXPECT_EQ(sourcemeta::core::parse_json("[ 1, 2, 3 ]", 11),
+            sourcemeta::core::parse_json("[ 1, 2, 3 ]"));
+}
+
+TEST(input_past_the_bound_the_caller_allows_without_throwing) {
+  EXPECT_FALSE(sourcemeta::core::try_parse_json("[ 1, 2, 3 ]", 8).has_value());
+  EXPECT_TRUE(sourcemeta::core::try_parse_json("[ 1, 2, 3 ]", 11).has_value());
 }

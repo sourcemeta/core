@@ -8,13 +8,15 @@
 #include "parser.h"
 #include "stringify.h"
 
+#include <algorithm>   // std::min
+#include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint64_t
 #include <filesystem>  // std::filesystem
 #include <istream>     // std::basic_istream
 #include <optional>    // std::optional, std::nullopt
 #include <ostream>     // std::basic_ostream
 #include <type_traits> // std::conditional_t
-#include <utility>     // std::move, std::unreachable
+#include <utility>     // std::cmp_greater, std::move, std::unreachable
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -23,10 +25,22 @@ template <bool ShouldThrow>
 static auto
 internal_parse_json(const char *&cursor, const char *end, std::uint64_t &line,
                     std::uint64_t &column, const JSON::ParseCallback &callback,
-                    [[maybe_unused]] const bool track_positions, JSON &output)
+                    [[maybe_unused]] const bool track_positions,
+                    const std::size_t maximum_input_bytes, JSON &output)
     -> std::conditional_t<ShouldThrow, void, bool> {
   const char *buffer_start{cursor};
   std::vector<TapeEntry> tape;
+
+  // A tape entry addresses the input through 32-bit offsets and lengths, so
+  // what a caller names only ever tightens the reach those offsets have
+  if (std::cmp_greater(end - cursor, std::min(maximum_input_bytes,
+                                              JSON_MAXIMUM_INPUT_BYTES))) {
+    if constexpr (ShouldThrow) {
+      throw JSONParseError(line, column);
+    } else {
+      return false;
+    }
+  }
 
   if constexpr (ShouldThrow) {
     if (callback || track_positions) {
@@ -75,12 +89,13 @@ internal_parse_json(const char *&cursor, const char *end, std::uint64_t &line,
   }
 }
 
-static auto internal_parse_json(const char *&cursor, const char *end,
-                                std::uint64_t &line, std::uint64_t &column,
-                                const bool track_positions) -> JSON {
+static auto internal_parse_json(
+    const char *&cursor, const char *end, std::uint64_t &line,
+    std::uint64_t &column, const bool track_positions,
+    const std::size_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES) -> JSON {
   JSON output{nullptr};
   internal_parse_json<true>(cursor, end, line, column, nullptr, track_positions,
-                            output);
+                            maximum_input_bytes, output);
   return output;
 }
 
@@ -160,13 +175,15 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
 }
 
 auto parse_json(
-    const std::basic_string_view<JSON::Char, JSON::CharTraits> input) -> JSON {
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    const std::size_t maximum_input_bytes) -> JSON {
   std::uint64_t line{1};
   std::uint64_t column{0};
   const char *begin{input.empty() ? "" : input.data()};
   const char *cursor{begin};
   const char *end{cursor + input.size()};
-  auto result{internal_parse_json(cursor, end, line, column, false)};
+  auto result{internal_parse_json(cursor, end, line, column, false,
+                                  maximum_input_bytes)};
   const char *trailing{skip_trailing_whitespace(cursor, end)};
   if (trailing != end) {
     position_of(begin, trailing, line, column);
@@ -177,15 +194,15 @@ auto parse_json(
 }
 
 auto try_parse_json(
-    const std::basic_string_view<JSON::Char, JSON::CharTraits> input)
-    -> std::optional<JSON> {
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    const std::size_t maximum_input_bytes) -> std::optional<JSON> {
   std::uint64_t line{1};
   std::uint64_t column{0};
   const char *cursor{input.empty() ? "" : input.data()};
   const char *end{cursor + input.size()};
   JSON output{nullptr};
   if (internal_parse_json<false>(cursor, end, line, column, nullptr, false,
-                                 output) &&
+                                 maximum_input_bytes, output) &&
       skip_trailing_whitespace(cursor, end) == end) {
     return output;
   }
@@ -210,7 +227,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   const auto input{read_to_string(stream)};
   const char *cursor{input.data()};
   const char *end{input.data() + input.size()};
-  internal_parse_json<true>(cursor, end, line, column, callback, true, output);
+  internal_parse_json<true>(cursor, end, line, column, callback, true,
+                            JSON_MAXIMUM_INPUT_BYTES, output);
   resume_stream(stream, start_position,
                 static_cast<std::streamsize>(cursor - input.data()));
 }
@@ -222,7 +240,7 @@ auto parse_json(
   // Continuation-style overload: see the note on the non-callback variant
   const char *cursor{input.empty() ? "" : input.data()};
   internal_parse_json<true>(cursor, cursor + input.size(), line, column,
-                            callback, true, output);
+                            callback, true, JSON_MAXIMUM_INPUT_BYTES, output);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -234,7 +252,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   const char *end{input.data() + input.size()};
   std::uint64_t line{1};
   std::uint64_t column{0};
-  internal_parse_json<true>(cursor, end, line, column, callback, false, output);
+  internal_parse_json<true>(cursor, end, line, column, callback, false,
+                            JSON_MAXIMUM_INPUT_BYTES, output);
   resume_stream(stream, start_position,
                 static_cast<std::streamsize>(cursor - input.data()));
 }
@@ -250,7 +269,8 @@ auto parse_json(
   // Parse into a temporary so that a trailing-content failure leaves the output
   // untouched, matching how a malformed value fails before ever populating it
   JSON result{nullptr};
-  internal_parse_json<true>(cursor, end, line, column, callback, false, result);
+  internal_parse_json<true>(cursor, end, line, column, callback, false,
+                            JSON_MAXIMUM_INPUT_BYTES, result);
   const char *trailing{skip_trailing_whitespace(cursor, end)};
   if (trailing != end) {
     position_of(begin, trailing, line, column);

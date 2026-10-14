@@ -14,12 +14,14 @@
 
 #include <sourcemeta/core/preprocessor.h>
 
-#include <cstdint>    // std::uint64_t
+#include <cstddef>    // std::size_t
+#include <cstdint>    // std::uint64_t, std::uint32_t
 #include <filesystem> // std::filesystem
 #include <format> // std::formatter, std::format_context, std::format_parse_context, std::format_to
 #include <fstream>          // std::basic_ifstream
 #include <initializer_list> // std::initializer_list
 #include <istream>          // std::basic_istream
+#include <limits>           // std::numeric_limits
 #include <optional>         // std::optional
 #include <ostream>          // std::basic_ostream
 #include <sstream>          // std::ostringstream
@@ -36,6 +38,13 @@
 /// ```
 
 namespace sourcemeta::core {
+
+/// @ingroup json
+/// The most input bytes accepted when a caller names no bound of its own,
+/// which is what the offsets the parser addresses its input through can reach,
+/// so a caller may name a smaller bound but never a larger one.
+inline constexpr std::size_t JSON_MAXIMUM_INPUT_BYTES{
+    std::numeric_limits<std::uint32_t>::max()};
 
 /// @ingroup json
 ///
@@ -87,9 +96,14 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
 /// parser produces is valid UTF-8. Rejecting it is a deliberate exercise of the
 /// RFC 8259 Section 9 allowance that an implementation may set limits on the
 /// character contents of strings.
+///
+/// That same allowance covers a limit on how large a text may be, so a caller
+/// holding an input it does not trust may hold the parse to a bound of its
+/// own, which is answered with the error above.
 SOURCEMETA_CORE_JSON_EXPORT
 auto parse_json(
-    const std::basic_string_view<JSON::Char, JSON::CharTraits> input) -> JSON;
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    const std::size_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES) -> JSON;
 
 /// @ingroup json
 ///
@@ -105,9 +119,14 @@ auto parse_json(
 /// assert(document.value().is_array());
 /// assert(!sourcemeta::core::try_parse_json("[ 1, 2,").has_value());
 /// ```
+///
+/// RFC 8259 Section 9 allows an implementation to set limits on the size of
+/// the texts it accepts, so a caller holding an input it does not trust may
+/// hold the parse to a bound of its own, which is answered with no value.
 SOURCEMETA_CORE_JSON_EXPORT
 auto try_parse_json(
-    const std::basic_string_view<JSON::Char, JSON::CharTraits> input)
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    const std::size_t maximum_input_bytes = JSON_MAXIMUM_INPUT_BYTES)
     -> std::optional<JSON>;
 
 /// @ingroup json
