@@ -3,49 +3,6 @@ if(NOT PROJECT_SOURCE_DIR)
   message(FATAL_ERROR "Missing PROJECT_SOURCE_DIR")
 endif()
 
-# The OpenAPI v3.0 Schema Object is only published as a definition of the
-# document schema, so a dialect for it has to carry that document. Only the
-# definitions the Schema Object reaches are of any use to such a dialect, and
-# leaving the rest behind keeps the result within the length that the strictest
-# compiler allows a single string literal to be
-function(read_schema_object_definitions path variable)
-  set(reachable Schema Reference Discriminator ExternalDocumentation XML)
-
-  file(READ "${path}" content)
-
-  string(JSON total LENGTH "${content}" definitions)
-  math(EXPR last "${total} - 1")
-  set(unreachable "")
-  foreach(index RANGE ${last})
-    string(JSON name MEMBER "${content}" definitions ${index})
-    if(NOT "${name}" IN_LIST reachable)
-      list(APPEND unreachable "${name}")
-    endif()
-  endforeach()
-  foreach(name IN LISTS unreachable)
-    string(JSON content REMOVE "${content}" definitions "${name}")
-  endforeach()
-
-  # The document-level constraints go as a whole, as the definitions they reach
-  # for are exactly the ones left behind
-  foreach(member IN ITEMS type required properties patternProperties
-      additionalProperties)
-    string(JSON content REMOVE "${content}" "${member}")
-  endforeach()
-
-  # What is kept has to stand on its own, as a reference to a definition that
-  # was left behind would resolve nowhere
-  string(REGEX MATCHALL "#/definitions/[A-Za-z]+" references "${content}")
-  foreach(reference IN LISTS references)
-    string(REPLACE "#/definitions/" "" name "${reference}")
-    if(NOT "${name}" IN_LIST reachable)
-      message(FATAL_ERROR "Unreachable OpenAPI v3.0 definition: ${name}")
-    endif()
-  endforeach()
-
-  set("${variable}" "${content}" PARENT_SCOPE)
-endfunction()
-
 # JSON Schema 2020-12
 set(JSON_SCHEMA_2020_12_DIR "${PROJECT_SOURCE_DIR}/vendor/jsonschema-2020-12")
 file(READ "${JSON_SCHEMA_2020_12_DIR}/schema.json" METASCHEMA_JSONSCHEMA_2020_12)
@@ -139,9 +96,23 @@ file(READ "${OPENAPI_3_1_DIR}/meta/2024-10-25" OPENAPI_OAS_3_1_META_2024_10_25)
 file(READ "${OPENAPI_3_1_DIR}/dialect/2024-10-25" OPENAPI_OAS_3_1_DIALECT_2024_10_25)
 
 # OpenAPI v3.0
+# The Schema Object is only published as a definition of the document schema,
+# so a dialect for it has to carry that definition along with the ones it
+# reaches. Taking those alone leaves behind a document schema that is longer
+# than what the strictest compiler allows a single string literal to be
 set(OPENAPI_3_0_DIR "${PROJECT_SOURCE_DIR}/vendor/openapi/oas/3.0")
-read_schema_object_definitions("${OPENAPI_3_0_DIR}/schema/2024-10-18" OPENAPI_OAS_3_0_SCHEMA_2024_10_18)
-read_schema_object_definitions("${OPENAPI_3_0_DIR}/schema/2021-09-28" OPENAPI_OAS_3_0_SCHEMA_2021_09_28)
+file(READ "${OPENAPI_3_0_DIR}/schema/2024-10-18" OPENAPI_OAS_3_0_DOCUMENT)
+string(JSON OPENAPI_OAS_3_0_SCHEMA_2024_10_18 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions Schema)
+string(JSON OPENAPI_OAS_3_0_REFERENCE_2024_10_18 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions Reference)
+string(JSON OPENAPI_OAS_3_0_DISCRIMINATOR_2024_10_18 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions Discriminator)
+string(JSON OPENAPI_OAS_3_0_EXTERNAL_DOCUMENTATION_2024_10_18 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions ExternalDocumentation)
+string(JSON OPENAPI_OAS_3_0_XML_2024_10_18 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions XML)
+file(READ "${OPENAPI_3_0_DIR}/schema/2021-09-28" OPENAPI_OAS_3_0_DOCUMENT)
+string(JSON OPENAPI_OAS_3_0_SCHEMA_2021_09_28 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions Schema)
+string(JSON OPENAPI_OAS_3_0_REFERENCE_2021_09_28 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions Reference)
+string(JSON OPENAPI_OAS_3_0_DISCRIMINATOR_2021_09_28 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions Discriminator)
+string(JSON OPENAPI_OAS_3_0_EXTERNAL_DOCUMENTATION_2021_09_28 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions ExternalDocumentation)
+string(JSON OPENAPI_OAS_3_0_XML_2021_09_28 GET "${OPENAPI_OAS_3_0_DOCUMENT}" definitions XML)
 
 if(NOT KNOWN_RESOLVER_INPUT)
   message(FATAL_ERROR "Missing KNOWN_RESOLVER_INPUT")

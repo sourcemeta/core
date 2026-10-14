@@ -260,6 +260,9 @@ public:
       std::copy(this->words + zero_words, this->words + this->length,
                 this->words);
       this->length -= zero_words;
+      // What the shift leaves behind is no longer part of the value
+      std::fill(this->words + this->length,
+                this->words + this->length + zero_words, 0ULL);
       total_stripped += static_cast<std::int32_t>(zero_words) * BASE_DIGITS;
     }
 
