@@ -6725,6 +6725,24 @@ TEST(result_writer_metadata_rejections) {
                      "Discovery must include its serving revision");
 }
 
+TEST(result_writer_rejects_empty_metadata_key) {
+  std::ostringstream stream;
+  const auto bad{sourcemeta::core::parse_json(
+      R"JSON({
+        "resources": [],
+        "_meta": {
+          "": 1
+        }
+      })JSON")};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_write_result(
+                         stream,
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         "resources/list", sourcemeta::core::JSON{0}, bad,
+                         sourcemeta::core::MCPCachePolicy{}),
+                     "Invalid precomputed metadata");
+  EXPECT_TRUE(stream.str().empty());
+}
+
 // An elicitation schema may describe a single or a multiple choice, and the
 // builder carries the schema through untouched
 // https://modelcontextprotocol.io/specification/2026-07-28/schema#titledsingleselectenumschema
