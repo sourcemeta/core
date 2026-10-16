@@ -817,6 +817,19 @@ TEST(make_notification_rejects_malformed_metadata_key_on_2026_07_28) {
                      "Invalid notification metadata");
 }
 
+TEST(make_notification_rejects_empty_metadata_key_on_2026_07_28) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_notification(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         false, "notifications/cancelled",
+                         sourcemeta::core::parse_json(
+                             R"JSON({
+                               "requestId": 1,
+                               "_meta": { "": 1 }
+                             })JSON"),
+                         std::nullopt),
+                     "Invalid notification metadata");
+}
+
 TEST(make_notification_rejects_subscription_identifier_on_2025_11_25) {
   EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_notification(
                          sourcemeta::core::MCPProtocolVersion::V_2025_11_25,

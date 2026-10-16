@@ -3738,6 +3738,15 @@ TEST(request_meta_validation_rejects_a_prefix_closing_on_a_dot) {
             sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
 }
 
+TEST(request_meta_validation_rejects_an_empty_metadata_key) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+    "params": { "_meta": { "": true } }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_validate_request_meta(envelope).first,
+            sourcemeta::core::MCPRequestMetaStatus::InvalidMetaKey);
+}
+
 // A value that cannot travel in a header as it stands is carried base64
 // encoded between the markers, so what the comparison sees is what the
 // encoding spells out rather than the encoded form itself
