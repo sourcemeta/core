@@ -6417,6 +6417,101 @@ TEST(write_result_resource_templates_list_2026_07_28) {
       "\"resultType\":\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
 }
 
+TEST(write_result_moves_rvalue_payload) {
+  std::ostringstream stream;
+  auto result{sourcemeta::core::parse_json(R"JSON({ "tools": [] })JSON")};
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list",
+      sourcemeta::core::JSON{1}, std::move(result),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[],\"resultType\":"
+      "\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_preserves_const_lvalue_payload) {
+  std::ostringstream stream;
+  const auto result{sourcemeta::core::parse_json(R"JSON({ "tools": [] })JSON")};
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list",
+      sourcemeta::core::JSON{1}, result,
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(result, sourcemeta::core::parse_json(R"JSON({ "tools": [] })JSON"));
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"tools\":[],\"resultType\":"
+      "\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_supports_aliased_identifier) {
+  std::ostringstream stream;
+  auto result{
+      sourcemeta::core::parse_json(R"JSON({ "id": 1, "tools": [] })JSON")};
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list",
+      result.at("id"), std::move(result),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(stream.str(),
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"id\":1,\"tools\":[],"
+            "\"resultType\":"
+            "\"complete\",\"ttlMs\":123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_supports_aliased_method) {
+  std::ostringstream stream;
+  auto result{sourcemeta::core::parse_json(
+      R"JSON({ "op": "tools/list", "tools": [] })JSON")};
+  const sourcemeta::core::JSON::StringView method_view{
+      result.at("op").to_string()};
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, method_view,
+      sourcemeta::core::JSON{1}, std::move(result),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public});
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"op\":\"tools/list\","
+      "\"tools\":[],\"resultType\":\"complete\",\"ttlMs\":123,\"cacheScope\":"
+      "\"public\"}}");
+}
+
+TEST(write_result_supports_aliased_server_info) {
+  std::ostringstream stream;
+  auto result{sourcemeta::core::parse_json(
+      R"JSON({ "srv": "my-server", "ver": "1.0", "tools": [] })JSON")};
+  const sourcemeta::core::MCPImplementation server{
+      .name = result.at("srv").to_string(),
+      .version = result.at("ver").to_string()};
+  sourcemeta::core::mcp_write_result(
+      stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28, "tools/list",
+      sourcemeta::core::JSON{1}, std::move(result),
+      sourcemeta::core::MCPCachePolicy{
+          .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public},
+      server);
+  EXPECT_EQ(
+      stream.str(),
+      "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"srv\":\"my-server\","
+      "\"ver\":\"1.0\",\"tools\":[],\"resultType\":\"complete\",\"_meta\":"
+      "{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"my-server\","
+      "\"version\":\"1.0\"}},\"ttlMs\":123,\"cacheScope\":\"public\"}}");
+}
+
+TEST(write_result_lvalue_rejects_invalid_identifier_before_copy) {
+  std::ostringstream stream;
+  const auto result{sourcemeta::core::parse_json(R"JSON({ "tools": [] })JSON")};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_write_result(
+          stream, sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+          "tools/list", sourcemeta::core::JSON{nullptr}, result,
+          sourcemeta::core::MCPCachePolicy{
+              .ttl_ms = 123, .scope = sourcemeta::core::MCPCacheScope::Public}),
+      "Invalid MCP identifier");
+}
+
 TEST(write_result_prompts_list_2026_07_28) {
   std::ostringstream stream;
   sourcemeta::core::mcp_write_result(
