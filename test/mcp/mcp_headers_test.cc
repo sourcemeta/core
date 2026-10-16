@@ -2360,6 +2360,38 @@ TEST(make_parameter_headers_omits_an_absent_value) {
 
 // Integer values must stay within the safe range for JavaScript
 // https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension
+TEST(make_parameter_headers_accepts_safe_integer_boundaries) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  const auto min_headers{sourcemeta::core::mcp_make_parameter_headers(
+      descriptors, sourcemeta::core::parse_json(
+                       R"JSON({ "number": -9007199254740991 })JSON"))};
+  const std::vector<std::pair<std::string, std::string>> expected_min{
+      {"Mcp-Param-Count", "-9007199254740991"}};
+  EXPECT_EQ(min_headers, expected_min);
+
+  const auto max_headers{sourcemeta::core::mcp_make_parameter_headers(
+      descriptors, sourcemeta::core::parse_json(
+                       R"JSON({ "number": 9007199254740991 })JSON"))};
+  const std::vector<std::pair<std::string, std::string>> expected_max{
+      {"Mcp-Param-Count", "9007199254740991"}};
+  EXPECT_EQ(max_headers, expected_max);
+}
+
+TEST(make_parameter_headers_rejects_integer_below_min_safe) {
+  const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
+      {{.name = "Count",
+        .path = {"number"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_parameter_headers(
+          descriptors, sourcemeta::core::parse_json(
+                           R"JSON({ "number": -9007199254740992 })JSON")),
+      "Invalid mirrored argument type or unsafe integer");
+}
+
 TEST(make_parameter_headers_rejects_an_unsafe_integer) {
   const std::array<sourcemeta::core::MCPHeaderParameter, 1> descriptors{
       {{.name = "Count",
