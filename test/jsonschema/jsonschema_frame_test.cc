@@ -2357,3 +2357,81 @@ TEST(mode_reads_back_what_the_frame_was_given) {
   EXPECT_TRUE(locations.mode() ==
               sourcemeta::core::SchemaFrame::Mode::Locations);
 }
+
+// RFC 6901 Section 6 only asks for the characters that the fragment rule of
+// RFC 3986 disallows to be percent-encoded, and `:` is not one of them, so a
+// pointer has one spelling with it encoded and one without. Resolving a
+// reference reads the fragment back as a pointer, which settles the two on one
+// spelling, and a URI handed over from anywhere else is settled the same way
+TEST(traverse_a_pointer_fragment_that_percent_encodes_a_reserved_character) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/escaped",
+    "$ref": "#/$defs/a%3Ab",
+    "$defs": { "a:b": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/escaped#/$defs/a:b")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a:b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/escaped#/$defs/a%3Ab")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a:b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/escaped#/$defs/a%3ab")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a:b");
+}
+
+// Reference resolution lowercases the scheme and the host and takes out a
+// default port, so a URI that names a location only once that has happened
+// names it here too
+TEST(traverse_a_uri_that_is_not_normalised) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$defs": { "foo": { "$anchor": "bar" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("HTTPS://EXAMPLE.COM:443/schema#bar")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/foo");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/./schema#bar")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/foo");
+}
+
+TEST(traverse_a_uri_that_does_not_parse) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_FALSE(frame.traverse("http://[").has_value());
+}

@@ -685,6 +685,16 @@ auto embed_references(
                                  "Could not resolve schema reference");
     }
 
+    // And so is one whose base is the very document being bundled. A wrapper
+    // format puts the schemas it holds below a root that is no schema
+    // resource of its own, so nothing framed answers to the document's base
+    // and the test above passes it over, even though the fragment is all that
+    // leads nowhere
+    if (depth == 0 && !default_base.empty() && reference.base == default_base) {
+      throw SchemaReferenceError(reference.destination, to_pointer(pointer),
+                                 "Could not resolve schema reference");
+    }
+
     if (reference.base.empty()) {
       throw SchemaReferenceError(reference.destination, to_pointer(pointer),
                                  "Could not resolve schema reference");

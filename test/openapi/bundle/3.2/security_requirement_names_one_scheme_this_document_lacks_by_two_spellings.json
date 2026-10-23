@@ -28,36 +28,10 @@
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {},
   "schemaResolver": {},
-  "result": {
-    "openapi": "3.2.0",
-    "info": {
-      "title": "Example",
-      "version": "1.0.0"
-    },
-    "security": [
-      {
-        "#/components/securitySchemes/Missing": [
-          "read"
-        ],
-        "openapi.json#/components/securitySchemes/Missing": [
-          "write"
-        ]
-      }
-    ],
-    "components": {
-      "securitySchemes": {
-        "Local": {
-          "type": "apiKey",
-          "name": "key",
-          "in": "header"
-        }
-      }
-    }
-  },
-  "inserted": [],
-  "reads": {},
-  "schemaReads": {},
-  "standalone": false,
-  "relocatable": false,
-  "operations": []
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This security requirement must name a Security Scheme Object within the document it points at",
+    "location": "/security/0/#~1components~1securitySchemes~1Missing",
+    "identifier": "https://example.com/openapi.json#/components/securitySchemes/Missing"
+  }
 }

@@ -1,0 +1,31 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Person": {
+          "type": "object",
+          "properties": {
+            "pet": {
+              "$ref": "#/components/schemas/Nope"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "error": {
+    "type": "SchemaReferenceError",
+    "message": "Could not resolve schema reference",
+    "location": "/components/schemas/Person/properties/pet/$ref",
+    "identifier": "https://example.com/openapi.json#/components/schemas/Nope"
+  }
+}
