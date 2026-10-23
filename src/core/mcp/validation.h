@@ -314,7 +314,7 @@ inline auto metadata_key(const JSON::StringView key, const bool prefix_required)
   const auto slash{key.find('/')};
   JSON::StringView name{key};
   if (slash == JSON::StringView::npos) {
-    if (prefix_required) {
+    if (prefix_required || key.empty()) {
       return false;
     }
   } else {
