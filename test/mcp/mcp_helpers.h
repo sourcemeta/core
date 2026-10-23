@@ -17,7 +17,7 @@
       if constexpr (std::is_void_v<decltype(sourcemeta_test_expression())>) {  \
         sourcemeta_test_expression();                                          \
       } else {                                                                 \
-        [[maybe_unused]] const auto sourcemeta_test_result{                    \
+        [[maybe_unused]] const auto &sourcemeta_test_result{                   \
             sourcemeta_test_expression()};                                     \
       }                                                                        \
     }([&]() -> decltype(auto) { return (expression); });                       \
