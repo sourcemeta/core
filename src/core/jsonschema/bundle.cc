@@ -665,6 +665,14 @@ auto embed_references(
       depth == 0 ? default_base : std::string_view{}, remaining};
   charge(remaining, frame);
 
+  // Framing holds the base it resolves against to its canonical spelling, so
+  // every reference destination it reports carries that spelling rather than
+  // the one the caller wrote. Settling it once here is what lets a reference
+  // be compared against it without parsing the base over again for each
+  const JSON::String canonical_base{depth == 0 && !default_base.empty()
+                                        ? URI::canonicalize(default_base)
+                                        : JSON::String{}};
+
   std::vector<std::tuple<JSON, JSON::String, SchemaBaseDialect>> deferred;
   std::vector<std::pair<Pointer, JSON::String>> ref_rewrites;
 
@@ -690,7 +698,7 @@ auto embed_references(
     // resource of its own, so nothing framed answers to the document's base
     // and the test above passes it over, even though the fragment is all that
     // leads nowhere
-    if (depth == 0 && !default_base.empty() && reference.base == default_base) {
+    if (!canonical_base.empty() && reference.base == canonical_base) {
       throw SchemaReferenceError(reference.destination, to_pointer(pointer),
                                  "Could not resolve schema reference");
     }

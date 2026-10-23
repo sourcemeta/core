@@ -1,0 +1,39 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Person": {
+          "type": "object",
+          "properties": {
+            "pet": {
+              "$ref": "#/components/schemas/Nope"
+            }
+          }
+        }
+      }
+    }
+  },
+  "resolver": {},
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "container": "/x-bundled",
+  "paths": [
+    "/components/schemas/Person"
+  ],
+  "defaultBase": "HTTPS://WWW.SOURCEMETA.COM:443/./openapi.json",
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://www.sourcemeta.com/openapi.json#/components/schemas/Nope",
+      "location": "/components/schemas/Person/properties/pet/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://www.sourcemeta.com/openapi.json#/components/schemas/Nope",
+      "location": "/components/schemas/Person/properties/pet/$ref"
+    }
+  },
+  "inserted": {}
+}
