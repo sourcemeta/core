@@ -5601,3 +5601,126 @@ TEST(explicit_key_with_no_value) {
 
   EXPECT_EQ(result, expected);
 }
+
+// YAML 1.2.2 Section 9.2 makes a stream "zero or more documents", so a file
+// that carries more than one is well formed rather than malformed. An entry
+// point that hands back a single document has nowhere to put the rest, so
+// what it can say is that there was more to read
+TEST(parse_yaml_reports_a_single_document) {
+  bool more_documents{true};
+  const auto result{sourcemeta::core::parse_yaml("foo: 1", more_documents)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_FALSE(more_documents);
+}
+
+TEST(parse_yaml_reports_a_document_that_another_follows) {
+  bool more_documents{false};
+  const auto result{
+      sourcemeta::core::parse_yaml("foo: 1\n---\nbar: 2", more_documents)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(more_documents);
+}
+
+TEST(parse_yaml_reports_a_document_closed_by_an_end_marker) {
+  bool more_documents{true};
+  const auto result{
+      sourcemeta::core::parse_yaml("foo: 1\n...\n", more_documents)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_FALSE(more_documents);
+}
+
+// YAML 1.2.2 Section 9.1.4: "Since the existence of the document is indicated
+// by this marker, the document itself may be completely empty". So a
+// directives end marker with nothing after it opens a document of its own
+// rather than trailing the one before it
+TEST(parse_yaml_reports_an_empty_document_that_follows) {
+  bool more_documents{false};
+  const auto result{
+      sourcemeta::core::parse_yaml("foo: 1\n---\n", more_documents)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(more_documents);
+}
+
+TEST(parse_yaml_with_a_callback_reports_a_document_that_another_follows) {
+  bool more_documents{false};
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_yaml("foo: 1\n---\nbar: 2", more_documents, result,
+                               nullptr);
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(more_documents);
+}
+
+TEST(parse_yaml_with_a_callback_reports_a_single_document) {
+  bool more_documents{true};
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_yaml("foo: 1", more_documents, result, nullptr);
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_FALSE(more_documents);
+}
+
+TEST(read_yaml_reports_a_document_that_another_follows) {
+  bool more_documents{false};
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "multi_document_objects.yaml",
+      more_documents)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(more_documents);
+}
+
+TEST(read_yaml_reports_a_single_document) {
+  bool more_documents{true};
+  const auto result{sourcemeta::core::read_yaml(
+      std::filesystem::path{STUBS_PATH} / "test_1.yaml", more_documents)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": "bar", "baz": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_FALSE(more_documents);
+}
+
+TEST(read_yaml_with_a_callback_reports_a_document_that_another_follows) {
+  bool more_documents{false};
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                  "multi_document_objects.yaml",
+                              more_documents, result, nullptr);
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(more_documents);
+}
+
+TEST(read_yaml_with_a_callback_reports_a_single_document) {
+  bool more_documents{true};
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} / "test_1.yaml",
+                              more_documents, result, nullptr);
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": "bar", "baz": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+  EXPECT_FALSE(more_documents);
+}
+
+TEST(read_yaml_reporting_a_file_that_does_not_parse) {
+  bool more_documents{false};
+  try {
+    const auto result{sourcemeta::core::read_yaml(
+        std::filesystem::path{STUBS_PATH} / "invalid.yaml", more_documents)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
+  }
+}

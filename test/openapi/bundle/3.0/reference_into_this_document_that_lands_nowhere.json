@@ -17,25 +17,10 @@
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {},
   "schemaResolver": {},
-  "result": {
-    "openapi": "3.0.4",
-    "info": {
-      "title": "Example",
-      "version": "1.0.0"
-    },
-    "components": {
-      "responses": {
-        "R": {
-          "$ref": "#/components/responses/Missing"
-        }
-      }
-    },
-    "paths": {}
-  },
-  "inserted": [],
-  "reads": {},
-  "schemaReads": {},
-  "standalone": false,
-  "relocatable": false,
-  "operations": []
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name a place within the document it points at",
+    "location": "/components/responses/R/$ref",
+    "identifier": "https://example.com/openapi.json#/components/responses/Missing"
+  }
 }
