@@ -945,6 +945,25 @@ auto mcp_write_result(
     std::optional<MCPImplementation> server_info = std::nullopt) -> void;
 
 /// @ingroup mcp
+/// Serialize a complete MCP response for one of the six cacheable operations
+/// using move semantics, decorating the provided result in-place.
+/// A cache policy is mandatory for 2026-07-28. Pass `std::nullopt` for legacy
+/// responses. A precomputed discovery result is held to the same rules as the
+/// builder that produces one, so its advertised revisions must be non-empty,
+/// must include the revision being served, and must each be one this library
+/// models.
+/// This writes JSON only. Stdio callers must append a newline themselves.
+///
+/// @see
+/// https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results
+SOURCEMETA_CORE_MCP_EXPORT
+auto mcp_write_result(
+    std::ostream &stream, MCPProtocolVersion version, JSON::StringView method,
+    const JSON &identifier, JSON &&result,
+    std::optional<MCPCachePolicy> cache_policy,
+    std::optional<MCPImplementation> server_info = std::nullopt) -> void;
+
+/// @ingroup mcp
 /// Build the JSON-RPC envelope returned in response to an MCP `initialize`
 /// request. The revision is the one the client asked for when the server
 /// supports it and it uses the handshake, and otherwise the highest supported
