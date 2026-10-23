@@ -11,7 +11,7 @@
 // expectation is re-raised so that it is not mistaken for a rejection
 #define EXPECT_MCP_REJECTS(expression, expected_message)                       \
   try {                                                                        \
-    expression;                                                                \
+    [&]() -> decltype(expression) { return (expression); }();                  \
     FAIL();                                                                    \
   } catch (const ::sourcemeta::core::MCPError &sourcemeta_test_error) {        \
     EXPECT_STREQ(sourcemeta_test_error.what(), expected_message);              \

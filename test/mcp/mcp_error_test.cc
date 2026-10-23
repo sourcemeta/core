@@ -1144,8 +1144,8 @@ TEST(error_code_to_http_status_unmapped_code) {
 
 TEST(mcp_error_is_catchable_as_an_invalid_argument) {
   try {
-    sourcemeta::core::mcp_make_resource_link(
-        sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "a");
+    [[maybe_unused]] const auto result{sourcemeta::core::mcp_make_resource_link(
+        sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "a")};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(),
