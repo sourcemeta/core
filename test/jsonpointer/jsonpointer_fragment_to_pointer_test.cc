@@ -85,24 +85,90 @@ TEST(uri_with_percent_encoded_caret) {
   EXPECT_EQ(pointer.value().at(0).to_property(), "e^f");
 }
 
+// RFC 3986 Section 2.4 separates the subcomponents of a URI before decoding
+// the percent-encoded octets within them, and RFC 3986 Section 2.2 keeps a
+// reserved character from being equivalent to the octet that stands for it, so
+// the slash that RFC 6901 Section 3 puts in front of every reference token is
+// never one that was percent-encoded. RFC 6901 Section 3 gives the slash that
+// belongs to a token the one spelling `~1`, so a decoded one leaves the
+// fragment conforming to nothing
 TEST(uri_with_percent_encoded_slash) {
   const sourcemeta::core::URI uri{"#/foo%2Fbar"};
-  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
-  EXPECT_TRUE(pointer.has_value());
-  EXPECT_EQ(pointer.value().size(), 2);
-  EXPECT_TRUE(pointer.value().at(0).is_property());
-  EXPECT_EQ(pointer.value().at(0).to_property(), "foo");
-  EXPECT_TRUE(pointer.value().at(1).is_property());
-  EXPECT_EQ(pointer.value().at(1).to_property(), "bar");
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
 }
 
-TEST(uri_with_percent_encoded_leading_slash) {
-  const sourcemeta::core::URI uri{"#%2Ffoo"};
+TEST(uri_with_lowercase_percent_encoded_slash) {
+  const sourcemeta::core::URI uri{"#/foo%2fbar"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_and_an_unencoded_one) {
+  const sourcemeta::core::URI uri{"#/foo%2Fbar/baz"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_as_a_whole_token) {
+  const sourcemeta::core::URI uri{"#/%2F"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_ending_a_token) {
+  const sourcemeta::core::URI uri{"#/foo%2F"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_after_an_empty_token) {
+  const sourcemeta::core::URI uri{"#//%2F"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_before_another_token) {
+  const sourcemeta::core::URI uri{"#/%2F/x"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_a_lone_separator) {
+  const sourcemeta::core::URI uri{"#/"};
   const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
   EXPECT_TRUE(pointer.has_value());
   EXPECT_EQ(pointer.value().size(), 1);
   EXPECT_TRUE(pointer.value().at(0).is_property());
-  EXPECT_EQ(pointer.value().at(0).to_property(), "foo");
+  EXPECT_EQ(pointer.value().at(0).to_property(), "");
+}
+
+// RFC 6901 Section 3 wants a slash in front of every reference token, and a
+// percent-encoded one does not stand in for it, so nothing opens the first
+// token here
+TEST(uri_with_percent_encoded_leading_slash) {
+  const sourcemeta::core::URI uri{"#%2Ffoo"};
+  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
+  EXPECT_FALSE(pointer.has_value());
+}
+
+// RFC 3986 Section 2.4 lets an octet that stands for an unreserved character
+// be decoded at any time, and the tilde is one, so it still forms the escape
+// that RFC 6901 Section 3 reads it as
+TEST(uri_with_percent_encoded_tilde_forming_an_escape) {
+  const sourcemeta::core::URI uri{"#/a%7E1b"};
+  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
+  EXPECT_TRUE(pointer.has_value());
+  EXPECT_EQ(pointer.value().size(), 1);
+  EXPECT_TRUE(pointer.value().at(0).is_property());
+  EXPECT_EQ(pointer.value().at(0).to_property(), "a/b");
+}
+
+TEST(uri_with_percent_encoded_slash_next_to_a_tilde) {
+  const sourcemeta::core::URI uri{"#/a~%2Fb"};
+  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
+  EXPECT_FALSE(pointer.has_value());
+}
+
+TEST(round_trip_token_with_a_slash) {
+  const sourcemeta::core::Pointer pointer{"foo/bar"};
+  const auto result{
+      sourcemeta::core::fragment_to_pointer(sourcemeta::core::to_uri(pointer))};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), pointer);
 }
 
 TEST(uri_with_lowercase_percent_encoding) {
