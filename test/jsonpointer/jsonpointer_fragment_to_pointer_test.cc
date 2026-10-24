@@ -89,34 +89,51 @@ TEST(uri_with_percent_encoded_caret) {
 // the percent-encoded octets within them, and RFC 3986 Section 2.2 keeps a
 // reserved character from being equivalent to the octet that stands for it, so
 // the slash that RFC 6901 Section 3 puts in front of every reference token is
-// never one that was percent-encoded
+// never one that was percent-encoded. RFC 6901 Section 3 gives the slash that
+// belongs to a token the one spelling `~1`, so a decoded one leaves the
+// fragment conforming to nothing
 TEST(uri_with_percent_encoded_slash) {
   const sourcemeta::core::URI uri{"#/foo%2Fbar"};
-  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
-  EXPECT_TRUE(pointer.has_value());
-  EXPECT_EQ(pointer.value().size(), 1);
-  EXPECT_TRUE(pointer.value().at(0).is_property());
-  EXPECT_EQ(pointer.value().at(0).to_property(), "foo/bar");
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
 }
 
 TEST(uri_with_lowercase_percent_encoded_slash) {
   const sourcemeta::core::URI uri{"#/foo%2fbar"};
-  const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
-  EXPECT_TRUE(pointer.has_value());
-  EXPECT_EQ(pointer.value().size(), 1);
-  EXPECT_TRUE(pointer.value().at(0).is_property());
-  EXPECT_EQ(pointer.value().at(0).to_property(), "foo/bar");
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
 }
 
 TEST(uri_with_percent_encoded_slash_and_an_unencoded_one) {
   const sourcemeta::core::URI uri{"#/foo%2Fbar/baz"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_as_a_whole_token) {
+  const sourcemeta::core::URI uri{"#/%2F"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_ending_a_token) {
+  const sourcemeta::core::URI uri{"#/foo%2F"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_after_an_empty_token) {
+  const sourcemeta::core::URI uri{"#//%2F"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_percent_encoded_slash_before_another_token) {
+  const sourcemeta::core::URI uri{"#/%2F/x"};
+  EXPECT_FALSE(sourcemeta::core::fragment_to_pointer(uri).has_value());
+}
+
+TEST(uri_with_a_lone_separator) {
+  const sourcemeta::core::URI uri{"#/"};
   const auto pointer{sourcemeta::core::fragment_to_pointer(uri)};
   EXPECT_TRUE(pointer.has_value());
-  EXPECT_EQ(pointer.value().size(), 2);
+  EXPECT_EQ(pointer.value().size(), 1);
   EXPECT_TRUE(pointer.value().at(0).is_property());
-  EXPECT_EQ(pointer.value().at(0).to_property(), "foo/bar");
-  EXPECT_TRUE(pointer.value().at(1).is_property());
-  EXPECT_EQ(pointer.value().at(1).to_property(), "baz");
+  EXPECT_EQ(pointer.value().at(0).to_property(), "");
 }
 
 // RFC 6901 Section 3 wants a slash in front of every reference token, and a

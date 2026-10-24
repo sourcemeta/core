@@ -2576,23 +2576,15 @@ TEST(location_of_a_pointer_fragment_that_percent_encodes_a_delimiter) {
                     .pointer),
             "/$defs/a~1b");
   EXPECT_EQ(sourcemeta::core::to_string(
-                frame.traverse("https://example.com/slash#/$defs/a%2Fb")
-                    .value()
-                    .get()
-                    .pointer),
-            "/$defs/a~1b");
-  EXPECT_EQ(sourcemeta::core::to_string(
                 frame.traverse("https://example.com/slash#/$defs/a/b")
                     .value()
                     .get()
                     .pointer),
             "/$defs/a/b");
-  EXPECT_EQ(sourcemeta::core::to_string(
-                frame
-                    .location(sourcemeta::core::SchemaReferenceType::Static,
-                              "https://example.com/slash#/$defs/a%2Fb")
-                    .value()
-                    .get()
-                    .pointer),
-            "/$defs/a~1b");
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/slash#/$defs/a%2Fb").has_value());
+  EXPECT_FALSE(frame
+                   .location(sourcemeta::core::SchemaReferenceType::Static,
+                             "https://example.com/slash#/$defs/a%2Fb")
+                   .has_value());
 }

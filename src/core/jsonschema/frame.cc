@@ -2043,9 +2043,9 @@ auto SchemaFrame::location(const SchemaReferenceType type,
     return result->second;
   }
 
-  // Asking for a location of a given kind is the same question asked of the
-  // same places as asking for one of either kind, so a URI that reaches here
-  // is settled the same way before it is given up on
+  // A URI is settled the same way whichever kind of location it is asked
+  // for, as the kind narrows which places answer rather than how the name of
+  // a place is spelled
   const auto canonical{other_spelling(uri_string)};
   if (!canonical.has_value()) {
     return std::nullopt;

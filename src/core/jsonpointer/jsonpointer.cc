@@ -23,17 +23,27 @@
 
 namespace {
 
-// A slash that comes out of an escape is data within the reference token it
-// falls in, which is the escape that RFC 6901 Section 3 gives it
+// The slash that belongs to a reference token is spelled `~1`, and the
+// transformation evaluation applies to a token is alone in turning that back
+// into one, so a token still holding a slash once its octets are decoded
+// conforms to no reference token and is an error condition rather than a
+// member name
+// See https://www.rfc-editor.org/rfc/rfc6901#section-3
+// See https://www.rfc-editor.org/rfc/rfc6901#section-4
 auto append_reference_token(sourcemeta::core::JSON::String &output,
-                            const std::string_view token) -> void {
-  for (const auto character : sourcemeta::core::URI::unescape(token)) {
-    if (character == '/') {
-      output.append("~1");
-    } else {
-      output.push_back(character);
-    }
+                            const std::string_view token) -> bool {
+  if (token.find('%') == std::string_view::npos) {
+    output.append(token);
+    return true;
   }
+
+  const auto decoded{sourcemeta::core::URI::unescape(token)};
+  if (decoded.find('/') != std::string::npos) {
+    return false;
+  }
+
+  output.append(decoded);
+  return true;
 }
 
 template <template <typename T> typename Allocator, typename V,
@@ -363,8 +373,7 @@ auto fragment_to_pointer(const URI &uri) -> std::optional<Pointer> {
   //
   // The slash that precedes every reference token is the delimiter here, and
   // a reserved character is not equivalent to the octet that stands for it,
-  // so a slash that was percent-encoded is data within the token it falls in
-  // rather than the start of the next one.
+  // so a slash that was percent-encoded never separates two tokens.
   // See https://www.rfc-editor.org/rfc/rfc3986#section-2.2
   // See https://www.rfc-editor.org/rfc/rfc6901#section-3
   if (value.front() != '/') {
@@ -377,7 +386,11 @@ auto fragment_to_pointer(const URI &uri) -> std::optional<Pointer> {
   while (true) {
     const auto parts{split_once(rest, '/')};
     input.push_back('/');
-    append_reference_token(input, parts.has_value() ? parts->first : rest);
+    if (!append_reference_token(input,
+                                parts.has_value() ? parts->first : rest)) {
+      return std::nullopt;
+    }
+
     if (!parts.has_value()) {
       break;
     }
