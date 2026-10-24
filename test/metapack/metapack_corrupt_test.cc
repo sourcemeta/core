@@ -82,6 +82,14 @@ protected:
     file.write(reinterpret_cast<const char *>(&value), sizeof(value));
   }
 
+  // The mapping is released before returning, as Windows refuses to open a
+  // mapped file for writing and every caller goes on to rewrite the header
+  static auto payload_size_of(const std::filesystem::path &path)
+      -> std::size_t {
+    const sourcemeta::core::FileView view{path};
+    return sourcemeta::core::metapack_parse(view).value().payload.size();
+  }
+
   static auto write_document(const std::filesystem::path &path,
                              const sourcemeta::core::MetapackEncoding encoding)
       -> void {
@@ -258,9 +266,7 @@ TEST_F(MetapackCorruption,
   const auto path{directory.path() / "document.metapack"};
   write_document(path, sourcemeta::core::MetapackEncoding::GZIP);
 
-  const sourcemeta::core::FileView view{path};
-  const auto payload_size{
-      sourcemeta::core::metapack_parse(view).value().payload.size()};
+  const auto payload_size{payload_size_of(path)};
 
   // One byte beyond what a ratio of two allows, which integer division alone
   // would floor back into range
