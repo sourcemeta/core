@@ -43,7 +43,8 @@ struct MetapackHeader {
   std::int64_t last_modified{0};
   /// How many bytes the contents take once decoded
   std::uint64_t content_bytes{0};
-  /// The SHA-256 digest of the decoded contents
+  /// The SHA-256 digest of the decoded contents, which names this revision of
+  /// them for a cache to compare against rather than being checked on read
   std::array<std::uint8_t, 32> checksum{};
   /// How many bytes the media type that follows the header takes
   std::uint16_t media_type_length{0};

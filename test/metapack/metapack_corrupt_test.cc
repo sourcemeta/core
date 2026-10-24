@@ -6,7 +6,7 @@
 #include <cstddef>    // offsetof, std::size_t
 #include <cstdint>    // std::uint16_t, std::uint64_t
 #include <filesystem> // std::filesystem
-#include <fstream>    // std::fstream
+#include <fstream>    // std::fstream, std::ofstream
 #include <ios>        // std::ios, std::streamoff
 #include <string>     // std::string
 
@@ -219,4 +219,65 @@ TEST_F(MetapackCorruption,
 
   const sourcemeta::core::FileView view{path};
   EXPECT_FALSE(sourcemeta::core::metapack_parse(view).has_value());
+}
+
+TEST_F(MetapackCorruption, read_json_no_value_when_content_bytes_understates) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+
+  sourcemeta::core::metapack_write_text(
+      path, "12345", "application/json",
+      sourcemeta::core::MetapackEncoding::Identity);
+
+  // Were the declared size taken as a prefix of the contents, this would
+  // parse as the number one rather than being refused
+  set_content_bytes(path, 1);
+
+  EXPECT_FALSE(sourcemeta::core::metapack_read_json(path).has_value());
+}
+
+TEST_F(MetapackCorruption, read_json_no_value_on_contents_appended_to) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+  write_document(path, sourcemeta::core::MetapackEncoding::Identity);
+
+  std::ofstream file{path, std::ios::binary | std::ios::app};
+  EXPECT_TRUE(file.good());
+  file << "trailing";
+  file.close();
+
+  EXPECT_FALSE(sourcemeta::core::metapack_read_json(path).has_value());
+}
+
+TEST_F(MetapackCorruption,
+       read_json_no_value_on_a_ratio_that_lands_over_by_one) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+  write_document(path, sourcemeta::core::MetapackEncoding::GZIP);
+
+  const sourcemeta::core::FileView view{path};
+  const auto payload_size{
+      sourcemeta::core::metapack_parse(view).value().payload.size()};
+
+  // One byte beyond what a ratio of two allows, which integer division alone
+  // would floor back into range
+  set_content_bytes(path, (payload_size * 2) + 1);
+
+  EXPECT_FALSE(sourcemeta::core::metapack_read_json(path, 2).has_value());
+}
+
+TEST_F(MetapackCorruption, read_json_no_value_when_contents_inflate_short) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+  write_document(path, sourcemeta::core::MetapackEncoding::GZIP);
+
+  // Large enough to overstate what the contents inflate to, yet small enough
+  // that the expansion it declares is still a plausible one
+  set_content_bytes(path, 100);
+
+  EXPECT_FALSE(sourcemeta::core::metapack_read_json(path).has_value());
 }

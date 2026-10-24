@@ -7,7 +7,6 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 
-#include <cassert>     // assert
 #include <chrono>      // std::chrono
 #include <cstdint>     // std::uint16_t, std::uint32_t
 #include <filesystem>  // std::filesystem::path
@@ -17,7 +16,7 @@
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <utility>     // std::in_range, std::move
 
 namespace sourcemeta::core {
 
@@ -27,9 +26,6 @@ auto write_header(std::ostream &output, const std::string_view media_type,
                   const MetapackEncoding encoding,
                   const std::span<const std::uint8_t> extension,
                   const std::string_view contents) -> void {
-  assert(media_type.size() <= METAPACK_MAXIMUM_MEDIA_TYPE_BYTES);
-  assert(extension.size() <= METAPACK_MAXIMUM_EXTENSION_BYTES);
-
   MetapackHeader header;
   header.magic = METAPACK_MAGIC;
   header.format_version = METAPACK_VERSION;
@@ -64,6 +60,23 @@ auto write_metapack(const std::filesystem::path &destination,
                     const MetapackEncoding encoding,
                     const std::span<const std::uint8_t> extension,
                     const std::string_view contents) -> void {
+  // A length the header cannot record would be truncated into one it can,
+  // which silently moves every section that follows it
+  if (!std::in_range<std::uint16_t>(media_type.size())) {
+    throw MetapackError{"The media type is too long for this format"};
+  }
+
+  if (!std::in_range<std::uint32_t>(extension.size())) {
+    throw MetapackError{"The extension is too large for this format"};
+  }
+
+  // An encoding that this revision of the format does not define would be
+  // written into a file that no reader of it can accept
+  if (encoding != MetapackEncoding::Identity &&
+      encoding != MetapackEncoding::GZIP) {
+    throw MetapackError{"Unknown encoding"};
+  }
+
   // Only contents that are stored compressed are compressed at all
   const auto compressed{
       encoding == MetapackEncoding::GZIP

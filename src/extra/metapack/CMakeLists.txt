@@ -1,5 +1,5 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME metapack
-  PRIVATE_HEADERS format.h read.h write.h
+  PRIVATE_HEADERS error.h format.h read.h write.h
   SOURCES metapack_read.cc metapack_write.cc)
 
 target_link_libraries(sourcemeta_core_metapack PUBLIC sourcemeta::core::io)

@@ -6,6 +6,7 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/metapack_error.h>
 #include <sourcemeta/core/metapack_format.h>
 #include <sourcemeta/core/metapack_read.h>
 #include <sourcemeta/core/metapack_write.h>

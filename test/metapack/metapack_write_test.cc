@@ -225,3 +225,41 @@ TEST(write_file_gzip_records_the_decoded_size) {
   EXPECT_EQ(parsed.header->content_bytes, 4096);
   EXPECT_LT(parsed.payload.size(), parsed.header->content_bytes);
 }
+
+TEST(write_refuses_a_media_type_the_header_cannot_record) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+  const auto document{sourcemeta::core::JSON::make_object()};
+  const std::string media_type(
+      sourcemeta::core::METAPACK_MAXIMUM_MEDIA_TYPE_BYTES + 1, 'a');
+
+  try {
+    sourcemeta::core::metapack_write_json(
+        path, document, media_type,
+        sourcemeta::core::MetapackEncoding::Identity);
+    FAIL();
+  } catch (const sourcemeta::core::MetapackError &error) {
+    EXPECT_STREQ(error.what(), "The media type is too long for this format");
+  }
+
+  EXPECT_FALSE(std::filesystem::exists(path));
+}
+
+TEST(write_refuses_an_encoding_this_revision_lacks) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+  const auto document{sourcemeta::core::JSON::make_object()};
+
+  try {
+    sourcemeta::core::metapack_write_json(
+        path, document, "application/json",
+        static_cast<sourcemeta::core::MetapackEncoding>(7));
+    FAIL();
+  } catch (const sourcemeta::core::MetapackError &error) {
+    EXPECT_STREQ(error.what(), "Unknown encoding");
+  }
+
+  EXPECT_FALSE(std::filesystem::exists(path));
+}

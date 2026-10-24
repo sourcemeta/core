@@ -6,6 +6,7 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/metapack_error.h>
 #include <sourcemeta/core/metapack_format.h>
 // NOLINTEND(misc-include-cleaner)
 
@@ -19,7 +20,8 @@
 namespace sourcemeta::core {
 
 /// @ingroup metapack
-/// Write a JSON document as the contents of a file. For example:
+/// Write a JSON document as the contents of a file. A media type or
+/// extension too large for the format to record throws. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/metapack.h>
@@ -40,7 +42,8 @@ auto metapack_write_json(const std::filesystem::path &destination,
 
 /// @ingroup metapack
 /// Write a JSON document as the contents of a file, indented for a human to
-/// read. For example:
+/// read. A media type or extension too large for the format to record
+/// throws. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/metapack.h>
@@ -58,7 +61,8 @@ auto metapack_write_json_pretty(
     const std::span<const std::uint8_t> extension = {}) -> void;
 
 /// @ingroup metapack
-/// Write text as the contents of a file, terminated by a line feed. For
+/// Write text as the contents of a file, terminated by a line feed. A media
+/// type or extension too large for the format to record throws. For
 /// example:
 ///
 /// ```cpp
@@ -77,7 +81,8 @@ auto metapack_write_text(const std::filesystem::path &destination,
     -> void;
 
 /// @ingroup metapack
-/// Write bytes as the contents of a file. For example:
+/// Write bytes as the contents of a file. A media type or extension too
+/// large for the format to record throws. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/metapack.h>
@@ -97,7 +102,8 @@ auto metapack_write_bytes(const std::filesystem::path &destination,
     -> void;
 
 /// @ingroup metapack
-/// Write another file as the contents of a file. For example:
+/// Write another file as the contents of a file. A media type or extension
+/// too large for the format to record throws. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/metapack.h>

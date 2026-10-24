@@ -28,8 +28,13 @@ auto decompress(const MetapackView &parsed,
                 const std::uint64_t maximum_decompression_ratio)
     -> std::optional<std::string> {
   assert(!parsed.payload.empty());
-  if (parsed.header->content_bytes / parsed.payload.size() >
-      maximum_decompression_ratio) {
+  // Integer division floors, so what lands exactly on the limit is only
+  // within it when nothing is left over
+  const auto declared_ratio{parsed.header->content_bytes /
+                            parsed.payload.size()};
+  if (declared_ratio > maximum_decompression_ratio ||
+      (declared_ratio == maximum_decompression_ratio &&
+       parsed.header->content_bytes % parsed.payload.size() != 0)) {
     return std::nullopt;
   }
 
@@ -41,11 +46,13 @@ auto decompress(const MetapackView &parsed,
       static_cast<std::size_t>(parsed.header->content_bytes)};
 
   try {
-    auto decompressed{
-        gunzip(parsed.payload.data(), parsed.payload.size(), content_bytes)};
-    // The header records the exact decoded size, so contents that inflate to
-    // a different size are corrupt or a decompression bomb whose small
-    // declared size slipped past the ratio guard
+    // The declared size bounds the work as well as sizing the buffer, so
+    // that contents which inflate past it are abandoned as they decode
+    // rather than after a buffer has grown to hold all of them
+    auto decompressed{gunzip(parsed.payload.data(), parsed.payload.size(),
+                             content_bytes, content_bytes)};
+    // Contents that inflate to less than the declared size are corrupt, or a
+    // decompression bomb whose small declared size slipped past the guards
     if (decompressed.size() != content_bytes) {
       return std::nullopt;
     }
@@ -122,7 +129,9 @@ auto metapack_read_json(const MetapackView &parsed,
     return try_parse_json(decompressed.value());
   }
 
-  if (parsed.header->content_bytes > parsed.payload.size()) {
+  // Contents stored as they are run to the end of the file, so a declared
+  // size that disagrees means the file was truncated or appended to
+  if (parsed.header->content_bytes != parsed.payload.size()) {
     return std::nullopt;
   }
 
