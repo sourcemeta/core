@@ -2435,3 +2435,164 @@ TEST(traverse_a_uri_that_does_not_parse) {
 
   EXPECT_FALSE(frame.traverse("http://[").has_value());
 }
+
+// Asking for a location of a given kind is the same question asked of the
+// same places as asking for one of either kind, so a URI that comes from
+// outside framing is settled the same way before the lookup gives up on it
+TEST(location_of_a_pointer_fragment_that_percent_encodes_a_reserved_character) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/escaped",
+    "$ref": "#/$defs/a%3Ab",
+    "$defs": { "a:b": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "https://example.com/escaped#/$defs/a:b")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a:b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "https://example.com/escaped#/$defs/a%3Ab")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a:b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "https://example.com/escaped#/$defs/a%3ab")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a:b");
+  EXPECT_FALSE(frame
+                   .location(sourcemeta::core::SchemaReferenceType::Dynamic,
+                             "https://example.com/escaped#/$defs/a%3Ab")
+                   .has_value());
+}
+
+TEST(location_of_a_uri_that_is_not_normalised) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "foo": { "$anchor": "bar" },
+      "baz": { "$dynamicAnchor": "qux" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "HTTPS://EXAMPLE.COM:443/schema#bar")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/foo");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "https://example.com/./schema#bar")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/foo");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Dynamic,
+                              "HTTPS://EXAMPLE.COM:443/schema#qux")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/baz");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "HTTPS://EXAMPLE.COM:443/schema#qux")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/baz");
+  EXPECT_FALSE(frame
+                   .location(sourcemeta::core::SchemaReferenceType::Dynamic,
+                             "HTTPS://EXAMPLE.COM:443/schema#bar")
+                   .has_value());
+  EXPECT_FALSE(frame
+                   .location(sourcemeta::core::SchemaReferenceType::Dynamic,
+                             "https://example.com/schema#bar")
+                   .has_value());
+}
+
+TEST(location_of_a_uri_that_does_not_parse) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_FALSE(
+      frame.location(sourcemeta::core::SchemaReferenceType::Static, "http://[")
+          .has_value());
+}
+
+// RFC 3986 Section 2.2 keeps a percent-encoded slash from standing in for the
+// one that RFC 6901 Section 3 puts in front of every reference token, so the
+// two spellings below name two different places
+TEST(location_of_a_pointer_fragment_that_percent_encodes_a_delimiter) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/slash",
+    "$defs": {
+      "a/b": { "type": "string" },
+      "a": { "b": { "type": "number" } }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Pointers, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/slash#/$defs/a~1b")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a~1b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/slash#/$defs/a%2Fb")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a~1b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame.traverse("https://example.com/slash#/$defs/a/b")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a/b");
+  EXPECT_EQ(sourcemeta::core::to_string(
+                frame
+                    .location(sourcemeta::core::SchemaReferenceType::Static,
+                              "https://example.com/slash#/$defs/a%2Fb")
+                    .value()
+                    .get()
+                    .pointer),
+            "/$defs/a~1b");
+}

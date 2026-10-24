@@ -11,7 +11,6 @@
 #include "stringify.h"
 
 #include <cassert>     // assert
-#include <cstddef>     // std::size_t
 #include <iterator>    // std::cbegin, std::cend, std::prev, std::advance
 #include <memory>      // std::allocator
 #include <optional>    // std::optional, std::nullopt
@@ -23,6 +22,19 @@
 #include <utility>     // std::move
 
 namespace {
+
+// A slash that comes out of an escape is data within the reference token it
+// falls in, which is the escape that RFC 6901 Section 3 gives it
+auto append_reference_token(sourcemeta::core::JSON::String &output,
+                            const std::string_view token) -> void {
+  for (const auto character : sourcemeta::core::URI::unescape(token)) {
+    if (character == '/') {
+      output.append("~1");
+    } else {
+      output.push_back(character);
+    }
+  }
+}
 
 template <template <typename T> typename Allocator, typename V,
           typename PointerT = sourcemeta::core::GenericPointer<
@@ -336,34 +348,41 @@ auto fragment_to_pointer(const URI &uri) -> std::optional<Pointer> {
     return std::nullopt;
   }
 
-  // When a URI is dereferenced, the components and subcomponents significant
-  // to the scheme-specific dereferencing process (if any) must be parsed and
-  // separated before the percent-encoded octets within those components can
-  // be safely decoded.
-  // See https://www.rfc-editor.org/rfc/rfc3986#section-2.4
   const auto &value{fragment.value()};
-  JSON::String input;
-  input.reserve(value.size());
-  for (std::size_t index = 0; index < value.size(); ++index) {
-    const auto character{value[index]};
-    if (character == '%' && index + 2 < value.size()) {
-      const auto high{sourcemeta::core::hex_digit_value(value[index + 1])};
-      const auto low{sourcemeta::core::hex_digit_value(value[index + 2])};
-      if (high >= 0 && low >= 0) {
-        input.push_back(static_cast<char>((high * 16) + low));
-        index += 2;
-        continue;
-      }
-    }
-
-    input.push_back(character);
-  }
-
-  if (input.empty()) {
+  if (value.empty()) {
     return Pointer{};
   }
-  if (input.front() != '/') {
+
+  // When a URI is dereferenced, the components and subcomponents significant
+  // to the dereferencing process must be parsed and separated before the
+  // percent-encoded octets within them can be safely decoded, as the data
+  // would otherwise be mistaken for a delimiter. The only exception is an
+  // octet that stands for an unreserved character, which may be decoded at
+  // any time.
+  // See https://www.rfc-editor.org/rfc/rfc3986#section-2.4
+  //
+  // The slash that precedes every reference token is the delimiter here, and
+  // a reserved character is not equivalent to the octet that stands for it,
+  // so a slash that was percent-encoded is data within the token it falls in
+  // rather than the start of the next one.
+  // See https://www.rfc-editor.org/rfc/rfc3986#section-2.2
+  // See https://www.rfc-editor.org/rfc/rfc6901#section-3
+  if (value.front() != '/') {
     return std::nullopt;
+  }
+
+  JSON::String input;
+  input.reserve(value.size());
+  auto rest{value.substr(1)};
+  while (true) {
+    const auto parts{split_once(rest, '/')};
+    input.push_back('/');
+    append_reference_token(input, parts.has_value() ? parts->first : rest);
+    if (!parts.has_value()) {
+      break;
+    }
+
+    rest = parts->second;
   }
 
   try {
