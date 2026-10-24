@@ -23,6 +23,7 @@
 #include <sourcemeta/core/markdown.h>
 #include <sourcemeta/core/mcp.h>
 #include <sourcemeta/core/memory.h>
+#include <sourcemeta/core/metapack.h>
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/oidc.h>
 #include <sourcemeta/core/openapi.h>

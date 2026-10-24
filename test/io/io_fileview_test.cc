@@ -11,6 +11,29 @@ TEST(size) {
   EXPECT_EQ(view.size(), 20);
 }
 
+TEST(bytes) {
+  const sourcemeta::core::FileView view{std::filesystem::path{STUBS_DIRECTORY} /
+                                        "fileview.bin"};
+  const auto bytes{view.bytes()};
+  EXPECT_EQ(bytes.size(), 20);
+  EXPECT_EQ(bytes.data(), view.as<std::uint8_t>(0));
+  EXPECT_EQ(bytes[0], 0x46);
+  EXPECT_EQ(bytes[1], 0x49);
+  EXPECT_EQ(bytes[2], 0x57);
+  EXPECT_EQ(bytes[3], 0x56);
+  EXPECT_EQ(bytes[19], 0xCA);
+}
+
+TEST(bytes_on_an_empty_file) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".fileview-"};
+  const auto path{directory.path() / "empty.bin"};
+  sourcemeta::core::write_file(path, std::string_view{""});
+
+  const sourcemeta::core::FileView view{path};
+  EXPECT_TRUE(view.bytes().empty());
+}
+
 TEST(as_header) {
   struct Header {
     std::uint32_t magic;
