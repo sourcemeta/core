@@ -75,7 +75,8 @@ struct HeaderFixture {
       arguments.assign(names.back(), JSON{index % 2 == 0 ? "plain" : " café "});
     }
     for (const auto &name : names) {
-      descriptors.push_back({name, {name}, JSON::Type::String});
+      descriptors.push_back(
+          {.name = name, .path = {name}, .type = JSON::Type::String});
     }
     // Unrelated headers force the validator to search, not just match the
     // first element. The invalid case fails at the last mirrored parameter.
@@ -214,7 +215,7 @@ auto intersect(BenchmarkState &state, const std::size_t count,
   if (overlap) {
     for (std::size_t index{0}; index < count / 2; ++index) {
       check(control.resource_subscriptions->at(index) ==
-            requested.at(index + count / 2));
+            requested.at(index + (count / 2)));
     }
   }
   for (auto iteration : state) {
