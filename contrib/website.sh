@@ -79,8 +79,15 @@ export CTEST_PARALLEL_LEVEL
 # So it is asked for by the one module whose programs die that way, over the
 # handful of translation units that module builds, rather than here across the
 # project. Those programs ask for it by name themselves, having been built to
-# honour it, which is why nothing of the sort is set below
-PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+# honour it, which is why nothing of the sort is set below.
+#
+# The last of the three asks for every decision written out of more than one
+# condition to record which combinations of those conditions the suite tried,
+# which is what the fourth measure below is read out of. It costs a bitmap per
+# decision in each program and an update to it wherever one is decided, and
+# what a decision may be made of is bounded, so a wider one than the bound
+# allows is left uninstrumented rather than refused
+PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping -fcoverage-mcdc"
 
 # Assertions are compiled out, which is a measurement decision rather than an
 # instrumentation one. The branch an assertion takes when it fails is
@@ -177,11 +184,12 @@ do
   TRACE_INDEX=$((TRACE_INDEX + 1))
 done < "$OBJECT_LIST"
 
-# All four metrics are counted in one place, from one set of exceptions. The
+# All five metrics are counted in one place, from one set of exceptions. The
 # traces carry the report's own verdict on each line and branch, and the JSON
 # export carries the functions and regions with their columns, which is how the
-# report itself counts every instantiation of a template as a single function.
-# The highest count across the binaries is kept for the same reason as above
+# report itself counts every instantiation of a template as a single function,
+# along with the verdict on each condition of a decision. The highest count
+# across the binaries is kept for the same reason as above
 EXPORT_PROGRAM="$WORK_DIRECTORY/export.py"
 cat > "$EXPORT_PROGRAM" <<'PYTHON'
 import json
@@ -246,6 +254,7 @@ counts = {}
 names = {}
 owned = {}
 spans = {}
+decisions = {}
 with open(object_list, encoding="utf-8") as objects:
     for binary in objects.read().splitlines():
         export = subprocess.run(
@@ -276,6 +285,23 @@ with open(object_list, encoding="utf-8") as objects:
                     for number in range(region[0], region[2] + 1):
                         reach.add((source, number))
 
+                # A record stands for one decision written out of more than one
+                # condition, and carries a verdict for each of those
+                # conditions: whether the suite showed it deciding the outcome
+                # on its own, with every other one held fixed or masked out by
+                # short circuiting. The fields ahead of those verdicts differ
+                # between report versions, which is why they are reached by
+                # shape rather than by position. A verdict reached in any
+                # binary stands for the same reason the counts above are kept
+                # at their highest
+                for record in function["mcdc_records"]:
+                    verdicts = next(field for field in record
+                                    if isinstance(field, list))
+                    shown = decisions.setdefault(key, {})
+                    for index, independent in enumerate(verdicts):
+                        where = (record[0], record[1], index)
+                        shown[where] = shown.get(where, False) or independent
+
 def excused(key):
     filename = key[0]
     return any(filename.endswith(suffix) and name in names[key]
@@ -290,8 +316,8 @@ with open(uncovered, "w", encoding="utf-8") as output:
         for name in sorted(names[key]):
             output.write(f"{filename}:{line}:{column} {name}\n")
 
-# An excused function is left out of the region, line and branch counts as
-# well, so that the four metrics answer to the same exceptions rather than some
+# An excused function is left out of the region, line, branch and condition
+# counts as well, so that the five metrics answer to the same exceptions rather than some
 # of them holding a function to a standard the others have already set aside.
 # Applied once the whole export has been read, since which names a function
 # goes by is only settled then, and a place an excused function shares with one
@@ -354,6 +380,18 @@ for source in branches:
 share = taken * 100 / total_branches if total_branches else 100
 print(f"{share:8.2f}% {taken:6d}/{total_branches:<6d} TOTAL branches")
 
+independent = 0
+total_conditions = 0
+for key, shown in decisions.items():
+    if excused(key):
+        continue
+
+    total_conditions += len(shown)
+    independent += sum(1 for verdict in shown.values() if verdict)
+
+share = independent * 100 / total_conditions if total_conditions else 100
+print(f"{share:8.2f}% {independent:6d}/{total_conditions:<6d} TOTAL conditions")
+
 reached = sum(1 for count in regions.values() if count > 0)
 share = reached * 100 / len(regions) if regions else 100
 print(f"{share:8.2f}% {reached:6d}/{len(regions):<6d} TOTAL regions")
@@ -383,21 +421,27 @@ fi
 # Optionally hold each share to a floor, given as a percentage. Branches answer
 # to a floor of their own rather than the one the other two share, because an
 # exhaustive switch over an enumeration carries an edge out of it that nothing
-# can take, so that share alone has a ceiling below a hundred. A metric with no
-# floor named is still read, so that the check below notices a summary that
-# stopped carrying one. Gated on the same platform argument as the function
-# requirement above
+# can take, so that share alone has a ceiling below a hundred. Conditions
+# answer to one of their own for the same kind of reason, as a decision one of
+# whose conditions the compiler settles on its own leaves that condition with
+# no combination the suite can reach it through. A metric with no floor named
+# is still read, so that the check below notices a summary that stopped
+# carrying one. Gated on the same platform argument as the function requirement
+# above
 if [ -n "${REQUIRE_MINIMUM_COVERAGE:-}" ] ||
-  [ -n "${REQUIRE_MINIMUM_BRANCH_COVERAGE:-}" ]
+  [ -n "${REQUIRE_MINIMUM_BRANCH_COVERAGE:-}" ] ||
+  [ -n "${REQUIRE_MINIMUM_CONDITION_COVERAGE:-}" ]
 then
   awk -v "lines_minimum=${REQUIRE_MINIMUM_COVERAGE:-0}" \
     -v "regions_minimum=${REQUIRE_MINIMUM_COVERAGE:-0}" \
-    -v "branches_minimum=${REQUIRE_MINIMUM_BRANCH_COVERAGE:-0}" '
+    -v "branches_minimum=${REQUIRE_MINIMUM_BRANCH_COVERAGE:-0}" \
+    -v "conditions_minimum=${REQUIRE_MINIMUM_CONDITION_COVERAGE:-0}" '
 BEGIN {
   failed = 0
   required["lines"] = lines_minimum
   required["regions"] = regions_minimum
   required["branches"] = branches_minimum
+  required["conditions"] = conditions_minimum
 }
 $3 == "TOTAL" && $4 in required {
   # Compared as the counts behind the share rather than as the share itself,
@@ -412,9 +456,9 @@ $3 == "TOTAL" && $4 in required {
   seen += 1
 }
 END {
-  if (seen != 3) {
-    printf "Expected a line, a region and a branch total, found %d\n", seen \
-      > "/dev/stderr"
+  if (seen != 4) {
+    printf "Expected a line, a region, a branch and a condition total, " \
+      "found %d\n", seen > "/dev/stderr"
     exit 1
   }
 
@@ -440,7 +484,7 @@ done < "$OBJECT_LIST"
   "-instr-profile=$PROFILE_DATA" \
   -format=html "-output-dir=$WORK_DIRECTORY/html" \
   "-ignore-filename-regex=$EXCLUDE" \
-  -show-branches=count
+  -show-branches=count -show-mcdc -show-mcdc-summary
 
 # Whatever the report generator emitted is taken as is rather than named entry
 # by entry, and only the entries about to be written are cleared, so that the
