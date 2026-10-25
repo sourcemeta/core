@@ -148,6 +148,29 @@ struct ExpansionState {
   }
 };
 
+// RAII guard that silences drop reporting for the duration of a diagnostic
+// re-expansion, restoring it on every exit path. Locating an error must not
+// change what is reported, and whatever such a re-expansion discards was
+// already reported by the expansion that ran into the error
+struct SuspendedDropReportingScope {
+  ExpansionState &state;
+  const JSONLDExpandDropCallback *previous;
+
+  explicit SuspendedDropReportingScope(ExpansionState &value)
+      : state{value}, previous{value.drop_callback} {
+    this->state.drop_callback = nullptr;
+  }
+
+  ~SuspendedDropReportingScope() { this->state.drop_callback = this->previous; }
+
+  SuspendedDropReportingScope(const SuspendedDropReportingScope &) = delete;
+  auto operator=(const SuspendedDropReportingScope &)
+      -> SuspendedDropReportingScope & = delete;
+  SuspendedDropReportingScope(SuspendedDropReportingScope &&) = delete;
+  auto operator=(SuspendedDropReportingScope &&)
+      -> SuspendedDropReportingScope & = delete;
+};
+
 // RAII guard for where the context being processed reports what it says wrong,
 // restoring the enclosing origin, and which of its entries the input itself
 // spells out, on every exit path

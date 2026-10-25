@@ -28,22 +28,42 @@ struct Drop {
   sourcemeta::core::JSON value;
 };
 
+auto drop_collector(std::vector<Drop> &drops)
+    -> sourcemeta::core::JSONLDExpandDropCallback {
+  return [&drops](const sourcemeta::core::JSONLDExpandDropReason reason,
+                  const sourcemeta::core::WeakPointer &pointer,
+                  const sourcemeta::core::JSON &value) -> void {
+    drops.push_back({.reason = reason,
+                     .pointer = sourcemeta::core::to_string(pointer),
+                     .value = value});
+  };
+}
+
 auto collect_drops(const sourcemeta::core::JSON &input,
                    const sourcemeta::core::JSONLDVersion version =
                        sourcemeta::core::JSONLDVersion::V1_1)
     -> std::vector<Drop> {
   std::vector<Drop> drops;
-  const sourcemeta::core::JSONLDExpandDropCallback callback =
-      [&drops](const sourcemeta::core::JSONLDExpandDropReason reason,
-               const sourcemeta::core::WeakPointer &pointer,
-               const sourcemeta::core::JSON &value) -> void {
-    drops.push_back({.reason = reason,
-                     .pointer = sourcemeta::core::to_string(pointer),
-                     .value = value});
-  };
+  [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
+      input, "", {}, version, drop_collector(drops))};
+  return drops;
+}
 
-  [[maybe_unused]] const auto result{
-      sourcemeta::core::jsonld_expand(input, "", {}, version, callback)};
+// What was reported up to the point expansion failed, where locating the
+// error must not add to it
+auto collect_drops_from_failure(const sourcemeta::core::JSON &input)
+    -> std::vector<Drop> {
+  std::vector<Drop> drops;
+  bool failed{false};
+  try {
+    [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
+        input, "", {}, sourcemeta::core::JSONLDVersion::V1_1,
+        drop_collector(drops))};
+  } catch (const sourcemeta::core::JSONLDError &) {
+    failed = true;
+  }
+
+  EXPECT_TRUE(failed);
   return drops;
 }
 
@@ -257,6 +277,18 @@ TEST(several_drops_are_reported_in_expansion_order) {
                                  "beta": 2,
                                  "alpha": 1
                                })");
+}
+
+TEST(locating_an_error_does_not_report_again) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "r": { "@reverse": "urn:p" } },
+    "r": [ null, { "@value": 1 } ]
+  })");
+
+  const auto drops{collect_drops_from_failure(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_JSONLD_EXPAND_DROP(0, NullValue, "/r/0", "null");
 }
 
 TEST(a_dropped_key_reports_its_whole_subtree_once) {

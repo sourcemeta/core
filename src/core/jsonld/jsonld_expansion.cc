@@ -118,6 +118,7 @@ auto forbidden_member_pointer(
     ExpansionState &state, ActiveContext &active_context,
     const std::optional<JSON::String> &active_property, const JSON &member,
     const WeakPointer &pointer, const ForbiddenMember forbidden) -> Pointer {
+  const SuspendedDropReportingScope silent{state};
   try {
     if (member.is_array()) {
       std::size_t index{0};
@@ -854,6 +855,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
             const auto reverse_values{into_array(JSON{reverse_entry.second})};
             for (const auto &item : reverse_values.as_array()) {
               if (is_value_or_list_object(item)) {
+                const SuspendedDropReportingScope silent{state};
                 // The map carries its own context into how its keys expand, so
                 // what it says wrong is located against that same context,
                 // which is only worth putting together to report it. Reading

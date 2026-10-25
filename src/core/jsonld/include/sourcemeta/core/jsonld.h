@@ -73,11 +73,11 @@ enum class JSONLDExpandDropReason : std::uint8_t {
 /// position was discarded, a pointer to it in the input document, and the
 /// value that goes no further, neither of the latter two outliving the call.
 ///
-/// Expansion always succeeds, so a key the active context does not define is
-/// dropped along with its value and everything nested below it rather than
-/// refused (JSON-LD 1.1 API Section 5.1.2 step 13.3). That leaves a mistyped
-/// key indistinguishable from a document that says nothing, which is what
-/// this reports. See "A JSON-LD Handbook" by Wolodymyr Pawlyshyn, chapter 2,
+/// A key the active context does not define is never refused. It is dropped
+/// along with its value and everything nested below it (JSON-LD 1.1 API
+/// Section 5.1.2 step 13.3), which leaves a mistyped key indistinguishable
+/// from a document that says nothing, and is what this reports. See "A
+/// JSON-LD Handbook" by Wolodymyr Pawlyshyn, chapter 2,
 /// https://dr-json-ld.com/book/#expansion
 using JSONLDExpandDropCallback = std::function<void(
     JSONLDExpandDropReason, const WeakPointer &, const JSON &)>;
