@@ -1,0 +1,379 @@
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonld.h>
+#include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
+
+#include <string> // std::string
+#include <vector> // std::vector
+
+namespace {
+
+struct Drop {
+  sourcemeta::core::JSONLDDropReason reason;
+  std::string pointer;
+  sourcemeta::core::JSON value;
+};
+
+auto collect_drops(const sourcemeta::core::JSON &input,
+                   const sourcemeta::core::JSONLDVersion version =
+                       sourcemeta::core::JSONLDVersion::V1_1)
+    -> std::vector<Drop> {
+  std::vector<Drop> drops;
+  const sourcemeta::core::JSONLDDropCallback callback =
+      [&drops](const sourcemeta::core::JSONLDDropReason reason,
+               const sourcemeta::core::WeakPointer &pointer,
+               const sourcemeta::core::JSON &value) -> void {
+    drops.push_back({.reason = reason,
+                     .pointer = sourcemeta::core::to_string(pointer),
+                     .value = value});
+  };
+
+  [[maybe_unused]] const auto result{
+      sourcemeta::core::jsonld_expand(input, "", {}, version, callback)};
+  return drops;
+}
+
+} // namespace
+
+TEST(an_undefined_key_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "foo": "bar"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::UndefinedKey);
+  EXPECT_EQ(drops.at(0).pointer, "/foo");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"("bar")"));
+}
+
+TEST(a_key_with_keyword_form_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@foo": "bar"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::KeywordFormKey);
+  EXPECT_EQ(drops.at(0).pointer, "/@foo");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"("bar")"));
+}
+
+TEST(a_retired_key_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "foo": null },
+    "foo": "bar"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason, sourcemeta::core::JSONLDDropReason::RetiredKey);
+  EXPECT_EQ(drops.at(0).pointer, "/foo");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"("bar")"));
+}
+
+TEST(a_lone_undefined_type_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@type": "@unknown",
+    "http://example.com/p": "v"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::UndefinedType);
+  EXPECT_EQ(drops.at(0).pointer, "/@type");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"("@unknown")"));
+}
+
+TEST(an_undefined_type_among_others_is_reported_by_index) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@type": [ "@unknown", "http://example.com/T" ],
+    "http://example.com/p": "v"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::UndefinedType);
+  EXPECT_EQ(drops.at(0).pointer, "/@type/0");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"("@unknown")"));
+}
+
+TEST(a_free_floating_list_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@list": [ "foo" ]
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::FreeFloatingValue);
+  EXPECT_EQ(drops.at(0).pointer, "/@list");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"([ "foo" ])"));
+}
+
+TEST(a_free_floating_scalar_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"("hello")");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::FreeFloatingValue);
+  EXPECT_EQ(drops.at(0).pointer, "");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(R"("hello")"));
+}
+
+TEST(a_free_floating_node_reference_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/a"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::FreeFloatingValue);
+  EXPECT_EQ(drops.at(0).pointer, "");
+  EXPECT_EQ(drops.at(0).value, input);
+}
+
+TEST(a_free_floating_value_object_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@type": "@json",
+    "@value": 42
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::FreeFloatingValue);
+  EXPECT_EQ(drops.at(0).pointer, "");
+  EXPECT_EQ(drops.at(0).value, input);
+}
+
+TEST(a_null_property_value_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": null
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason, sourcemeta::core::JSONLDDropReason::NullValue);
+  EXPECT_EQ(drops.at(0).pointer, "/p");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json("null"));
+}
+
+TEST(a_null_among_array_items_is_reported_at_the_item) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": [ null, "bar" ]
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason, sourcemeta::core::JSONLDDropReason::NullValue);
+  EXPECT_EQ(drops.at(0).pointer, "/p/0");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json("null"));
+}
+
+TEST(a_null_set_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@set": null
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason, sourcemeta::core::JSONLDDropReason::NullValue);
+  EXPECT_EQ(drops.at(0).pointer, "/@set");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json("null"));
+}
+
+TEST(a_null_language_map_value_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@language" }
+    },
+    "p": { "en": null }
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason, sourcemeta::core::JSONLDDropReason::NullValue);
+  EXPECT_EQ(drops.at(0).pointer, "/p/en");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json("null"));
+}
+
+TEST(a_null_value_object_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@value": null }
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::NullValueObject);
+  EXPECT_EQ(drops.at(0).pointer, "/p");
+  EXPECT_EQ(drops.at(0).value,
+            sourcemeta::core::parse_json(R"({ "@value": null })"));
+}
+
+TEST(a_value_object_without_a_value_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@language": "en", "@index": "i" }
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::IncompleteValueObject);
+  EXPECT_EQ(drops.at(0).pointer, "/p");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(
+                                   R"({ "@language": "en", "@index": "i" })"));
+}
+
+TEST(a_keyword_with_no_handler_is_reported) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@vocab": "http://example.com/",
+    "http://example.com/p": "v"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::UnhandledKeyword);
+  EXPECT_EQ(drops.at(0).pointer, "/@vocab");
+  EXPECT_EQ(drops.at(0).value,
+            sourcemeta::core::parse_json(R"("http://example.com/")"));
+}
+
+TEST(a_dropped_key_reports_its_whole_subtree_once) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "foo": { "bar": { "baz": 1 } }
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::UndefinedKey);
+  EXPECT_EQ(drops.at(0).pointer, "/foo");
+  EXPECT_EQ(drops.at(0).value,
+            sourcemeta::core::parse_json(R"({ "bar": { "baz": 1 } })"));
+}
+
+TEST(an_index_map_null_reports_once_through_the_nested_expansion) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@index" }
+    },
+    "p": { "i": null }
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason, sourcemeta::core::JSONLDDropReason::NullValue);
+  EXPECT_EQ(drops.at(0).pointer, "/p/i");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json("null"));
+}
+
+TEST(a_reverse_map_reports_its_vanished_keys_and_not_the_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@reverse": { "foo": { "@id": "http://example.com/a" } },
+    "http://example.com/p": "v"
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_EQ(drops.at(0).reason,
+            sourcemeta::core::JSONLDDropReason::UndefinedKey);
+  EXPECT_EQ(drops.at(0).pointer, "/@reverse/foo");
+  EXPECT_EQ(drops.at(0).value, sourcemeta::core::parse_json(
+                                   R"({ "@id": "http://example.com/a" })"));
+}
+
+TEST(an_empty_reverse_map_reports_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@reverse": {},
+    "http://example.com/p": "v"
+  })");
+
+  EXPECT_EQ(collect_drops(input).size(), 0);
+}
+
+TEST(an_empty_object_reports_nothing) {
+  const auto input = sourcemeta::core::parse_json("{}");
+
+  EXPECT_EQ(collect_drops(input).size(), 0);
+}
+
+TEST(a_document_that_drops_nothing_reports_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": "v"
+  })");
+
+  EXPECT_EQ(collect_drops(input).size(), 0);
+}
+
+TEST(a_direction_under_1_0_processing_reports_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@value": "v", "@direction": "ltr" }
+  })");
+
+  EXPECT_EQ(collect_drops(input, sourcemeta::core::JSONLDVersion::V1_0).size(),
+            0);
+}
+
+TEST(an_index_map_none_key_reports_nothing) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@version": 1.1,
+      "p": { "@id": "http://example.com/p", "@container": "@index" }
+    },
+    "p": { "@none": "v" }
+  })");
+
+  EXPECT_EQ(collect_drops(input).size(), 0);
+}
+
+TEST(expansion_is_unchanged_without_a_callback) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "foo": "bar",
+    "p": [ null, "v" ]
+  })");
+
+  const auto without{sourcemeta::core::jsonld_expand(input)};
+  const sourcemeta::core::JSONLDDropCallback callback =
+      [](const sourcemeta::core::JSONLDDropReason,
+         const sourcemeta::core::WeakPointer &,
+         const sourcemeta::core::JSON &) -> void {};
+  const auto with{sourcemeta::core::jsonld_expand(
+      input, "", {}, sourcemeta::core::JSONLDVersion::V1_1, callback)};
+
+  EXPECT_EQ(with, without);
+}

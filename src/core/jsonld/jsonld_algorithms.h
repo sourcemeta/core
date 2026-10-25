@@ -96,6 +96,8 @@ struct ExpansionState {
 
   // Used to load remote contexts. The chain detects recursive inclusion.
   const JSONLDResolver *resolver{nullptr};
+  // Used to report the input that expansion discards.
+  const JSONLDDropCallback *drop_callback{nullptr};
   // Whether a reference already in the chain is an error. A scoped context is
   // validated against the contexts that are loading it, where meeting one of
   // them again is the recursion the validation must not follow (JSON-LD 1.1
