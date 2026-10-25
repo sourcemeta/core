@@ -22,7 +22,8 @@ auto into_array(JSON &&value) -> JSON {
   return result;
 }
 
-auto report_drop(const ExpansionState &state, const JSONLDDropReason reason,
+auto report_drop(const ExpansionState &state,
+                 const JSONLDExpandDropReason reason,
                  const WeakPointer &pointer, const JSON &value) -> void {
   if (state.drop_callback == nullptr || !*state.drop_callback) {
     return;
@@ -423,7 +424,8 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
     }
     const auto &content{*value_entry};
     if (content.is_null() && !is_json) {
-      report_drop(state, JSONLDDropReason::NullValueObject, pointer, element);
+      report_drop(state, JSONLDExpandDropReason::NullValueObject, pointer,
+                  element);
       return JSON{nullptr};
     }
     if (result.defines(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) &&
@@ -494,7 +496,7 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
       }
     }
     if (only_value_keys) {
-      report_drop(state, JSONLDDropReason::IncompleteValueObject, pointer,
+      report_drop(state, JSONLDExpandDropReason::IncompleteValueObject, pointer,
                   element);
       return JSON{nullptr};
     }
@@ -509,7 +511,8 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
         result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
         (result.object_size() == 1 &&
          result.defines(KEYWORD_ID, KEYWORD_ID_HASH))) {
-      report_drop(state, JSONLDDropReason::FreeFloatingValue, pointer, element);
+      report_drop(state, JSONLDExpandDropReason::FreeFloatingValue, pointer,
+                  element);
       return JSON{nullptr};
     }
     if (result.empty()) {
@@ -578,15 +581,16 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
     if (!expanded_property.has_value()) {
       report_drop(state,
-                  has_keyword_form(property) ? JSONLDDropReason::KeywordFormKey
-                                             : JSONLDDropReason::RetiredKey,
+                  has_keyword_form(property)
+                      ? JSONLDExpandDropReason::KeywordFormKey
+                      : JSONLDExpandDropReason::RetiredKey,
                   entry_pointer, entry.second);
       continue;
     }
 
     const auto &name{expanded_property.value()};
     if (!name.contains(':') && !is_keyword(name)) {
-      report_drop(state, JSONLDDropReason::UndefinedKey, entry_pointer,
+      report_drop(state, JSONLDExpandDropReason::UndefinedKey, entry_pointer,
                   entry.second);
       continue;
     }
@@ -641,7 +645,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
           // an array of strings.
           auto type{expand_type(state, type_context, item)};
           if (type.is_null()) {
-            report_drop(state, JSONLDDropReason::UndefinedType,
+            report_drop(state, JSONLDExpandDropReason::UndefinedType,
                         entry_pointer.concat(expanded_type_index), item);
           } else {
             expanded_type.push_back(std::move(type));
@@ -654,7 +658,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       // A lone @type value that does not expand to an IRI carries nothing,
       // which includes carrying no blame for what the element ends up with
       if (expanded_type.is_null()) {
-        report_drop(state, JSONLDDropReason::UndefinedType, entry_pointer,
+        report_drop(state, JSONLDExpandDropReason::UndefinedType, entry_pointer,
                     entry.second);
         continue;
       }
@@ -708,8 +712,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       // (JSON-LD 1.1 API Section 5.1.2 step 13.4.11.1)
       if (name == KEYWORD_LIST && (!active_property.has_value() ||
                                    active_property.value() == KEYWORD_GRAPH)) {
-        report_drop(state, JSONLDDropReason::FreeFloatingValue, entry_pointer,
-                    entry.second);
+        report_drop(state, JSONLDExpandDropReason::FreeFloatingValue,
+                    entry_pointer, entry.second);
         continue;
       }
 
@@ -718,7 +722,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       // for the enclosing property to carry (JSON-LD 1.1 API Section 5.1.2
       // steps 13.4.12 and 18.2)
       if (name == KEYWORD_SET && entry.second.is_null()) {
-        report_drop(state, JSONLDDropReason::NullValue, entry_pointer,
+        report_drop(state, JSONLDExpandDropReason::NullValue, entry_pointer,
                     entry.second);
         origins.collection = source_pointer;
         result.assign(name, JSON{nullptr});
@@ -912,8 +916,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       // Keywords with no property-level handler (such as @vocab or @none
       // reached through an alias) carry no expanded value, so the Expansion
       // algorithm adds nothing to the result for them.
-      report_drop(state, JSONLDDropReason::UnhandledKeyword, entry_pointer,
-                  entry.second);
+      report_drop(state, JSONLDExpandDropReason::UnhandledKeyword,
+                  entry_pointer, entry.second);
       continue;
     }
 
@@ -1029,7 +1033,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                              : language_pointer};
           language_index += 1;
           if (item.is_null()) {
-            report_drop(state, JSONLDDropReason::NullValue, item_pointer, item);
+            report_drop(state, JSONLDExpandDropReason::NullValue, item_pointer,
+                        item);
             continue;
           }
           if (!item.is_string()) {
@@ -1344,7 +1349,7 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
   }
 
   if (element.is_null()) {
-    report_drop(state, JSONLDDropReason::NullValue, pointer, element);
+    report_drop(state, JSONLDExpandDropReason::NullValue, pointer, element);
     return JSON{nullptr};
   }
 
@@ -1362,7 +1367,8 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
   if (!element.is_object() && !element.is_array()) {
     if (!active_property.has_value() ||
         active_property.value() == KEYWORD_GRAPH) {
-      report_drop(state, JSONLDDropReason::FreeFloatingValue, pointer, element);
+      report_drop(state, JSONLDExpandDropReason::FreeFloatingValue, pointer,
+                  element);
       return JSON{nullptr};
     }
 

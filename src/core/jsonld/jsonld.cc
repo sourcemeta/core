@@ -47,7 +47,7 @@ auto run_expansion(ExpansionState &state, ActiveContext &active_context,
 // Set up the shared expansion state and initial active context from the public
 // entry-point arguments.
 auto initialise_expansion(const JSONLDResolver &resolver,
-                          const JSONLDDropCallback *const drop_callback,
+                          const JSONLDExpandDropCallback *const drop_callback,
                           const JSON::StringView base_iri,
                           const JSONLDVersion version, ExpansionState &state,
                           ActiveContext &active_context) -> void {
@@ -84,7 +84,7 @@ namespace sourcemeta::core {
 
 auto jsonld_expand(const JSON &input, const JSON::StringView base_iri,
                    const JSONLDResolver &resolver, const JSONLDVersion version,
-                   const JSONLDDropCallback &drop_callback) -> JSON {
+                   const JSONLDExpandDropCallback &drop_callback) -> JSON {
   ExpansionState state;
   ActiveContext active_context;
   initialise_expansion(resolver, &drop_callback, base_iri, version, state,
@@ -95,7 +95,7 @@ auto jsonld_expand(const JSON &input, const JSON::StringView base_iri,
 auto jsonld_expand(const JSON &input, const JSON &expand_context,
                    const JSON::StringView base_iri,
                    const JSONLDResolver &resolver, const JSONLDVersion version,
-                   const JSONLDDropCallback &drop_callback) -> JSON {
+                   const JSONLDExpandDropCallback &drop_callback) -> JSON {
   ExpansionState state;
   ActiveContext active_context;
   initialise_expansion(resolver, &drop_callback, base_iri, version, state,

@@ -42,7 +42,7 @@ enum class JSONLDVersion : std::uint8_t {
 
 /// @ingroup jsonld
 /// The reason expansion discarded a position in the input document
-enum class JSONLDDropReason : std::uint8_t {
+enum class JSONLDExpandDropReason : std::uint8_t {
   /// The active context does not define the key, and the key is not itself an
   /// absolute IRI, so it cannot name a property
   UndefinedKey,
@@ -79,8 +79,8 @@ enum class JSONLDDropReason : std::uint8_t {
 /// key indistinguishable from a document that says nothing, which is what
 /// this reports. See "A JSON-LD Handbook" by Wolodymyr Pawlyshyn, chapter 2,
 /// https://dr-json-ld.com/book/#expansion
-using JSONLDDropCallback =
-    std::function<void(JSONLDDropReason, const WeakPointer &, const JSON &)>;
+using JSONLDExpandDropCallback = std::function<void(
+    JSONLDExpandDropReason, const WeakPointer &, const JSON &)>;
 
 /// @ingroup jsonld
 ///
@@ -106,7 +106,7 @@ SOURCEMETA_CORE_JSONLD_EXPORT
 auto jsonld_expand(const JSON &input, const JSON::StringView base_iri = "",
                    const JSONLDResolver &resolver = {},
                    const JSONLDVersion version = JSONLDVersion::V1_1,
-                   const JSONLDDropCallback &drop_callback = {}) -> JSON;
+                   const JSONLDExpandDropCallback &drop_callback = {}) -> JSON;
 
 /// @ingroup jsonld
 ///
@@ -133,7 +133,7 @@ auto jsonld_expand(const JSON &input, const JSON &expand_context,
                    const JSON::StringView base_iri = "",
                    const JSONLDResolver &resolver = {},
                    const JSONLDVersion version = JSONLDVersion::V1_1,
-                   const JSONLDDropCallback &drop_callback = {}) -> JSON;
+                   const JSONLDExpandDropCallback &drop_callback = {}) -> JSON;
 
 /// @ingroup jsonld
 ///
