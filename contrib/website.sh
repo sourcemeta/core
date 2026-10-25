@@ -79,15 +79,29 @@ export CTEST_PARALLEL_LEVEL
 # So it is asked for by the one module whose programs die that way, over the
 # handful of translation units that module builds, rather than here across the
 # project. Those programs ask for it by name themselves, having been built to
-# honour it, which is why nothing of the sort is set below.
+# honour it, which is why nothing of the sort is set below
+PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
+
+# Every decision written out of more than one condition records which
+# combinations of those conditions the suite tried, which is what the fourth
+# measure below is read out of. It costs a bitmap per decision in each program
+# and an update to it wherever one is decided, and what a decision may be made
+# of is bounded, so a wider one than the bound allows is left uninstrumented
+# rather than refused.
 #
-# The last of the three asks for every decision written out of more than one
-# condition to record which combinations of those conditions the suite tried,
-# which is what the fourth measure below is read out of. It costs a bitmap per
-# decision in each program and an update to it wherever one is decided, and
-# what a decision may be made of is bounded, so a wider one than the bound
-# allows is left uninstrumented rather than refused
-PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping -fcoverage-mcdc"
+# Only the C++ compilation asks for it. Every source this report measures is
+# C++, while the C this build also compiles is vendored and left out of the
+# report, where the measurement would be paid for and never read.
+#
+# A decision that nests a boolean expression inside another operation is left
+# uninstrumented too, and the compiler says so wherever it meets one. That is
+# a limit of the measurement rather than anything wrong with the code, so it
+# stays a warning here instead of failing a build that asks for warnings to be
+# errors. It is accompanied by the one option that keeps a compiler which
+# instruments this without carrying that warning from refusing a name it does
+# not know
+DECISION_FLAGS="-fcoverage-mcdc -Wno-unknown-warning-option"
+DECISION_FLAGS="$DECISION_FLAGS -Wno-error=pgo-coverage"
 
 # Assertions are compiled out, which is a measurement decision rather than an
 # instrumentation one. The branch an assertion takes when it fails is
@@ -112,7 +126,7 @@ cmake -S "$SOURCE_DIRECTORY" -B "$BUILD_DIRECTORY" \
   -DSOURCEMETA_CORE_CRYPTO_USE_REFERENCE:BOOL=ON \
   -DBUILD_SHARED_LIBS:BOOL=OFF \
   -DCMAKE_C_FLAGS:STRING="$PROFILE_FLAGS $ASSERTION_FLAGS" \
-  -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS $ASSERTION_FLAGS" \
+  -DCMAKE_CXX_FLAGS:STRING="$PROFILE_FLAGS $DECISION_FLAGS $ASSERTION_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-fprofile-instr-generate" \
   -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fprofile-instr-generate"
 
