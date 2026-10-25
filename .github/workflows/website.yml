@@ -51,13 +51,16 @@ jobs:
       - name: Build the website
         # Every function that the published report measures has to be called by
         # the test suite, so that a change cannot quietly lower it, and each of
-        # the other three shares has a floor the project has already cleared.
+        # the other four shares has a floor the project has already cleared.
         # Branches sit lower than the rest because an exhaustive switch over an
-        # enumeration carries an edge out of it that nothing can take
+        # enumeration carries an edge out of it that nothing can take, and
+        # conditions lower still because taking both outcomes of a condition is
+        # not the same as showing that condition decide an outcome on its own
         env:
           REQUIRE_FULL_FUNCTION_COVERAGE: "1"
           REQUIRE_MINIMUM_COVERAGE: "97"
           REQUIRE_MINIMUM_BRANCH_COVERAGE: "92"
+          REQUIRE_MINIMUM_CONDITION_COVERAGE: "82"
         run: |
           useradd --create-home builder
           chown -R builder .
