@@ -56,6 +56,10 @@ if(SOURCEMETA_CORE_CRYPTO)
   list(APPEND BENCHMARK_SOURCES crypto.cc)
 endif()
 
+if(SOURCEMETA_CORE_EXTRA_METAPACK)
+  list(APPEND BENCHMARK_SOURCES metapack.cc)
+endif()
+
 if(BENCHMARK_SOURCES)
   sourcemeta_benchmark(NAMESPACE sourcemeta PROJECT core
     SOURCES ${BENCHMARK_SOURCES})
@@ -135,6 +139,12 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_CRYPTO)
     target_link_libraries(sourcemeta_core_benchmarks
       PRIVATE sourcemeta::core::crypto sourcemeta::core::io)
+  endif()
+
+  if(SOURCEMETA_CORE_EXTRA_METAPACK)
+    target_link_libraries(sourcemeta_core_benchmarks
+      PRIVATE sourcemeta::core::metapack sourcemeta::core::json
+              sourcemeta::core::io)
   endif()
 
   # A single run prints the human readable report and writes the JSON file, so
