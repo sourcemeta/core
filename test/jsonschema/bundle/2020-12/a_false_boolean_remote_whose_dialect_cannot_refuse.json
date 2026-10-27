@@ -1,0 +1,61 @@
+{
+  "schema": {
+    "$schema": "https://example.com/meta/no-applicator.json",
+    "$ref": "https://www.sourcemeta.com/flag"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/flag": false,
+    "https://example.com/meta/no-applicator.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/meta/no-applicator.json",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      }
+    }
+  },
+  "defaultDialect": "https://example.com/meta/no-applicator.json",
+  "container": "/definitions",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://example.com/meta/no-applicator.json",
+      "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1flag",
+      "definitions": {
+        "https://www.sourcemeta.com/flag": false,
+        "https://example.com/meta/no-applicator.json": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/meta/no-applicator.json",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://example.com/meta/no-applicator.json",
+      "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1flag",
+      "definitions": {
+        "https://www.sourcemeta.com/flag": false
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1flag"
+      },
+      {
+        "from": "https://example.com/meta/no-applicator.json",
+        "at": "/definitions/https:~1~1example.com~1meta~1no-applicator.json"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ]
+  }
+}

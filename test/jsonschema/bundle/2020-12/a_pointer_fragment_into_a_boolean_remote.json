@@ -1,0 +1,30 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "flag": {
+        "$ref": "https://www.sourcemeta.com/flag#/not"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/flag": false
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://www.sourcemeta.com/flag#/not",
+      "location": "/properties/flag/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://www.sourcemeta.com/flag#/not",
+      "location": "/properties/flag/$ref"
+    }
+  }
+}

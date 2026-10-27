@@ -1,0 +1,29 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "flag": {
+        "$ref": "https://www.sourcemeta.com/flag"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/flag": true
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "maxLocations": 6,
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaFrameLimitError",
+      "message": "The schema exceeds the maximum number of frame locations",
+      "limit": 6
+    },
+    "references": {
+      "type": "SchemaFrameLimitError",
+      "message": "The schema exceeds the maximum number of frame locations",
+      "limit": 6
+    }
+  }
+}

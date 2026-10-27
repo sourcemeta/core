@@ -8,7 +8,7 @@
     }
   },
   "resolver": {
-    "https://www.sourcemeta.com/flag": false
+    "https://www.sourcemeta.com/flag": true
   },
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "result": {
@@ -16,22 +16,28 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "flag": {
-          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag"
+          "$ref": "https://www.sourcemeta.com/flag"
         }
       },
       "$defs": {
-        "https://www.sourcemeta.com/flag": false
+        "https://www.sourcemeta.com/flag": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/flag"
+        }
       }
     },
     "references": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "flag": {
-          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag"
+          "$ref": "https://www.sourcemeta.com/flag"
         }
       },
       "$defs": {
-        "https://www.sourcemeta.com/flag": false
+        "https://www.sourcemeta.com/flag": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/flag"
+        }
       }
     }
   },

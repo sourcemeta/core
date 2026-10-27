@@ -29,17 +29,17 @@
         }
       },
       "$defs": {
-        "https://www.sourcemeta.com/flag": true,
+        "https://www.sourcemeta.com/flag": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/flag"
+        },
         "https://www.sourcemeta.com/outer": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/outer",
           "properties": {
             "flag": {
-              "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag"
+              "$ref": "https://www.sourcemeta.com/flag"
             }
-          },
-          "$defs": {
-            "https://www.sourcemeta.com/flag": true
           }
         }
       }
@@ -52,17 +52,17 @@
         }
       },
       "$defs": {
-        "https://www.sourcemeta.com/flag": true,
+        "https://www.sourcemeta.com/flag": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/flag"
+        },
         "https://www.sourcemeta.com/outer": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$id": "https://www.sourcemeta.com/outer",
           "properties": {
             "flag": {
-              "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag"
+              "$ref": "https://www.sourcemeta.com/flag"
             }
-          },
-          "$defs": {
-            "https://www.sourcemeta.com/flag": true
           }
         }
       }
@@ -77,10 +77,6 @@
       {
         "from": "https://www.sourcemeta.com/outer",
         "at": "/$defs/https:~1~1www.sourcemeta.com~1outer"
-      },
-      {
-        "from": "https://www.sourcemeta.com/flag",
-        "at": "/$defs/https:~1~1www.sourcemeta.com~1outer/$defs/https:~1~1www.sourcemeta.com~1flag"
       }
     ],
     "references": [
@@ -91,10 +87,6 @@
       {
         "from": "https://www.sourcemeta.com/outer",
         "at": "/$defs/https:~1~1www.sourcemeta.com~1outer"
-      },
-      {
-        "from": "https://www.sourcemeta.com/flag",
-        "at": "/$defs/https:~1~1www.sourcemeta.com~1outer/$defs/https:~1~1www.sourcemeta.com~1flag"
       }
     ]
   }
