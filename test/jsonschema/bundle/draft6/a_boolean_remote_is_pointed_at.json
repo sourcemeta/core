@@ -1,0 +1,49 @@
+{
+  "schema": {
+    "properties": {
+      "flag": {
+        "$ref": "https://www.sourcemeta.com/flag"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/flag": true
+  },
+  "defaultDialect": "http://json-schema.org/draft-06/schema#",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "properties": {
+        "flag": {
+          "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1flag"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/flag": true
+      }
+    },
+    "references": {
+      "properties": {
+        "flag": {
+          "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1flag"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/flag": true
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Foo": {
+          "$ref": "https://example.com/schemas/any"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/schemas/any": true
+  },
+  "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "defaultBase": "https://example.com/openapi.json",
+  "container": "/components/schemas",
+  "paths": [
+    "/components/schemas/Foo"
+  ],
+  "result": {
+    "nonOfficialMetaschemas": {
+      "components": {
+        "schemas": {
+          "Foo": {
+            "$ref": "#/components/schemas/https:~1~1example.com~1schemas~1any"
+          },
+          "https://example.com/schemas/any": true
+        }
+      }
+    },
+    "references": {
+      "components": {
+        "schemas": {
+          "Foo": {
+            "$ref": "#/components/schemas/https:~1~1example.com~1schemas~1any"
+          },
+          "https://example.com/schemas/any": true
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/schemas/any",
+        "at": "/components/schemas/https:~1~1example.com~1schemas~1any"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/schemas/any",
+        "at": "/components/schemas/https:~1~1example.com~1schemas~1any"
+      }
+    ]
+  }
+}

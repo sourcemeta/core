@@ -909,6 +909,23 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
           "A Schema Object must be an object"};
     }
 
+    // Where the revision does have room for one, a boolean still carries no
+    // keyword at all, so it can say neither what it is written against nor
+    // what it answers to, and schema bundling reaches one by where it lands
+    // rather than by a name. A Schema Object `discriminator` mapping names a
+    // schema by URI and has no way of naming a place, so the identity is what
+    // this description needs rather than the position. JSON Schema 2020-12
+    // Section 9.3.1 asks the same of every schema that travels this way, "Each
+    // embedded JSON Schema Resource MUST identify itself with a URI using the
+    // `$id` keyword", and Section 4.3.2 gives each of the two the object that
+    // says exactly what it says, which is what lets one carry it
+    if (result.has_value() && result.value().is_boolean()) {
+      auto spelled{std::move(result).to_owned()};
+      spell_out(spelled);
+      spelled.assign("$schema", sourcemeta::core::JSON{standalone});
+      return spelled;
+    }
+
     if (!result.has_value() || !result.value().is_object() ||
         result.value().defines("$schema")) {
       return result;
@@ -943,14 +960,6 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   }
 
   auto &schemas{sourcemeta::core::get(document, container)};
-  // A resource that travels this way has to say who it is, which is what JSON
-  // Schema 2020-12 Section 9.3.1 asks of a Compound Schema Document: "Each
-  // embedded JSON Schema Resource MUST identify itself with a URI using the
-  // `$id` keyword". A description is not one of those, so nothing binds it
-  // here, but a reference that named a schema by URI goes on naming nothing
-  // unless the schema carries that URI. Section 4.8.24 lets a Schema Object be
-  // a boolean, which carries no keyword at all and so can say nothing, which
-  // writing it out as the object saying the same thing settles
   // What each key became, for the sake of whatever was written to point at the
   // old one
   std::vector<
@@ -959,19 +968,6 @@ auto bundle_schemas(sourcemeta::core::JSON &document,
   for (const auto &entry : landed) {
     const auto &identifier{entry.first};
     const auto &key{entry.second.back().to_property()};
-    auto &schema{schemas.at(key)};
-    if (schema.is_boolean()) {
-      spell_out(schema);
-      // A schema that can neither name its dialect nor name itself answers to
-      // where it sits, and what pointed at it was written as a pointer for
-      // that reason, so there is nothing here for it to be told to answer to
-      // instead
-      if (nameable) {
-        schema.assign("$schema", sourcemeta::core::JSON{standalone});
-        schema.assign("$id", sourcemeta::core::JSON{identifier});
-      }
-    }
-
     const auto name{schema_name(schemas, identifier, namer)};
     renamed.emplace_back(key, name);
     schemas.rename(key, sourcemeta::core::JSON::String{name});

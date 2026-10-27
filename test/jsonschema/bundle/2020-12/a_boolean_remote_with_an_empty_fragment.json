@@ -1,0 +1,52 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "flag": {
+        "$ref": "https://www.sourcemeta.com/flag#"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/flag": true
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "flag": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/flag": true
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "flag": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/flag": true
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ]
+  }
+}

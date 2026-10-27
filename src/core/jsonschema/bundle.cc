@@ -99,12 +99,12 @@ auto charge(std::uint64_t &remaining, const SchemaFrame &frame) -> void {
   remaining -= frame.location_count();
 }
 
-// A schema of a dialect that cannot name itself answers to nothing once it is
-// embedded, so every reference to one has to spell out where it went. Neither
-// half is known where the reference is found: the embedding settles the
-// position, and elevation can move a schema again afterwards. So the walk only
-// records which identifiers went in unnamed and where each landed, and the
-// references themselves are settled against the finished document
+// A schema that cannot name itself answers to nothing once it is embedded, so
+// every reference to one has to spell out where it went. Neither half is known
+// where the reference is found: the embedding settles the position, and
+// elevation can move a schema again afterwards. So the walk only records which
+// identifiers went in unnamed and where each landed, and the references
+// themselves are settled against the finished document
 struct PositionalReferences {
   // Recorded while walking, as that is where the dialect of a remote is known
   std::unordered_set<JSON::String> unnamed;
@@ -874,15 +874,20 @@ auto embed_references(
     JSON::String effective_id{remote_id.empty() ? JSON::String{identifier}
                                                 : JSON::String{remote_id}};
 
-    // Whether the dialect of the remote has a way to name it at all, which
-    // decides between giving it a name and pointing at wherever it lands
-    const auto dialect_allows_naming{dialect_defines_identifier(
-        walker, remote_vocabularies, remote_base_dialect)};
+    // Whether the remote has a way to name itself at all, which decides
+    // between giving it a name and pointing at wherever it lands. JSON Schema
+    // 2020-12, section 4.3.2 leaves a boolean schema no room for a keyword of
+    // any kind, so one has nowhere to put a name however much the dialect it
+    // is read under reserves a keyword for one
+    const auto remote_can_name_itself{
+        remote.is_object() &&
+        dialect_defines_identifier(walker, remote_vocabularies,
+                                   remote_base_dialect)};
 
     const auto remote_dialect_uri{declared_dialect(remote, default_dialect)};
 
     if (remote.is_object()) {
-      if (dialect_allows_naming) {
+      if (remote_can_name_itself) {
         // Otherwise the embedded resource would be re-interpreted under the
         // dialect of the schema it gets embedded into, which can differ from
         // the default dialect that the remote was resolved with
@@ -904,10 +909,10 @@ auto embed_references(
     if (names_a_resource) {
       // Settled above, and by a name rather than by a place, so none of what
       // follows has anything to add to it
-    } else if (!dialect_allows_naming) {
-      // A dialect that defines no identifier keyword leaves the remote unable
-      // to declare one, so the name it was resolved by is not the name it
-      // answers to afterwards
+    } else if (!remote_can_name_itself) {
+      // A remote that cannot declare an identifier, whether because its
+      // dialect defines no keyword for one or because it is a boolean, is left
+      // by the embedding without the name it was resolved by
       assert(effective_id == identifier);
       positional.unnamed.insert(identifier);
       ref_rewrites.emplace_back(to_pointer(pointer),
