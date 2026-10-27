@@ -1,5 +1,9 @@
 set(BENCHMARK_SOURCES)
 
+if(SOURCEMETA_CORE_MCP)
+  list(APPEND BENCHMARK_SOURCES mcp.cc)
+endif()
+
 if(SOURCEMETA_CORE_REGEX)
   list(APPEND BENCHMARK_SOURCES regex.cc)
 endif()
@@ -65,6 +69,11 @@ if(BENCHMARK_SOURCES)
     SOURCES ${BENCHMARK_SOURCES})
   target_compile_definitions(sourcemeta_core_benchmarks
     PRIVATE CURRENT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}")
+
+  if(SOURCEMETA_CORE_MCP)
+    target_link_libraries(sourcemeta_core_benchmarks
+      PRIVATE sourcemeta::core::mcp)
+  endif()
 
   if(SOURCEMETA_CORE_REGEX)
     target_link_libraries(sourcemeta_core_benchmarks
