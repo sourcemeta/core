@@ -1,0 +1,89 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/pet",
+      "$ref": "https://www.sourcemeta.com/flag"
+    },
+    "https://www.sourcemeta.com/flag": true
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/flag": true,
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/pet",
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag",
+          "$defs": {
+            "https://www.sourcemeta.com/flag": true
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "x-definitions": {
+        "https://www.sourcemeta.com/flag": true,
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/pet",
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1flag",
+          "$defs": {
+            "https://www.sourcemeta.com/flag": true
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1flag"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet/$defs/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1flag"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1pet/$defs/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ]
+  }
+}
