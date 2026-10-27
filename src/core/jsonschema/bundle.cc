@@ -290,6 +290,25 @@ auto embed_schema(JSON &root, const Pointer &container,
   return key;
 }
 
+// Where a reference is written decides what it resolves against, which is the
+// resource holding it rather than the one around that. A schema that declares
+// an identifier of its own is that resource, so a reference sitting on it
+// reads under its name, and only a schema that declares none looks outwards
+// for the closest one. Taking what encloses a resource would name a scope the
+// reference never reads under. A place that names itself is held under more
+// than one entry, so which of them answers this has to be asked for by type
+auto enclosing_resource(const SchemaFrame &frame, const WeakPointer &schema)
+    -> Pointer {
+  if (frame.traverse(schema, SchemaFrame::LocationType::Resource).has_value()) {
+    return to_pointer(schema);
+  }
+
+  const auto location{frame.traverse(schema)};
+  assert(location.has_value());
+  const auto &parent{location.value().get().parent};
+  return parent.has_value() ? to_pointer(parent.value()) : Pointer{};
+}
+
 // A resource that carries its own name cannot name a place of the document it
 // sits in, so what it reaches instead is a copy of its own
 struct PositionalCopy {
@@ -403,10 +422,7 @@ auto settle_positional_references(
         // that scope. What such a resource needs is its own copy, in whichever
         // location its own dialect reserves for one, which is then a place of
         // that resource and travels with it
-        const auto &enclosing_location{enclosing.value().get()};
-        const auto host{enclosing_location.parent.has_value()
-                            ? to_pointer(enclosing_location.parent.value())
-                            : Pointer{}};
+        const auto host{enclosing_resource(frame, pointer.initial())};
         const auto host_location{frame.traverse(to_weak_pointer(host))};
         assert(host_location.has_value());
         const auto keyword{definitions_keyword(
