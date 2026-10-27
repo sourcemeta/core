@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Foo": {
+          "$ref": "https://example.com/schemas/none#/not"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/none": false
+  },
+  "error": {
+    "type": "SchemaReferenceError",
+    "message": "Could not resolve schema reference",
+    "identifier": "https://example.com/schemas/none#/not",
+    "location": "/components/schemas/Foo/$ref"
+  }
+}

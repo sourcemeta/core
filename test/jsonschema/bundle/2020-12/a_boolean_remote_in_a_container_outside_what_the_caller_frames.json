@@ -1,0 +1,62 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Foo": {
+          "$ref": "https://example.com/schemas/any"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/schemas/any": true
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultBase": "https://example.com/openapi.json",
+  "container": "/components/schemas",
+  "paths": [
+    "/components/schemas/Foo"
+  ],
+  "result": {
+    "nonOfficialMetaschemas": {
+      "components": {
+        "schemas": {
+          "Foo": {
+            "$ref": "https://example.com/schemas/any"
+          },
+          "https://example.com/schemas/any": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/schemas/any"
+          }
+        }
+      }
+    },
+    "references": {
+      "components": {
+        "schemas": {
+          "Foo": {
+            "$ref": "https://example.com/schemas/any"
+          },
+          "https://example.com/schemas/any": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/schemas/any"
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/schemas/any",
+        "at": "/components/schemas/https:~1~1example.com~1schemas~1any"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/schemas/any",
+        "at": "/components/schemas/https:~1~1example.com~1schemas~1any"
+      }
+    ]
+  }
+}

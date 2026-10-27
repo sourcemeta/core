@@ -1,0 +1,61 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "flag": {
+        "$ref": "https://www.sourcemeta.com/flag"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/flag": false
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "maxLocations": 8,
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "flag": {
+          "$ref": "https://www.sourcemeta.com/flag"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/flag": {
+          "not": {},
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/flag"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "flag": {
+          "$ref": "https://www.sourcemeta.com/flag"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/flag": {
+          "not": {},
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/flag"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/flag",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1flag"
+      }
+    ]
+  }
+}
