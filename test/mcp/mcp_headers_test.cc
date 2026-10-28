@@ -4043,29 +4043,49 @@ TEST(parameter_integer_rejects_a_header_that_is_not_a_number) {
 }
 
 TEST(request_parameters_metadata_version_2025_03_26) {
-  const auto input{sourcemeta::core::parse_json(
-      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2025-03-26", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2025-03-26",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state"
+  })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(input).first,
             sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion);
 }
 
 TEST(request_parameters_metadata_version_2025_06_18) {
-  const auto input{sourcemeta::core::parse_json(
-      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2025-06-18", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2025-06-18",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state"
+  })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(input).first,
             sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion);
 }
 
 TEST(request_parameters_metadata_version_2025_11_25) {
-  const auto input{sourcemeta::core::parse_json(
-      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2025-11-25", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2025-11-25",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state"
+  })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(input).first,
             sourcemeta::core::MCPRequestMetaStatus::UnsupportedProtocolVersion);
 }
 
 TEST(request_parameters_metadata_version_2026_07_28) {
-  const auto input{sourcemeta::core::parse_json(
-      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "state"
+  })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(input).first,
             sourcemeta::core::MCPRequestMetaStatus::Valid);
 }
@@ -4099,8 +4119,9 @@ TEST(parameter_header_round_trip_printable_ascii) {
       {{.name = "value",
         .path = {"value"},
         .type = sourcemeta::core::JSON::Type::String}}};
-  const auto arguments{sourcemeta::core::parse_json(
-      R"JSON({"value": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"})JSON")};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "value": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+  })JSON")};
   const auto owned{
       sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   const std::array<std::pair<sourcemeta::core::JSON::StringView,
@@ -4118,8 +4139,9 @@ TEST(parameter_header_round_trip_accent) {
       {{.name = "value",
         .path = {"value"},
         .type = sourcemeta::core::JSON::Type::String}}};
-  const auto arguments{
-      sourcemeta::core::parse_json(R"JSON({"value": "café"})JSON")};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "value": "café"
+  })JSON")};
   const auto owned{
       sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   const std::array<std::pair<sourcemeta::core::JSON::StringView,
@@ -4137,8 +4159,9 @@ TEST(parameter_header_round_trip_japanese) {
       {{.name = "value",
         .path = {"value"},
         .type = sourcemeta::core::JSON::Type::String}}};
-  const auto arguments{
-      sourcemeta::core::parse_json(R"JSON({"value": "日本語"})JSON")};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "value": "日本語"
+  })JSON")};
   const auto owned{
       sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   const std::array<std::pair<sourcemeta::core::JSON::StringView,
@@ -4156,8 +4179,9 @@ TEST(parameter_header_round_trip_emoji) {
       {{.name = "value",
         .path = {"value"},
         .type = sourcemeta::core::JSON::Type::String}}};
-  const auto arguments{
-      sourcemeta::core::parse_json(R"JSON({"value": "🙂"})JSON")};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "value": "🙂"
+  })JSON")};
   const auto owned{
       sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   const std::array<std::pair<sourcemeta::core::JSON::StringView,
@@ -4175,8 +4199,9 @@ TEST(parameter_header_round_trip_padded_unicode) {
       {{.name = "value",
         .path = {"value"},
         .type = sourcemeta::core::JSON::Type::String}}};
-  const auto arguments{
-      sourcemeta::core::parse_json(R"JSON({"value": " café "})JSON")};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "value": " café "
+  })JSON")};
   const auto owned{
       sourcemeta::core::mcp_make_parameter_headers(descriptors, arguments)};
   const std::array<std::pair<sourcemeta::core::JSON::StringView,
@@ -4194,16 +4219,18 @@ TEST(parameter_header_round_trip_rejects_changed_body) {
       {{.name = "value",
         .path = {"value"},
         .type = sourcemeta::core::JSON::Type::String}}};
-  const auto original{
-      sourcemeta::core::parse_json(R"JSON({"value": "original"})JSON")};
+  const auto original{sourcemeta::core::parse_json(R"JSON({
+    "value": "original"
+  })JSON")};
   const auto owned{
       sourcemeta::core::mcp_make_parameter_headers(descriptors, original)};
   const std::array<std::pair<sourcemeta::core::JSON::StringView,
                              sourcemeta::core::JSON::StringView>,
                    1>
       views{{{owned.front().first, owned.front().second}}};
-  const auto changed{
-      sourcemeta::core::parse_json(R"JSON({"value": "changed"})JSON")};
+  const auto changed{sourcemeta::core::parse_json(R"JSON({
+    "value": "changed"
+  })JSON")};
   EXPECT_TRUE(sourcemeta::core::mcp_validate_parameter_headers(
                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                   sourcemeta::core::JSON{1}, descriptors, changed, views)
