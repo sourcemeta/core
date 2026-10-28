@@ -650,3 +650,46 @@ TEST(single_index_token) {
   const sourcemeta::core::WeakPointer result{std::cref(FOO), 1};
   EXPECT_EQ(pointer.concat(1), result);
 }
+
+TEST(multi_property_token) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR),
+                                             std::cref(BAZ)};
+  EXPECT_EQ(pointer.concat(std::cref(BAZ)), result);
+}
+
+TEST(multi_index_token) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR), 1};
+  EXPECT_EQ(pointer.concat(1), result);
+}
+
+TEST(multi_multi) {
+  const sourcemeta::core::WeakPointer left{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer right{std::cref(BAZ), std::cref(QUX)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR),
+                                             std::cref(BAZ), std::cref(QUX)};
+  EXPECT_EQ(left.concat(right), result);
+}
+
+TEST(multi_single) {
+  const sourcemeta::core::WeakPointer left{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer right{std::cref(BAZ)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR),
+                                             std::cref(BAZ)};
+  EXPECT_EQ(left.concat(right), result);
+}
+
+TEST(multi_empty) {
+  const sourcemeta::core::WeakPointer left{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer right;
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR)};
+  EXPECT_EQ(left.concat(right), result);
+}
+
+TEST(empty_multi) {
+  const sourcemeta::core::WeakPointer left;
+  const sourcemeta::core::WeakPointer right{std::cref(FOO), std::cref(BAR)};
+  const sourcemeta::core::WeakPointer result{std::cref(FOO), std::cref(BAR)};
+  EXPECT_EQ(left.concat(right), result);
+}
