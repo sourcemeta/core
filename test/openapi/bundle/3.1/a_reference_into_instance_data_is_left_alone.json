@@ -1,0 +1,122 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "shared/api.json#/components/responses/Ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Ok": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$id": "https://example.com/shared/pet",
+                  "$ref": "#/$defs/x/const",
+                  "$defs": {
+                    "x": {
+                      "const": {
+                        "externalDocs": {
+                          "url": "docs.html"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/Ok"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Ok": {
+          "description": "OK",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$id": "https://example.com/shared/pet",
+                "$ref": "#/$defs/x/const",
+                "$defs": {
+                  "x": {
+                    "const": {
+                      "externalDocs": {
+                        "url": "docs.html"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared/api.json#/components/responses/Ok",
+      "at": "/components/responses/Ok"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared/api.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}
