@@ -114,11 +114,21 @@ auto restated_uri(const std::string_view uri, const std::string_view base)
 // on naming what it named. Leaving one of two identical resources behind
 // would also make them differ over nothing
 //
-// OpenAPI Specification 3.0.4, Section 4.6 leaves the base for this one field
-// "implementation_defined" between the process a reference goes through and
-// the Server Object, and names the former RECOMMENDED. Nothing here has a
-// Server Object to consult, so the recommended reading is the only one on
-// offer and the only one taken
+// What that base is comes from the framing rather than from this field. It is
+// the nearest enclosing identifier wherever the dialect reserves a keyword for
+// one, and otherwise the identity the document itself was read under, which is
+// the only base a revision that reserves no such keyword can offer
+//
+// Earlier revisions read the field the other way around. OpenAPI
+// Specification 3.0.3 calls it a URL and has every relative URL resolve
+// "using the URLs defined in the Server Object as a Base URI", carving out
+// nothing but a reference, and 3.1.0 says as much of a URL too. Only 3.0.4
+// and 3.1.1 put the field back on the footing of every other URI, the former
+// leaving the choice "implementation_defined" while naming this reading
+// RECOMMENDED. One rule serves every revision here, as a Schema Object
+// carries no Server Object of its own and nothing at this level can reach
+// one, so the older reading is not a choice this has to make. It becomes one
+// where a whole description is bundled, which does have those URLs in view
 //
 // RFC 3986, section 4.4 spares an empty or fragment-only reference from this
 // elsewhere, a same-document reference needing no base beyond the one already
