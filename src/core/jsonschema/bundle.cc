@@ -82,6 +82,14 @@ auto rebase_reference(const JSON::String &base,
 // reference at all. An absolute base is what the last of those asks for, as
 // resolving against a relative one settles nothing and the module merges what
 // it can rather than refusing
+//
+// Resolution is the whole of it, with no normalisation after. RFC 3986,
+// section 6.2.3 holds that "two URIs that differ only by the suffix \"#\" are
+// considered different regardless of the scheme", and the normalisation that
+// drops such a fragment answers to section 8.2.1 of the JSON Schema
+// specification, which asks it of an identifier rather than of every URI a
+// schema writes. Nothing is lost by leaving it out, as section 5.2.2 removes
+// dot segments as part of resolving rather than as normalisation
 auto restated_uri(const std::string_view uri, const std::string_view base)
     -> std::optional<JSON::String> {
   try {
@@ -96,7 +104,6 @@ auto restated_uri(const std::string_view uri, const std::string_view base)
     }
 
     result.resolve_from(anchor);
-    result.canonicalize();
     return result.recompose();
   } catch (const URIParseError &) {
     return std::nullopt;

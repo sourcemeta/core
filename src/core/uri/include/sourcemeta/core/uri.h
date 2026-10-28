@@ -645,6 +645,12 @@ public:
   /// uri.canonicalize();
   /// assert(uri.recompose() == "http://example.com/TEST");
   /// ```
+  ///
+  /// This also drops a fragment that is present and empty, which identifies
+  /// the same resource for a schema identifier but not for a URI in general,
+  /// RFC 3986 section 6.2.3 holding that two URIs differing only by a
+  /// trailing number sign are different. A caller that carries what someone
+  /// wrote rather than an identifier wants resolution without this.
   auto canonicalize() -> URI &;
 
   /// Convert a URI into a filesystem path. If the URI is not under the `file`

@@ -1,0 +1,117 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "externalDocs": {
+      "url": "docs/api.html"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "externalDocs": {
+            "url": "docs/operation.html"
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "externalDocs": {
+                      "url": "docs/schema.html"
+                    }
+                  },
+                  "examples": {
+                    "one": {
+                      "externalValue": "examples/one.json"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tags": [
+      {
+        "name": "pets",
+        "externalDocs": {
+          "url": "docs/tag.html"
+        }
+      }
+    ]
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "externalDocs": {
+      "url": "https://example.com/docs/api.html"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "externalDocs": {
+            "url": "https://example.com/docs/operation.html"
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "externalDocs": {
+                      "url": "https://example.com/docs/schema.html"
+                    }
+                  },
+                  "examples": {
+                    "one": {
+                      "externalValue": "https://example.com/examples/one.json"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tags": [
+      {
+        "name": "pets",
+        "externalDocs": {
+          "url": "https://example.com/docs/tag.html"
+        }
+      }
+    ]
+  },
+  "inserted": [],
+  "reads": {},
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}
