@@ -1,6 +1,5 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME mcp
   SOURCES
-    mcp_conformance_test.cc
     mcp_helpers.h
     mcp_capabilities_test.cc
     mcp_error_test.cc

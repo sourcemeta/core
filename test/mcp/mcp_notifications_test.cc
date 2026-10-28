@@ -1605,3 +1605,350 @@ TEST(validate_continuation_accepts_a_received_resource_link) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
       std::nullopt));
 }
+
+TEST(validate_continuation_version_2025_03_26) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_version_2025_06_18) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_version_2025_11_25) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_version_2026_07_28) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_echo_empty_with_empty) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": ""})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior, ""));
+}
+
+TEST(validate_continuation_echo_empty_with_plain) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior, ""));
+}
+
+TEST(validate_continuation_echo_empty_with_uppercase) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "STATE"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior, ""));
+}
+
+TEST(validate_continuation_echo_empty_with_padded) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": " state "})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior, ""));
+}
+
+TEST(validate_continuation_echo_empty_with_unicode) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "état"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior, ""));
+}
+
+TEST(validate_continuation_echo_plain_with_empty) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": ""})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_echo_plain_with_plain) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_echo_plain_with_uppercase) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "STATE"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_echo_plain_with_padded) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": " state "})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_echo_plain_with_unicode) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "état"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_echo_uppercase_with_empty) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": ""})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "STATE"));
+}
+
+TEST(validate_continuation_echo_uppercase_with_plain) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "STATE"));
+}
+
+TEST(validate_continuation_echo_uppercase_with_uppercase) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "STATE"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "STATE"));
+}
+
+TEST(validate_continuation_echo_uppercase_with_padded) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": " state "})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "STATE"));
+}
+
+TEST(validate_continuation_echo_uppercase_with_unicode) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "état"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "STATE"));
+}
+
+TEST(validate_continuation_echo_padded_with_empty) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": ""})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      " state "));
+}
+
+TEST(validate_continuation_echo_padded_with_plain) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      " state "));
+}
+
+TEST(validate_continuation_echo_padded_with_uppercase) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "STATE"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      " state "));
+}
+
+TEST(validate_continuation_echo_padded_with_padded) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": " state "})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      " state "));
+}
+
+TEST(validate_continuation_echo_padded_with_unicode) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "état"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      " state "));
+}
+
+TEST(validate_continuation_echo_unicode_with_empty) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": ""})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "état"));
+}
+
+TEST(validate_continuation_echo_unicode_with_plain) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "état"));
+}
+
+TEST(validate_continuation_echo_unicode_with_uppercase) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "STATE"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "état"));
+}
+
+TEST(validate_continuation_echo_unicode_with_padded) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": " state "})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "état"));
+}
+
+TEST(validate_continuation_echo_unicode_with_unicode) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "état"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "état"));
+}
+
+TEST(validate_continuation_rejects_unsolicited_empty_state) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": ""})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_unsolicited_plain_state) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_unsolicited_uppercase_state) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "STATE"})JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_root_https) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state", "inputResponses": {"r": {"roots": [{"uri": "https://example.com"}]}}})JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({"r": {"method": "roots/list"}})JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_root_relative) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state", "inputResponses": {"r": {"roots": [{"uri": "relative/path"}]}}})JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({"r": {"method": "roots/list"}})JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_root_uppercase_scheme) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state", "inputResponses": {"r": {"roots": [{"uri": "FILE:///tmp"}]}}})JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({"r": {"method": "roots/list"}})JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+TEST(validate_continuation_root_file_path) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state", "inputResponses": {"r": {"roots": [{"uri": "file:///tmp"}]}}})JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({"r": {"method": "roots/list"}})JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+// Characterizes current receive policy, not URI validity. Stricter parsing
+// requires maintainer agreement; the receiver currently checks file:// only.
+TEST(validate_continuation_root_space_in_authority) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state", "inputResponses": {"r": {"roots": [{"uri": "file://bad space"}]}}})JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({"r": {"method": "roots/list"}})JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
+
+// Characterizes current receive policy, not URI validity. Stricter parsing
+// requires maintainer agreement; the receiver currently checks file:// only.
+TEST(validate_continuation_root_empty_file_authority) {
+  const auto input{sourcemeta::core::parse_json(
+      R"JSON({"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}}, "requestState": "state", "inputResponses": {"r": {"roots": [{"uri": "file://"}]}}})JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({"r": {"method": "roots/list"}})JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
+      "state"));
+}
