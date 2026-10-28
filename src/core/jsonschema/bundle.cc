@@ -76,6 +76,63 @@ auto rebase_reference(const JSON::String &base,
   return result.recompose();
 }
 
+// The absolute form of a URI spelled against a base, or nothing where what is
+// spelled is no URI reference at all
+auto absolute_uri(const std::string_view uri, const std::string_view base)
+    -> std::optional<JSON::String> {
+  try {
+    URI result{uri};
+    result.resolve_from(URI{base});
+    result.canonicalize();
+    return result.recompose();
+  } catch (const URIParseError &) {
+    return std::nullopt;
+  }
+}
+
+// OpenAPI Specification 3.1.1, Section 4.8.24 puts an External Documentation
+// Object on a Schema Object, and Section 4.8.11 makes its `url` "The URI for
+// the target documentation". Section 4.6 has every URI a description writes
+// resolve against the base in effect where it sits, so one spelled relatively
+// names a place of whatever document the schema lands in once the embedding
+// takes that base away. Restating it as the URI it resolves to is what keeps
+// it naming what it named
+//
+// RFC 3986, section 4.4 spares an empty or fragment-only reference from the
+// same treatment elsewhere, a same-document reference needing no base beyond
+// the one already in effect. That reasoning does not reach here, as the
+// document one of those leads back to is the one the schema came from rather
+// than the one it lands in, which is exactly what the embedding takes away
+auto restate_external_documentation(JSON &subschema, const SchemaFrame &frame,
+                                    const SchemaWalker &walker,
+                                    const SchemaResolver &resolver) -> void {
+  frame.for_each_subschema([&subschema, &frame, &walker,
+                            &resolver](const auto &location) -> void {
+    assert(!location.base.empty());
+
+    // A dialect that gives the keyword no meaning leaves it holding whatever
+    // the schema put there, which moving cannot break
+    if (!dialect_defines(walker, frame.vocabularies(location, resolver),
+                         "externalDocs")) {
+      return;
+    }
+
+    const auto held{
+        to_pointer(location.pointer).concat(Pointer{"externalDocs", "url"})};
+    const auto *written{try_get(subschema, held)};
+    if (written == nullptr || !written->is_string()) {
+      return;
+    }
+
+    // What a description spells there is its own to answer for, as bundling is
+    // not where a Schema Object is checked
+    const auto resolved{absolute_uri(written->to_string(), location.base)};
+    if (resolved.has_value()) {
+      set(subschema, held, JSON{resolved.value()});
+    }
+  });
+}
+
 // The dialect a schema declares, falling back to the given default
 auto declared_dialect(const JSON &schema,
                       const std::string_view default_dialect)
@@ -711,6 +768,14 @@ auto embed_references(
       depth == 0 ? paths : NESTED_PATHS,
       depth == 0 ? default_base : std::string_view{}, remaining};
   charge(remaining, frame);
+
+  // The document the caller handed over stays where it already sits, so
+  // nothing takes a base away from it. Every remote reaches here having been
+  // resolved against an identity of its own, which the embedding is about to
+  // drop wherever the dialect reserves no keyword to carry it
+  if (depth > 0) {
+    restate_external_documentation(subschema, frame, walker, resolver);
+  }
 
   // Framing holds the base it resolves against to its canonical spelling, so
   // every reference destination it reports carries that spelling rather than
