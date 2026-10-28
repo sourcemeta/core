@@ -33,7 +33,7 @@
     "nonOfficialMetaschemas": {
       "$id": "https://www.sourcemeta.com/entry",
       "externalDocs": {
-        "url": "docs/entry.html"
+        "url": "https://www.sourcemeta.com/docs/entry.html"
       },
       "properties": {
         "pet": {
@@ -64,7 +64,7 @@
     "references": {
       "$id": "https://www.sourcemeta.com/entry",
       "externalDocs": {
-        "url": "docs/entry.html"
+        "url": "https://www.sourcemeta.com/docs/entry.html"
       },
       "properties": {
         "pet": {

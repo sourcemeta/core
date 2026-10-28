@@ -11,6 +11,14 @@
       "type": "object",
       "externalDocs": {
         "url": "https://docs.sourcemeta.com/pet.html"
+      },
+      "properties": {
+        "kind": {
+          "type": "string",
+          "externalDocs": {
+            "url": "HTTPS://Docs.SourceMeta.COM:443/a/./b/../kind.html"
+          }
+        }
       }
     },
     "https://example.com/oas-3-1-dialect": {
@@ -39,6 +47,14 @@
           "type": "object",
           "externalDocs": {
             "url": "https://docs.sourcemeta.com/pet.html"
+          },
+          "properties": {
+            "kind": {
+              "type": "string",
+              "externalDocs": {
+                "url": "HTTPS://Docs.SourceMeta.COM:443/a/./b/../kind.html"
+              }
+            }
           }
         },
         "https://example.com/oas-3-1-dialect": {
@@ -66,6 +82,14 @@
           "type": "object",
           "externalDocs": {
             "url": "https://docs.sourcemeta.com/pet.html"
+          },
+          "properties": {
+            "kind": {
+              "type": "string",
+              "externalDocs": {
+                "url": "HTTPS://Docs.SourceMeta.COM:443/a/./b/../kind.html"
+              }
+            }
           }
         }
       }
