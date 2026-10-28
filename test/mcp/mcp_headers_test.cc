@@ -6,11 +6,12 @@
 
 #include "mcp_helpers.h"
 
-#include <array>    // std::array
-#include <optional> // std::optional, std::nullopt
-#include <string>   // std::string
-#include <utility>  // std::pair
-#include <vector>   // std::vector
+#include <algorithm> // std::reverse
+#include <array>     // std::array
+#include <optional>  // std::optional, std::nullopt
+#include <string>    // std::string
+#include <utility>   // std::pair
+#include <vector>    // std::vector
 
 TEST(request_meta_validation_valid_minimum) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
@@ -4040,4 +4041,116 @@ TEST(parameter_integer_rejects_a_header_that_is_not_a_number) {
                   sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                   sourcemeta::core::JSON{0}, descriptors, arguments, views)
                   .has_value());
+}
+namespace {
+struct IndexedParameterHeaders {
+  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
+  sourcemeta::core::JSON arguments{sourcemeta::core::JSON::make_object()};
+  std::vector<std::pair<std::string, std::string>> owned;
+  std::vector<std::pair<sourcemeta::core::JSON::StringView,
+                        sourcemeta::core::JSON::StringView>>
+      headers;
+
+  IndexedParameterHeaders() {
+    constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
+        {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
+         "field7", "field8"}};
+    this->parameters.reserve(NAMES.size());
+    for (const auto name : NAMES) {
+      this->parameters.push_back(
+          {.name = name,
+           .path = {name},
+           .type = sourcemeta::core::JSON::Type::String});
+      this->arguments.assign(name, sourcemeta::core::JSON{"plain"});
+    }
+    this->mirror();
+  }
+
+  auto mirror() -> void {
+    this->headers.clear();
+    this->owned = sourcemeta::core::mcp_make_parameter_headers(this->parameters,
+                                                               this->arguments);
+    for (const auto &entry : this->owned) {
+      this->headers.emplace_back(entry.first, entry.second);
+    }
+    // Nine descriptors and eighteen headers select the indexed lookup path.
+    for (std::size_t index{0}; index < 9; ++index) {
+      this->headers.emplace_back("Other", "ignored");
+    }
+  }
+
+  [[nodiscard]] auto validate() const -> std::optional<sourcemeta::core::JSON> {
+    return sourcemeta::core::mcp_validate_parameter_headers(
+        sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+        sourcemeta::core::JSON{0}, this->parameters, this->arguments,
+        this->headers);
+  }
+};
+} // namespace
+
+TEST(parameter_headers_index_accepts_mixed_case_names) {
+  IndexedParameterHeaders fixture;
+  fixture.headers.front().first = "mCp-pArAm-FiElD0";
+  EXPECT_FALSE(fixture.validate().has_value());
+}
+
+TEST(parameter_headers_index_accepts_reversed_header_order) {
+  IndexedParameterHeaders fixture;
+  std::reverse(fixture.headers.begin(), fixture.headers.end());
+  EXPECT_FALSE(fixture.validate().has_value());
+}
+
+TEST(parameter_headers_index_accepts_encoded_unicode) {
+  IndexedParameterHeaders fixture;
+  fixture.arguments.assign("field8", sourcemeta::core::JSON{" café "});
+  fixture.mirror();
+  EXPECT_FALSE(fixture.validate().has_value());
+}
+
+TEST(parameter_headers_index_ignores_duplicate_unused_names) {
+  IndexedParameterHeaders fixture;
+  fixture.headers.emplace_back("Mcp-Param-unused", "ignored");
+  fixture.headers.emplace_back("mcp-param-UNUSED", "different");
+  EXPECT_FALSE(fixture.validate().has_value());
+}
+
+TEST(parameter_headers_index_rejects_duplicate_matching_names) {
+  IndexedParameterHeaders fixture;
+  fixture.headers.emplace_back("mcp-param-FIELD0", "plain");
+  EXPECT_EQ(fixture.validate().value().at("error").at("message").to_string(),
+            "Duplicate parameter header");
+}
+
+TEST(parameter_headers_index_rejects_wrong_argument_type) {
+  IndexedParameterHeaders fixture;
+  fixture.arguments.assign("field8", sourcemeta::core::JSON{true});
+  EXPECT_EQ(fixture.validate().value().at("error").at("message").to_string(),
+            "Invalid mirrored argument");
+}
+
+TEST(parameter_headers_index_accepts_safe_integral_decimal) {
+  IndexedParameterHeaders fixture;
+  fixture.parameters.back().type = sourcemeta::core::JSON::Type::Integer;
+  fixture.arguments.assign("field8",
+                           sourcemeta::core::parse_json("9007199254740991.0"));
+  fixture.mirror();
+  EXPECT_FALSE(fixture.validate().has_value());
+}
+
+TEST(parameter_headers_index_rejects_unsafe_integer) {
+  IndexedParameterHeaders fixture;
+  fixture.parameters.back().type = sourcemeta::core::JSON::Type::Integer;
+  fixture.arguments.assign("field8",
+                           sourcemeta::core::JSON{INT64_C(9007199254740992)});
+  fixture.headers.at(8).second = "9007199254740992";
+  EXPECT_EQ(fixture.validate().value().at("error").at("message").to_string(),
+            "Invalid mirrored argument");
+}
+
+TEST(parameter_headers_index_rejects_duplicate_descriptor_names) {
+  IndexedParameterHeaders fixture;
+  fixture.parameters.back().name = "FIELD0";
+  EXPECT_MCP_REJECTS(
+      fixture.validate(),
+      "Parameter header names must be case-insensitively unique");
 }
