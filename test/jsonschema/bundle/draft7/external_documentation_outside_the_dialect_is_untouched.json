@@ -1,0 +1,108 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://www.sourcemeta.com/entry",
+    "externalDocs": {
+      "url": "docs/entry.html"
+    },
+    "properties": {
+      "pet": {
+        "$ref": "pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://www.sourcemeta.com/pet",
+      "type": "object",
+      "externalDocs": {
+        "url": "docs/pet.html"
+      },
+      "properties": {
+        "kind": {
+          "type": "string",
+          "externalDocs": {
+            "url": "docs/kind.html"
+          }
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://www.sourcemeta.com/entry",
+      "externalDocs": {
+        "url": "docs/entry.html"
+      },
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "externalDocs": {
+            "url": "docs/pet.html"
+          },
+          "properties": {
+            "kind": {
+              "type": "string",
+              "externalDocs": {
+                "url": "docs/kind.html"
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://www.sourcemeta.com/entry",
+      "externalDocs": {
+        "url": "docs/entry.html"
+      },
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "externalDocs": {
+            "url": "docs/pet.html"
+          },
+          "properties": {
+            "kind": {
+              "type": "string",
+              "externalDocs": {
+                "url": "docs/kind.html"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

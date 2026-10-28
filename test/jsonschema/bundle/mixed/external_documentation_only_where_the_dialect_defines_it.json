@@ -1,0 +1,131 @@
+{
+  "schema": {
+    "$schema": "https://example.com/oas-3-1-dialect",
+    "$id": "https://www.sourcemeta.com/entry",
+    "externalDocs": {
+      "url": "docs/entry.html"
+    },
+    "properties": {
+      "oas": {
+        "type": "string",
+        "externalDocs": {
+          "url": "docs/oas.html"
+        }
+      }
+    },
+    "$defs": {
+      "plain": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://www.sourcemeta.com/plain",
+        "externalDocs": {
+          "url": "docs/plain.html"
+        },
+        "properties": {
+          "inner": {
+            "type": "string",
+            "externalDocs": {
+              "url": "docs/inner.html"
+            }
+          }
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/oas-3-1-dialect": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/oas-3-1-dialect",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true,
+        "https://spec.openapis.org/oas/3.1/vocab/base": false
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://example.com/oas-3-1-dialect",
+      "$id": "https://www.sourcemeta.com/entry",
+      "externalDocs": {
+        "url": "https://www.sourcemeta.com/docs/entry.html"
+      },
+      "properties": {
+        "oas": {
+          "type": "string",
+          "externalDocs": {
+            "url": "https://www.sourcemeta.com/docs/oas.html"
+          }
+        }
+      },
+      "$defs": {
+        "plain": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/plain",
+          "externalDocs": {
+            "url": "docs/plain.html"
+          },
+          "properties": {
+            "inner": {
+              "type": "string",
+              "externalDocs": {
+                "url": "docs/inner.html"
+              }
+            }
+          }
+        },
+        "https://example.com/oas-3-1-dialect": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/oas-3-1-dialect",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://spec.openapis.org/oas/3.1/vocab/base": false
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://example.com/oas-3-1-dialect",
+      "$id": "https://www.sourcemeta.com/entry",
+      "externalDocs": {
+        "url": "https://www.sourcemeta.com/docs/entry.html"
+      },
+      "properties": {
+        "oas": {
+          "type": "string",
+          "externalDocs": {
+            "url": "https://www.sourcemeta.com/docs/oas.html"
+          }
+        }
+      },
+      "$defs": {
+        "plain": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/plain",
+          "externalDocs": {
+            "url": "docs/plain.html"
+          },
+          "properties": {
+            "inner": {
+              "type": "string",
+              "externalDocs": {
+                "url": "docs/inner.html"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/oas-3-1-dialect",
+        "at": "/$defs/https:~1~1example.com~1oas-3-1-dialect"
+      }
+    ],
+    "references": []
+  }
+}

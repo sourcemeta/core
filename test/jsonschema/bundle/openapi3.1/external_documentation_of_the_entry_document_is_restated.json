@@ -1,0 +1,104 @@
+{
+  "schema": {
+    "$id": "https://www.sourcemeta.com/entry",
+    "externalDocs": {
+      "url": "docs/entry.html"
+    },
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "externalDocs": {
+        "url": "docs/pet.html"
+      }
+    },
+    "https://example.com/oas-3-1-dialect": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/oas-3-1-dialect",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true,
+        "https://spec.openapis.org/oas/3.1/vocab/base": false
+      }
+    }
+  },
+  "defaultDialect": "https://example.com/oas-3-1-dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$id": "https://www.sourcemeta.com/entry",
+      "externalDocs": {
+        "url": "https://www.sourcemeta.com/docs/entry.html"
+      },
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/oas-3-1-dialect",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "externalDocs": {
+            "url": "https://www.sourcemeta.com/docs/pet.html"
+          }
+        },
+        "https://example.com/oas-3-1-dialect": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/oas-3-1-dialect",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://spec.openapis.org/oas/3.1/vocab/base": false
+          }
+        }
+      }
+    },
+    "references": {
+      "$id": "https://www.sourcemeta.com/entry",
+      "externalDocs": {
+        "url": "https://www.sourcemeta.com/docs/entry.html"
+      },
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/pet": {
+          "$schema": "https://example.com/oas-3-1-dialect",
+          "$id": "https://www.sourcemeta.com/pet",
+          "type": "object",
+          "externalDocs": {
+            "url": "https://www.sourcemeta.com/docs/pet.html"
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/oas-3-1-dialect",
+        "at": "/$defs/https:~1~1example.com~1oas-3-1-dialect"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}
