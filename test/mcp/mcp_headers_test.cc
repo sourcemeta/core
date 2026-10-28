@@ -6,12 +6,11 @@
 
 #include "mcp_helpers.h"
 
-#include <algorithm> // std::reverse
-#include <array>     // std::array
-#include <optional>  // std::optional, std::nullopt
-#include <string>    // std::string
-#include <utility>   // std::pair
-#include <vector>    // std::vector
+#include <array>    // std::array
+#include <optional> // std::optional, std::nullopt
+#include <string>   // std::string
+#include <utility>  // std::pair
+#include <vector>   // std::vector
 
 TEST(request_meta_validation_valid_minimum) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
@@ -4044,32 +4043,67 @@ TEST(parameter_integer_rejects_a_header_that_is_not_a_number) {
 }
 
 TEST(parameter_headers_index_accepts_mixed_case_names) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  headers.front().first = "mCp-pArAm-FiElD0";
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": "plain"
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"mCp-pArAm-FiElD0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "plain"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"}}};
   EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
                    sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                    sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4077,32 +4111,67 @@ TEST(parameter_headers_index_accepts_mixed_case_names) {
 }
 
 TEST(parameter_headers_index_accepts_reversed_header_order) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  std::reverse(headers.begin(), headers.end());
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": "plain"
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Mcp-Param-field8", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field0", "plain"}}};
   EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
                    sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                    sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4110,32 +4179,67 @@ TEST(parameter_headers_index_accepts_reversed_header_order) {
 }
 
 TEST(parameter_headers_index_accepts_encoded_unicode) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  arguments.assign("field8", sourcemeta::core::JSON{" café "});
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": " café "
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "=?base64?IGNhZsOpIA==?="},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"}}};
   EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
                    sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                    sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4143,33 +4247,69 @@ TEST(parameter_headers_index_accepts_encoded_unicode) {
 }
 
 TEST(parameter_headers_index_ignores_duplicate_unused_names) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  headers.emplace_back("Mcp-Param-unused", "ignored");
-  headers.emplace_back("mcp-param-UNUSED", "different");
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": "plain"
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   20>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "plain"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Mcp-Param-unused", "ignored"},
+               {"mcp-param-UNUSED", "different"}}};
   EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
                    sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                    sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4177,32 +4317,68 @@ TEST(parameter_headers_index_ignores_duplicate_unused_names) {
 }
 
 TEST(parameter_headers_index_rejects_duplicate_matching_names) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  headers.emplace_back("mcp-param-FIELD0", "plain");
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": "plain"
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   19>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "plain"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"mcp-param-FIELD0", "plain"}}};
   EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4214,32 +4390,67 @@ TEST(parameter_headers_index_rejects_duplicate_matching_names) {
 }
 
 TEST(parameter_headers_index_rejects_wrong_argument_type) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  arguments.assign("field8", sourcemeta::core::JSON{true});
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": true
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "plain"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"}}};
   EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4251,34 +4462,67 @@ TEST(parameter_headers_index_rejects_wrong_argument_type) {
 }
 
 TEST(parameter_headers_index_accepts_safe_integral_decimal) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  parameters.back().type = sourcemeta::core::JSON::Type::Integer;
-  arguments.assign("field8",
-                   sourcemeta::core::parse_json("9007199254740991.0"));
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": 9007199254740991.0
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "9007199254740991"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"}}};
   EXPECT_FALSE(sourcemeta::core::mcp_validate_parameter_headers(
                    sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                    sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4286,34 +4530,67 @@ TEST(parameter_headers_index_accepts_safe_integral_decimal) {
 }
 
 TEST(parameter_headers_index_rejects_unsafe_integer) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  parameters.back().type = sourcemeta::core::JSON::Type::Integer;
-  arguments.assign("field8", sourcemeta::core::JSON{INT64_C(9007199254740992)});
-  headers.at(8).second = "9007199254740992";
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field8",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::Integer}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": 9007199254740992
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "9007199254740992"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"}}};
   EXPECT_EQ(sourcemeta::core::mcp_validate_parameter_headers(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::JSON{0}, parameters, arguments, headers)
@@ -4325,32 +4602,67 @@ TEST(parameter_headers_index_rejects_unsafe_integer) {
 }
 
 TEST(parameter_headers_index_rejects_duplicate_descriptor_names) {
-  constexpr std::array<sourcemeta::core::JSON::StringView, 9> NAMES{
-      {"field0", "field1", "field2", "field3", "field4", "field5", "field6",
-       "field7", "field8"}};
-  std::vector<sourcemeta::core::MCPHeaderParameter> parameters;
-  parameters.reserve(NAMES.size());
-  auto arguments{sourcemeta::core::JSON::make_object()};
-  for (const auto name : NAMES) {
-    parameters.push_back({.name = name,
-                          .path = {name},
-                          .type = sourcemeta::core::JSON::Type::String});
-    arguments.assign(name, sourcemeta::core::JSON{"plain"});
-  }
-  const auto owned{
-      sourcemeta::core::mcp_make_parameter_headers(parameters, arguments)};
-  // Nine descriptors and eighteen headers exercise indexed lookup.
-  std::vector<std::pair<sourcemeta::core::JSON::StringView,
-                        sourcemeta::core::JSON::StringView>>
-      headers;
-  headers.reserve(18);
-  for (const auto &entry : owned) {
-    headers.emplace_back(entry.first, entry.second);
-  }
-  for (std::size_t index{0}; index < 9; ++index) {
-    headers.emplace_back("Other", "ignored");
-  }
-  parameters.back().name = "FIELD0";
+  const std::array<sourcemeta::core::MCPHeaderParameter, 9> parameters{
+      {{.name = "field0",
+        .path = {"field0"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field1",
+        .path = {"field1"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field2",
+        .path = {"field2"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field3",
+        .path = {"field3"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field4",
+        .path = {"field4"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field5",
+        .path = {"field5"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field6",
+        .path = {"field6"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "field7",
+        .path = {"field7"},
+        .type = sourcemeta::core::JSON::Type::String},
+       {.name = "FIELD0",
+        .path = {"field8"},
+        .type = sourcemeta::core::JSON::Type::String}}};
+  const auto arguments{sourcemeta::core::parse_json(R"JSON({
+    "field0": "plain",
+    "field1": "plain",
+    "field2": "plain",
+    "field3": "plain",
+    "field4": "plain",
+    "field5": "plain",
+    "field6": "plain",
+    "field7": "plain",
+    "field8": "plain"
+  })JSON")};
+  // Nine descriptors and at least eighteen headers exercise indexed lookup.
+  const std::array<std::pair<sourcemeta::core::JSON::StringView,
+                             sourcemeta::core::JSON::StringView>,
+                   18>
+      headers{{{"Mcp-Param-field0", "plain"},
+               {"Mcp-Param-field1", "plain"},
+               {"Mcp-Param-field2", "plain"},
+               {"Mcp-Param-field3", "plain"},
+               {"Mcp-Param-field4", "plain"},
+               {"Mcp-Param-field5", "plain"},
+               {"Mcp-Param-field6", "plain"},
+               {"Mcp-Param-field7", "plain"},
+               {"Mcp-Param-field8", "plain"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"},
+               {"Other", "ignored"}}};
   EXPECT_MCP_REJECTS(
       sourcemeta::core::mcp_validate_parameter_headers(
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
