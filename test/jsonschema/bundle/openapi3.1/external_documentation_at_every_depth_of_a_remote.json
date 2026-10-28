@@ -1,0 +1,194 @@
+{
+  "schema": {
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/v1/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/v1/pet": {
+      "type": "object",
+      "externalDocs": {
+        "url": "docs/root.html"
+      },
+      "properties": {
+        "plain": {
+          "type": "string",
+          "externalDocs": {
+            "url": "docs/plain.html"
+          }
+        },
+        "list": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "string",
+              "externalDocs": {
+                "url": "docs/item.html"
+              }
+            }
+          ]
+        },
+        "scoped": {
+          "$id": "inner/thing",
+          "type": "object",
+          "externalDocs": {
+            "url": "docs/scoped.html"
+          },
+          "properties": {
+            "deep": {
+              "type": "string",
+              "externalDocs": {
+                "url": "docs/deep.html"
+              }
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/oas-3-1-dialect": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/oas-3-1-dialect",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true,
+        "https://spec.openapis.org/oas/3.1/vocab/base": false
+      }
+    }
+  },
+  "defaultDialect": "https://example.com/oas-3-1-dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/v1/pet"
+        }
+      },
+      "$defs": {
+        "https://example.com/oas-3-1-dialect": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/oas-3-1-dialect",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://spec.openapis.org/oas/3.1/vocab/base": false
+          }
+        },
+        "https://www.sourcemeta.com/v1/pet": {
+          "type": "object",
+          "externalDocs": {
+            "url": "https://www.sourcemeta.com/v1/docs/root.html"
+          },
+          "properties": {
+            "plain": {
+              "type": "string",
+              "externalDocs": {
+                "url": "https://www.sourcemeta.com/v1/docs/plain.html"
+              }
+            },
+            "list": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "externalDocs": {
+                    "url": "https://www.sourcemeta.com/v1/docs/item.html"
+                  }
+                }
+              ]
+            },
+            "scoped": {
+              "$id": "inner/thing",
+              "type": "object",
+              "externalDocs": {
+                "url": "https://www.sourcemeta.com/v1/inner/docs/scoped.html"
+              },
+              "properties": {
+                "deep": {
+                  "type": "string",
+                  "externalDocs": {
+                    "url": "https://www.sourcemeta.com/v1/inner/docs/deep.html"
+                  }
+                }
+              }
+            }
+          },
+          "$schema": "https://example.com/oas-3-1-dialect",
+          "$id": "https://www.sourcemeta.com/v1/pet"
+        }
+      }
+    },
+    "references": {
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/v1/pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/v1/pet": {
+          "type": "object",
+          "externalDocs": {
+            "url": "https://www.sourcemeta.com/v1/docs/root.html"
+          },
+          "properties": {
+            "plain": {
+              "type": "string",
+              "externalDocs": {
+                "url": "https://www.sourcemeta.com/v1/docs/plain.html"
+              }
+            },
+            "list": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "externalDocs": {
+                    "url": "https://www.sourcemeta.com/v1/docs/item.html"
+                  }
+                }
+              ]
+            },
+            "scoped": {
+              "$id": "inner/thing",
+              "type": "object",
+              "externalDocs": {
+                "url": "https://www.sourcemeta.com/v1/inner/docs/scoped.html"
+              },
+              "properties": {
+                "deep": {
+                  "type": "string",
+                  "externalDocs": {
+                    "url": "https://www.sourcemeta.com/v1/inner/docs/deep.html"
+                  }
+                }
+              }
+            }
+          },
+          "$schema": "https://example.com/oas-3-1-dialect",
+          "$id": "https://www.sourcemeta.com/v1/pet"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/oas-3-1-dialect",
+        "at": "/$defs/https:~1~1example.com~1oas-3-1-dialect"
+      },
+      {
+        "from": "https://www.sourcemeta.com/v1/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1v1~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/v1/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1v1~1pet"
+      }
+    ]
+  }
+}
