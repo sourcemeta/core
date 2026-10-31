@@ -39,6 +39,34 @@ TEST(size) {
   EXPECT_EQ(sizeof(sourcemeta::core::JSON), sizeof(std::string) + 8);
 }
 
+// BIG WARNING! The padding this asserts is load-bearing, and removing it was
+// measured to be a net loss. The hash is built out of the 128-bit integer
+// type, so where that type is native it carries a 16-byte alignment and the
+// entry pays padding to place the hash on it. That alignment is what lets a
+// lookup compare the hash as two 16-byte halves, one pair of loads and one
+// branch each, and it also keeps every hash at an offset within its cache line
+// where a comparison never straddles one. Storing the hash as 64-bit words
+// instead removes the padding and speeds up wide scans by 2% to 5%, but costs
+// 8% to 94% on narrow objects and on lookups that carry a scan offset, which
+// are the common cases. The sizes themselves are not asserted here, as
+// std::string is 24 bytes on libc++ and 32 on libstdc++
+TEST(object_entry_layout) {
+  EXPECT_TRUE((std::is_same_v<sourcemeta::core::JSON::Object::hash_type::type,
+                              sourcemeta::core::uint128_t>));
+  EXPECT_EQ(sizeof(sourcemeta::core::JSON::Object::hash_type),
+            2 * sizeof(sourcemeta::core::uint128_t));
+
+  // The entry holds the key, the value and the hash, and nothing else beyond
+  // the padding that aligning the hash forces
+  const auto alignment{alignof(sourcemeta::core::JSON::Object::hash_type)};
+  const auto before_hash{sizeof(sourcemeta::core::JSON::String) +
+                         sizeof(sourcemeta::core::JSON)};
+  const auto hash_offset{((before_hash + alignment - 1) / alignment) *
+                         alignment};
+  EXPECT_EQ(sizeof(sourcemeta::core::JSON::Object::Entry),
+            hash_offset + sizeof(sourcemeta::core::JSON::Object::hash_type));
+}
+
 TEST(copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable_v<sourcemeta::core::JSON>);
   EXPECT_TRUE(std::is_copy_constructible_v<sourcemeta::core::JSON>);

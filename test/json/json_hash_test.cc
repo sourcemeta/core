@@ -20,7 +20,7 @@ TEST(hash_f) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x0000000000006600);
+                        0x0000000000006601);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -32,7 +32,7 @@ TEST(hash_fo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x00000000006f6600);
+                        0x00000000006f6602);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -44,7 +44,7 @@ TEST(hash_foo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x000000006f6f6600);
+                        0x000000006f6f6603);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -56,7 +56,7 @@ TEST(hash_fooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x0000006f6f6f6600);
+                        0x0000006f6f6f6604);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -68,7 +68,7 @@ TEST(hash_foooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x00006f6f6f6f6600);
+                        0x00006f6f6f6f6605);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -80,7 +80,7 @@ TEST(hash_fooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x006f6f6f6f6f6600);
+                        0x006f6f6f6f6f6606);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -92,7 +92,7 @@ TEST(hash_foooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6607);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -104,7 +104,7 @@ TEST(hash_fooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x000000000000006f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6608);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -116,7 +116,7 @@ TEST(hash_foooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000000000006f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6609);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -128,7 +128,7 @@ TEST(hash_fooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x00000000006f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f660a);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -140,7 +140,7 @@ TEST(hash_foooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x000000006f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f660b);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -152,7 +152,7 @@ TEST(hash_fooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x0000006f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f660c);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -164,7 +164,7 @@ TEST(hash_foooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x00006f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f660d);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -176,7 +176,7 @@ TEST(hash_fooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x006f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f660e);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -188,7 +188,7 @@ TEST(hash_foooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f660f);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000000000);
 }
@@ -200,7 +200,7 @@ TEST(hash_fooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6610);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x000000000000006f);
 }
@@ -212,7 +212,7 @@ TEST(hash_foooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6611);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000000000006f6f);
 }
@@ -224,7 +224,7 @@ TEST(hash_fooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6612);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x00000000006f6f6f);
 }
@@ -236,7 +236,7 @@ TEST(hash_foooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6613);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x000000006f6f6f6f);
 }
@@ -248,7 +248,7 @@ TEST(hash_fooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6614);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x0000006f6f6f6f6f);
 }
@@ -260,7 +260,7 @@ TEST(hash_foooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6615);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x00006f6f6f6f6f6f);
 }
@@ -272,7 +272,7 @@ TEST(hash_fooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6616);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x006f6f6f6f6f6f6f);
 }
@@ -284,7 +284,7 @@ TEST(hash_foooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6617);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000000000} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -296,7 +296,7 @@ TEST(hash_fooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6618);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x000000000000006f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -308,7 +308,7 @@ TEST(hash_foooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f6619);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000000000006f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -320,7 +320,7 @@ TEST(hash_fooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f661a);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x00000000006f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -332,7 +332,7 @@ TEST(hash_foooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f661b);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x000000006f6f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -344,7 +344,7 @@ TEST(hash_fooooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f661c);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x0000006f6f6f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -356,7 +356,7 @@ TEST(hash_foooooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f661d);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x00006f6f6f6f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -368,7 +368,7 @@ TEST(hash_fooooooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f661e);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x006f6f6f6f6f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -380,7 +380,7 @@ TEST(hash_foooooooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_TRUE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f6600);
+                        0x6f6f6f6f6f6f661f);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -393,7 +393,7 @@ TEST(hash_fooooooooooooooooooooooooooooooo) {
   const auto hash{hasher(value)};
   EXPECT_FALSE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
-                        0x6f6f6f6f6f6f66f6);
+                        0x6f6f6f6f6f6f6636);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x6f6f6f6f6f6f6f6f} << 64) |
                         0x6f6f6f6f6f6f6f6f);
 }
@@ -409,7 +409,41 @@ TEST(hash_no_collision) {
   const auto hash{hasher(value)};
   EXPECT_FALSE(hasher.is_perfect(hash));
   EXPECT_EQ(hash.a, (sourcemeta::core::uint128_t{0x6161616161616161} << 64) |
-                        0x6161616161617A03);
+                        0x6161616161617A62);
   EXPECT_EQ(hash.b, (sourcemeta::core::uint128_t{0x6161616161616161} << 64) |
                         0x6161616161616161);
+}
+
+TEST(hash_trailing_null_bytes_do_not_collide) {
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String bare{"foo"};
+  const sourcemeta::core::JSON::String padded{"foo\0", 4};
+  const sourcemeta::core::JSON::String twice_padded{"foo\0\0", 5};
+  EXPECT_TRUE(hasher.is_perfect(hasher(bare)));
+  EXPECT_TRUE(hasher.is_perfect(hasher(padded)));
+  EXPECT_TRUE(hasher.is_perfect(hasher(twice_padded)));
+  EXPECT_NE(hasher(bare), hasher(padded));
+  EXPECT_NE(hasher(bare), hasher(twice_padded));
+  EXPECT_NE(hasher(padded), hasher(twice_padded));
+}
+
+TEST(hash_empty_and_a_single_null_byte_do_not_collide) {
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String empty{""};
+  const sourcemeta::core::JSON::String null_byte{"\0", 1};
+  EXPECT_TRUE(hasher.is_perfect(hasher(empty)));
+  EXPECT_TRUE(hasher.is_perfect(hasher(null_byte)));
+  EXPECT_NE(hasher(empty), hasher(null_byte));
+}
+
+TEST(hash_longest_perfect_key_is_perfect) {
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String thirty_one(31, 'x');
+  const sourcemeta::core::JSON::String thirty_two(32, 'x');
+  EXPECT_TRUE(hasher.is_perfect(hasher(thirty_one)));
+  EXPECT_FALSE(hasher.is_perfect(hasher(thirty_two)));
+  EXPECT_NE(hasher(thirty_one), hasher(thirty_two));
 }

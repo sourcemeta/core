@@ -2039,14 +2039,14 @@ TEST(try_assign_before_existing_key_with_the_suffix_at_the_front) {
   EXPECT_EQ(iterator->first, "baz");
 }
 
-// The perfect hash copies key bytes into a zero filled block, so a key and the
-// same key followed by a null byte hash the same. RFC 8259 Section 7 admits a
-// null in a string, so both can sit in one object and only the size tells them
+// RFC 8259 Section 7 admits a null in a string, so a key and the same key
+// followed by a null byte can both sit in one object. The perfect hash records
+// the key size, so the two hash differently and nothing else has to tell them
 // apart
 TEST(two_keys_that_differ_only_by_a_trailing_null) {
   const sourcemeta::core::JSON::String bare{"a"};
   const sourcemeta::core::JSON::String padded{"a\0", 2};
-  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(bare),
+  EXPECT_NE(sourcemeta::core::JSON::Object::hash(bare),
             sourcemeta::core::JSON::Object::hash(padded));
 
   auto document{sourcemeta::core::JSON::make_object()};
@@ -2401,9 +2401,8 @@ TEST(less_than_defers_to_a_smaller_key_held_only_by_the_other) {
   EXPECT_TRUE(right < left);
 }
 
-// A key short enough to hash perfectly is copied into a zeroed buffer, so one
-// key and the same key followed by a null byte produce the very same hash and
-// are told apart only by their length
+// A key short enough to hash perfectly has its size recorded in the hash, so
+// one key and the same key followed by a null byte hash differently
 TEST(find_two_keys_differing_only_by_a_trailing_null) {
   sourcemeta::core::JSON::String padded{"ab"};
   padded.push_back('\0');
@@ -2414,7 +2413,7 @@ TEST(find_two_keys_differing_only_by_a_trailing_null) {
   document.assign(padded, sourcemeta::core::JSON{2});
 
   const auto &object{document.as_object()};
-  EXPECT_EQ(object.hash("ab"), object.hash(padded));
+  EXPECT_NE(object.hash("ab"), object.hash(padded));
   EXPECT_EQ(object.find("ab")->second.to_integer(), 1);
   EXPECT_EQ(object.find(padded)->second.to_integer(), 2);
 }
