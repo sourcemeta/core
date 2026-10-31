@@ -47,10 +47,10 @@ template <typename T> struct PropertyHashJSON {
     auto operator==(const HashType &) const noexcept -> bool = default;
   };
 
-  /// Compute a perfect hash from raw data
+  /// Pack up to 31 bytes of raw data into a hash, leaving its first byte clear
   [[nodiscard]]
-  constexpr auto perfect(const char *data,
-                         const std::size_t size) const noexcept -> HashType {
+  constexpr auto pack(const char *data, const std::size_t size) const noexcept
+      -> HashType {
     HashType result;
     assert(size > 0);
     if consteval {
@@ -74,6 +74,19 @@ template <typename T> struct PropertyHashJSON {
       std::memcpy(reinterpret_cast<char *>(&result) + 1, data, size);
     }
 
+    return result;
+  }
+
+  /// Compute a perfect hash from raw data
+  [[nodiscard]]
+  constexpr auto perfect(const char *data,
+                         const std::size_t size) const noexcept -> HashType {
+    auto result{this->pack(data, size)};
+    // The packed bytes alone do not tell a key from the same key followed by
+    // NUL bytes, so the first byte records the size. That makes the hash
+    // unique for every key of at most 31 bytes, and a lookup that matches it
+    // has compared the keys themselves
+    result.a |= static_cast<HashType::type>(size);
     return result;
   }
 
@@ -152,12 +165,13 @@ template <typename T> struct PropertyHashJSON {
         // This case is specifically designed to be constant with regards to
         // string length, and to exploit the fact that most JSON objects don't
         // have a lot of entries, so hash collision is not as common
-        auto hash = this->perfect(value.data(), 31);
-        hash.a |= 1 + (static_cast<std::uint64_t>(size) +
-                       static_cast<HashType::type>(value.front()) +
-                       static_cast<HashType::type>(value.back())) %
-                          // Make sure the property hash can never exceed 8 bits
-                          255;
+        auto hash = this->pack(value.data(), 31);
+        hash.a |= 32 + (static_cast<std::uint64_t>(size) +
+                        static_cast<HashType::type>(value.front()) +
+                        static_cast<HashType::type>(value.back())) %
+                           // Stay past every size a perfect hash records in
+                           // the first byte, and within its 8 bits
+                           223;
         return hash;
     }
   }
@@ -233,12 +247,13 @@ template <typename T> struct PropertyHashJSON {
         // This case is specifically designed to be constant with regards to
         // string length, and to exploit the fact that most JSON objects don't
         // have a lot of entries, so hash collision is not as common
-        auto hash = this->perfect(data, 31);
-        hash.a |= 1 + (static_cast<std::uint64_t>(size) +
-                       static_cast<HashType::type>(data[0]) +
-                       static_cast<HashType::type>(data[size - 1])) %
-                          // Make sure the property hash can never exceed 8 bits
-                          255;
+        auto hash = this->pack(data, 31);
+        hash.a |= 32 + (static_cast<std::uint64_t>(size) +
+                        static_cast<HashType::type>(data[0]) +
+                        static_cast<HashType::type>(data[size - 1])) %
+                           // Stay past every size a perfect hash records in
+                           // the first byte, and within its 8 bits
+                           223;
         return hash;
     }
   }
@@ -246,9 +261,9 @@ template <typename T> struct PropertyHashJSON {
   /// Check whether the given hash is a perfect hash
   [[nodiscard]]
   constexpr auto is_perfect(const HashType &hash) const noexcept -> bool {
-    // If there is anything written past the first byte,
-    // then it is a perfect hash
-    return (hash.a & 255) == 0;
+    // The first byte holds the size of a perfectly hashed key, and no key of
+    // more than 31 bytes hashes perfectly, so a larger value marks the rest
+    return (hash.a & 255) <= 31;
   }
 };
 

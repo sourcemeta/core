@@ -190,7 +190,7 @@ TEST(contains_trailing_nul_byte) {
   properties.insert("foo");
   const sourcemeta::core::JSON::String padded{"foo\0", 4};
   EXPECT_EQ(padded.size(), 4);
-  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(padded),
+  EXPECT_NE(sourcemeta::core::JSON::Object::hash(padded),
             sourcemeta::core::JSON::Object::hash("foo"));
   EXPECT_FALSE(properties.contains(padded));
 }
@@ -222,7 +222,7 @@ TEST(contains_single_nul_byte_against_empty_property_name) {
   properties.insert("");
   const sourcemeta::core::JSON::String padded{"\0", 1};
   EXPECT_EQ(padded.size(), 1);
-  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(padded),
+  EXPECT_NE(sourcemeta::core::JSON::Object::hash(padded),
             sourcemeta::core::JSON::Object::hash(""));
   EXPECT_FALSE(properties.contains(padded));
 }
