@@ -6,6 +6,7 @@
 #include <bit>        // std::endian
 #include <cassert>    // assert
 #include <cstddef>    // std::size_t
+#include <cstdint>    // std::uint8_t, std::uint64_t
 #include <cstring>    // std::memcpy
 #include <functional> // std::reference_wrapper
 
@@ -47,10 +48,10 @@ template <typename T> struct PropertyHashJSON {
     auto operator==(const HashType &) const noexcept -> bool = default;
   };
 
-  /// Pack up to 31 bytes of raw data into a hash, leaving its first byte clear
+  /// Compute a hash from up to 31 bytes of raw data, behind a leading byte
   [[nodiscard]]
-  constexpr auto pack(const char *data, const std::size_t size) const noexcept
-      -> HashType {
+  constexpr auto packed(const char *data, const std::size_t size,
+                        const std::uint8_t leading) const noexcept -> HashType {
     HashType result;
     assert(size > 0);
     if consteval {
@@ -60,6 +61,7 @@ template <typename T> struct PropertyHashJSON {
       // integer, which the static assertion enforces so the two can never
       // silently diverge
       static_assert(std::endian::native == std::endian::little);
+      result.a = static_cast<HashType::type>(leading);
       for (std::size_t index = 0; index < size; index += 1) {
         const auto byte{static_cast<HashType::type>(
             static_cast<unsigned char>(data[index]))};
@@ -71,7 +73,12 @@ template <typename T> struct PropertyHashJSON {
         }
       }
     } else {
-      std::memcpy(reinterpret_cast<char *>(&result) + 1, data, size);
+      // The leading byte goes in before the key bytes rather than being merged
+      // in afterwards, as reading the whole hash back to modify it costs more
+      // than computing it in the first place
+      auto *const bytes{reinterpret_cast<unsigned char *>(&result)};
+      bytes[0] = leading;
+      std::memcpy(bytes + 1, data, size);
     }
 
     return result;
@@ -81,13 +88,11 @@ template <typename T> struct PropertyHashJSON {
   [[nodiscard]]
   constexpr auto perfect(const char *data,
                          const std::size_t size) const noexcept -> HashType {
-    auto result{this->pack(data, size)};
-    // The packed bytes alone do not tell a key from the same key followed by
-    // NUL bytes, so the first byte records the size. That makes the hash
-    // unique for every key of at most 31 bytes, and a lookup that matches it
-    // has compared the keys themselves
-    result.a |= static_cast<HashType::type>(size);
-    return result;
+    // The key bytes alone do not tell a key from the same key followed by NUL
+    // bytes, so the leading byte records the size. That makes the hash unique
+    // for every key of at most 31 bytes, and a lookup that matches it has
+    // compared the keys themselves
+    return this->packed(data, size, static_cast<std::uint8_t>(size));
   }
 
   // GCC does not optimise well across implicit type conversions such as
@@ -164,15 +169,16 @@ template <typename T> struct PropertyHashJSON {
       default:
         // This case is specifically designed to be constant with regards to
         // string length, and to exploit the fact that most JSON objects don't
-        // have a lot of entries, so hash collision is not as common
-        auto hash = this->pack(value.data(), 31);
-        hash.a |= 32 + (static_cast<std::uint64_t>(size) +
-                        static_cast<HashType::type>(value.front()) +
-                        static_cast<HashType::type>(value.back())) %
-                           // Stay past every size a perfect hash records in
-                           // the first byte, and within its 8 bits
-                           223;
-        return hash;
+        // have a lot of entries, so hash collision is not as common. The sum
+        // is kept in 64 bits on purpose, as a modulo of the 128-bit hash type
+        // compiles to a library call rather than to an instruction, and the
+        // leading byte stays past every size that a perfect hash records there
+        const auto leading{32 +
+                           ((size + static_cast<unsigned char>(value.front()) +
+                             static_cast<unsigned char>(value.back())) %
+                            223)};
+        return this->packed(value.data(), 31,
+                            static_cast<std::uint8_t>(leading));
     }
   }
 
@@ -246,24 +252,26 @@ template <typename T> struct PropertyHashJSON {
       default:
         // This case is specifically designed to be constant with regards to
         // string length, and to exploit the fact that most JSON objects don't
-        // have a lot of entries, so hash collision is not as common
-        auto hash = this->pack(data, 31);
-        hash.a |= 32 + (static_cast<std::uint64_t>(size) +
-                        static_cast<HashType::type>(data[0]) +
-                        static_cast<HashType::type>(data[size - 1])) %
-                           // Stay past every size a perfect hash records in
-                           // the first byte, and within its 8 bits
-                           223;
-        return hash;
+        // have a lot of entries, so hash collision is not as common. The sum
+        // is kept in 64 bits on purpose, as a modulo of the 128-bit hash type
+        // compiles to a library call rather than to an instruction, and the
+        // leading byte stays past every size that a perfect hash records there
+        const auto leading{32 + ((size + static_cast<unsigned char>(data[0]) +
+                                  static_cast<unsigned char>(data[size - 1])) %
+                                 223)};
+        return this->packed(data, 31, static_cast<std::uint8_t>(leading));
     }
   }
 
   /// Check whether the given hash is a perfect hash
   [[nodiscard]]
   constexpr auto is_perfect(const HashType &hash) const noexcept -> bool {
-    // The first byte holds the size of a perfectly hashed key, and no key of
-    // more than 31 bytes hashes perfectly, so a larger value marks the rest
-    return (hash.a & 255) <= 31;
+    // The first byte holds the size of a perfectly hashed key, so it is at
+    // most 31 and leaves the three bits above that range clear, which no
+    // imperfect hash does. Testing those three bits settles it with a single
+    // masked compare, where comparing the whole byte against 31 needs a mask
+    // and a compare of its own
+    return (hash.a & 224) == 0;
   }
 };
 
