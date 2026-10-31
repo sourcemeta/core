@@ -439,7 +439,12 @@ mcp_make_text_block(const JSON::StringView text) -> sourcemeta::core::JSON;
 /// @ingroup mcp
 /// Build a JSON-RPC envelope wrapping a successful MCP tool call response from
 /// the given result payload. The payload is rendered as a text content block
-/// and, from 2025-06-18 onward, also carried as structured content. For
+/// and, from 2025-06-18 onward, also carried as structured content. This checks
+/// the MCP result shape, not the payload against a tool's outputSchema.
+/// Evaluate declared output schemas before publishing a successful result;
+/// rejecting a result cannot undo side effects of a tool that already ran. The
+/// standalone examples/mcp-schema-validation program demonstrates input checks
+/// before execution and output checks using the optional Blaze evaluator. For
 /// example:
 ///
 /// ```cpp
