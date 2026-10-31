@@ -23,5 +23,26 @@
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
 /// ```
+///
+/// @par Deployment boundaries
+/// Bound transport reads, decompression and JSON nesting before calling
+/// sourcemeta::core::parse_json. MCP envelope validation does not limit the
+/// memory or time already spent receiving and parsing a message.
+/// After parsing, sourcemeta::core::mcp_validate_request_meta checks envelope
+/// metadata, not the caller's identity or application authorization.
+///
+/// Authenticate the caller and authorize each resource before opening a file or
+/// making a network request. URI validation and
+/// sourcemeta::core::mcp_make_resource do not grant resource-access permission.
+///
+/// sourcemeta::core::mcp_validate_continuation checks protocol fields and,
+/// optionally, an exact state-token echo. The application must protect state
+/// integrity, bind it to the caller and operation, and enforce expiry and
+/// replay policy. The opt-in example in `examples/mcp-deployment-security`
+/// demonstrates bounded ingress, an exact resource ACL and server-held,
+/// single-use state. See its CMakeLists.txt for build commands and main.cc for
+/// tested policies and the limits of its process-local storage. These are
+/// application controls, not additional requirements imposed by Core's MCP
+/// validators.
 
 #endif
