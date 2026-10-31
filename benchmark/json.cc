@@ -8,9 +8,12 @@
 #include <sourcemeta/core/numeric.h>
 
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint64_t
 #include <filesystem>  // std::filesystem
 #include <sstream>     // std::ostringstream
 #include <string_view> // std::string_view
+#include <utility>     // std::pair, std::move
+#include <vector>      // std::vector
 
 // Keeps the sizes below from reaching the measured code as compile-time
 // constants, as a folded benchmark reports a fake result rather than failing
@@ -807,6 +810,48 @@ BENCHMARK(JSON_Object_Defines_Miss_Same_Length) {
   }
 }
 
+BENCHMARK(JSON_Object_Defines_Miss_Same_Length_32) {
+  // Every key of the object is the size of the one being looked for, so the
+  // size alone cannot settle the miss and the scan has to reach the last entry
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const auto &object{document.as_object()};
+  const sourcemeta::core::JSON::String key{"missing"};
+  const auto key_hash{hasher(key)};
+  for (auto iteration : state) {
+    auto result = object.defines(key, key_hash);
+    assert(!result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(JSON_Object_Defines_Miss_Same_Length_128) {
+  const auto property_count{opaque(128)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const auto &object{document.as_object()};
+  const sourcemeta::core::JSON::String key{"missing"};
+  const auto key_hash{hasher(key)};
+  for (auto iteration : state) {
+    auto result = object.defines(key, key_hash);
+    assert(!result);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
 BENCHMARK(JSON_Object_Defines_Miss_Too_Small) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("abcdefg", sourcemeta::core::JSON{1});
@@ -934,6 +979,445 @@ BENCHMARK(JSON_Object_At_Last_Key_512) {
   for (auto iteration : state) {
     auto &value{document.at(last_key, key_hash)};
     sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_At_Only_Key_1) {
+  // Real instance objects have a median width of one to three properties,
+  // which the width-eight and wider benchmarks above do not cover
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("key1000", sourcemeta::core::JSON{1});
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String key{"key1000"};
+  const auto key_hash{hasher(key)};
+  for (auto iteration : state) {
+    auto &value{document.at(key, key_hash)};
+    sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_At_Key_3) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("key1000", sourcemeta::core::JSON{1});
+  document.assign("key1001", sourcemeta::core::JSON{2});
+  document.assign("key1002", sourcemeta::core::JSON{3});
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String key{"key1002"};
+  const auto key_hash{hasher(key)};
+  for (auto iteration : state) {
+    auto &value{document.at(key, key_hash)};
+    sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_At_First_Key_8) {
+  // The counterpart of the last-key benchmarks above, i.e. a lookup the scan
+  // settles on its first probe, so that a change trading the early exit for an
+  // eagerly built index cannot pass unnoticed
+  const auto property_count{opaque(8)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String first_key{"key1000"};
+  const auto key_hash{hasher(first_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(first_key, key_hash)};
+    sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_At_First_Key_32) {
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String first_key{"key1000"};
+  const auto key_hash{hasher(first_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(first_key, key_hash)};
+    sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_At_First_Key_128) {
+  const auto property_count{opaque(128)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String first_key{"key1000"};
+  const auto key_hash{hasher(first_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(first_key, key_hash)};
+    sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_At_First_Key_512) {
+  const auto property_count{opaque(512)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String first_key{"key1000"};
+  const auto key_hash{hasher(first_key)};
+  for (auto iteration : state) {
+    auto &value{document.at(first_key, key_hash)};
+    sourcemeta::core::benchmark_do_not_optimize(value);
+  }
+}
+
+BENCHMARK(JSON_Object_Iterate_32) {
+  // The memory traffic a lookup cannot avoid, i.e. reading the key size and
+  // the hash of every entry without comparing either against anything, which
+  // is the floor the last-key benchmarks above are measured against
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto total{static_cast<std::uint64_t>(0)};
+    for (const auto &entry : object) {
+      total += entry.first.size() + static_cast<std::uint64_t>(entry.hash.a);
+    }
+
+    sourcemeta::core::benchmark_do_not_optimize(total);
+  }
+}
+
+BENCHMARK(JSON_Object_Iterate_128) {
+  const auto property_count{opaque(128)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto total{static_cast<std::uint64_t>(0)};
+    for (const auto &entry : object) {
+      total += entry.first.size() + static_cast<std::uint64_t>(entry.hash.a);
+    }
+
+    sourcemeta::core::benchmark_do_not_optimize(total);
+  }
+}
+
+BENCHMARK(JSON_Object_Defines_All_Present_K2_W8) {
+  // The shape of a required-properties check, i.e. one scan of the object for
+  // every key being looked for. The keys are spread evenly across the object
+  // so that the average scan reaches halfway into it
+  const auto property_count{opaque(8)};
+  const auto key_count{opaque(2)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(key_count);
+  for (std::size_t index = 0; index < key_count; index++) {
+    auto key{"key" +
+             std::to_string(1000 + ((index * property_count) / key_count))};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.defines(entry.first, entry.second)) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == key_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_Object_Defines_All_Present_K8_W32) {
+  const auto property_count{opaque(32)};
+  const auto key_count{opaque(8)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(key_count);
+  for (std::size_t index = 0; index < key_count; index++) {
+    auto key{"key" +
+             std::to_string(1000 + ((index * property_count) / key_count))};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.defines(entry.first, entry.second)) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == key_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_Object_Defines_All_Present_K8_W128) {
+  const auto property_count{opaque(128)};
+  const auto key_count{opaque(8)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(key_count);
+  for (std::size_t index = 0; index < key_count; index++) {
+    auto key{"key" +
+             std::to_string(1000 + ((index * property_count) / key_count))};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.defines(entry.first, entry.second)) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == key_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_Object_Defines_All_Present_K32_W128) {
+  const auto property_count{opaque(128)};
+  const auto key_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(key_count);
+  for (std::size_t index = 0; index < key_count; index++) {
+    auto key{"key" +
+             std::to_string(1000 + ((index * property_count) / key_count))};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.defines(entry.first, entry.second)) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == key_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_Object_Try_At_Sequential_NoHint_32) {
+  // Looking up every key of the object in insertion order, restarting the scan
+  // from the first entry every time, which is quadratic in the width
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(property_count);
+  for (std::size_t index = 0; index < property_count; index++) {
+    auto key{"key" + std::to_string(index + 1000)};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.try_at(entry.first, entry.second) != nullptr) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == property_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_Object_Try_At_Sequential_Hint_32) {
+  // The same lookups as the benchmark above, carrying the scan offset across
+  // them, so that every lookup hits on its first probe
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(index + 1000),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(property_count);
+  for (std::size_t index = 0; index < property_count; index++) {
+    auto key{"key" + std::to_string(index + 1000)};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    sourcemeta::core::JSON::Object::size_type start{0};
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.try_at(entry.first, entry.second, start) != nullptr) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == property_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
+  }
+}
+
+BENCHMARK(JSON_Object_At_Key_Sorted_Order_32) {
+  // The object lists its keys in reverse sorted order, as a consumer that
+  // walks keys in sorted order has no say in the order the instance was
+  // written in, so every lookup settles at the far end of the object
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(1000 + property_count - index - 1),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(property_count);
+  for (std::size_t index = 0; index < property_count; index++) {
+    auto key{"key" + std::to_string(index + 1000)};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    for (const auto &entry : keys) {
+      const auto &value{object.at(entry.first, entry.second)};
+      sourcemeta::core::benchmark_do_not_optimize(value);
+    }
+  }
+}
+
+BENCHMARK(JSON_Object_Try_At_Sorted_Order_Hint_32) {
+  // The same lookups as the benchmark above, carrying the scan offset across
+  // them. The offset lands one past the previous hit, which on this object is
+  // one past the entry the next lookup needs, so every lookup wraps the whole
+  // object instead of stopping where the unhinted scan would
+  const auto property_count{opaque(32)};
+  auto document{sourcemeta::core::JSON::make_object()};
+  for (std::size_t index = 0; index < property_count; index++) {
+    document.assign("key" + std::to_string(1000 + property_count - index - 1),
+                    sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  std::vector<std::pair<sourcemeta::core::JSON::String,
+                        sourcemeta::core::JSON::Object::hash_type>>
+      keys;
+  keys.reserve(property_count);
+  for (std::size_t index = 0; index < property_count; index++) {
+    auto key{"key" + std::to_string(index + 1000)};
+    const auto key_hash{hasher(key)};
+    keys.emplace_back(std::move(key), key_hash);
+  }
+
+  const auto &object{document.as_object()};
+  for (auto iteration : state) {
+    sourcemeta::core::JSON::Object::size_type start{0};
+    auto matches{static_cast<std::size_t>(0)};
+    for (const auto &entry : keys) {
+      if (object.try_at(entry.first, entry.second, start) != nullptr) {
+        matches += 1;
+      }
+    }
+
+    assert(matches == property_count);
+    sourcemeta::core::benchmark_do_not_optimize(matches);
   }
 }
 
