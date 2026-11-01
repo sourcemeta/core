@@ -85,23 +85,19 @@ PROFILE_FLAGS="-fprofile-instr-generate -fcoverage-mapping"
 # Every decision written out of more than one condition records which
 # combinations of those conditions the suite tried, which is what the fourth
 # measure below is read out of. It costs a bitmap per decision in each program
-# and an update to it wherever one is decided, and what a decision may be made
-# of is bounded, so a wider one than the bound allows is left uninstrumented
-# rather than refused.
+# and an update to it wherever one is decided.
 #
 # Only the C++ compilation asks for it. Every source this report measures is
 # C++, while the C this build also compiles is vendored and left out of the
 # report, where the measurement would be paid for and never read.
 #
-# A decision that nests a boolean expression inside another operation is left
-# uninstrumented too, and the compiler says so wherever it meets one. That is
-# a limit of the measurement rather than anything wrong with the code, so it
-# stays a warning here instead of failing a build that asks for warnings to be
-# errors. It is accompanied by the one option that keeps a compiler which
-# instruments this without carrying that warning from refusing a name it does
-# not know
-DECISION_FLAGS="-fcoverage-mcdc -Wno-unknown-warning-option"
-DECISION_FLAGS="$DECISION_FLAGS -Wno-error=pgo-coverage"
+# A decision the measure cannot read is left uninstrumented, so it would
+# quietly leave the measure rather than lower it. That happens to one wider
+# than the bound on a decision, and to one that holds another boolean
+# expression behind an operation of some other kind, so both are kept out of
+# this project and the build is left to fail on either, under the warnings
+# this configuration already turns into errors
+DECISION_FLAGS="-fcoverage-mcdc"
 
 # Assertions are compiled out, which is a measurement decision rather than an
 # instrumentation one. The branch an assertion takes when it fails is

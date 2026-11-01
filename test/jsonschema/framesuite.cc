@@ -170,8 +170,8 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame,
     // the frame any less standalone. Every other dialect has to be present
     // just like any other destination, as a reader that does not have it
     // cannot tell what the schema means without fetching it first
-    if (!(last_token(origin) == "$schema" &&
-          sourcemeta::core::schema_is_known(destination)) &&
+    if ((last_token(origin) != "$schema" ||
+         !sourcemeta::core::schema_is_known(destination)) &&
         !keys.contains(destination)) {
       every_reference_resolves = false;
     }

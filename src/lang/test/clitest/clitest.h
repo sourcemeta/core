@@ -1199,8 +1199,8 @@ inline auto clitest_command_replace(const CLITestCommand &command) -> void {
   // that names the pattern form stays possible
   const auto matching{command.size() == 6 && command.at(0) == "MATCHING" &&
                       command.at(2) == "WITH" && command.at(4) == "IN"};
-  if (!matching && !(command.size() == 5 && command.at(1) == "WITH" &&
-                     command.at(3) == "IN")) {
+  if (!matching && (command.size() != 5 || command.at(1) != "WITH" ||
+                    command.at(3) != "IN")) {
     command.usage("REPLACE [MATCHING] <pattern> WITH <replacement> IN <file>");
   }
 
