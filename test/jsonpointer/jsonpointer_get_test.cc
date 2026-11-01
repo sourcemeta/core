@@ -586,6 +586,17 @@ TEST(const_index_token) {
   EXPECT_EQ(result.to_integer(), 2);
 }
 
+TEST(const_index_token_on_object) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "0": 1
+  })JSON");
+
+  const sourcemeta::core::Pointer::Token token{0};
+  const sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 1);
+}
+
 TEST(const_weak_property_token) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "foo": 1
@@ -604,6 +615,17 @@ TEST(const_weak_index_token) {
   const sourcemeta::core::WeakPointer::Token token{1};
   const sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
   EXPECT_EQ(result.to_integer(), 2);
+}
+
+TEST(const_weak_index_token_on_object) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "0": 1
+  })JSON");
+
+  const sourcemeta::core::WeakPointer::Token token{0};
+  const sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 1);
 }
 
 TEST(mutable_property_token) {
@@ -625,6 +647,40 @@ TEST(mutable_index_token) {
   sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
   result = sourcemeta::core::JSON{5};
   EXPECT_EQ(document.at(0).to_integer(), 5);
+}
+
+TEST(mutable_index_token_on_object) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "0": 1
+  })JSON");
+
+  const sourcemeta::core::Pointer::Token token{0};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
+  result = sourcemeta::core::JSON{5};
+  EXPECT_EQ(document.at("0").to_integer(), 5);
+}
+
+TEST(mutable_weak_property_token) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "foo": 1
+  })JSON");
+
+  const std::string property{"foo"};
+  const sourcemeta::core::WeakPointer::Token token{std::cref(property)};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
+  result = sourcemeta::core::JSON{2};
+  EXPECT_EQ(document.at("foo").to_integer(), 2);
+}
+
+TEST(mutable_weak_index_token_on_object) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "0": 1
+  })JSON");
+
+  const sourcemeta::core::WeakPointer::Token token{0};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
+  result = sourcemeta::core::JSON{5};
+  EXPECT_EQ(document.at("0").to_integer(), 5);
 }
 
 TEST(programmatic_index_token_on_object) {
