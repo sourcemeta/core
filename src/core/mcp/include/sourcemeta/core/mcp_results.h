@@ -442,10 +442,7 @@ mcp_make_text_block(const JSON::StringView text) -> sourcemeta::core::JSON;
 /// and, from 2025-06-18 onward, also carried as structured content. This checks
 /// the MCP result shape, not the payload against a tool's outputSchema.
 /// Evaluate declared output schemas before publishing a successful result;
-/// rejecting a result cannot undo side effects of a tool that already ran. The
-/// optional tests in `test/mcp/mcp_schema_validation_test.cc` demonstrate input
-/// and output checks using Blaze. Enable `SOURCEMETA_CORE_MCP_TESTS_BLAZE` with
-/// an installed Blaze available through `CMAKE_PREFIX_PATH` to run them. For
+/// rejecting a result cannot undo side effects of a tool that already ran. For
 /// example:
 ///
 /// ```cpp

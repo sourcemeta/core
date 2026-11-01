@@ -47,13 +47,13 @@ auto compile(const sourcemeta::core::JSON &schema)
 // A null output schema means this tool declares no output contract, not that
 // its result has been independently established correct.
 auto call(
+    const sourcemeta::core::JSON &identifier,
     const sourcemeta::blaze::Template &input_schema,
     const sourcemeta::blaze::Template *output_schema,
     const sourcemeta::core::JSON &arguments,
     const std::function<sourcemeta::core::JSON(const sourcemeta::core::JSON &)>
         &execute) -> sourcemeta::core::JSON {
   constexpr auto VERSION{sourcemeta::core::MCPProtocolVersion::V_2025_11_25};
-  const sourcemeta::core::JSON identifier{1};
   sourcemeta::blaze::Evaluator evaluator;
   if (!evaluator.validate(input_schema, arguments)) {
     return sourcemeta::core::mcp_make_tool_error(
@@ -86,7 +86,7 @@ TEST(valid_arguments_execute_once_and_validate_structured_output) {
   })JSON"))};
   int executions{0};
   const auto result{
-      call(input, &output,
+      call(sourcemeta::core::JSON{"success-42"}, input, &output,
            sourcemeta::core::parse_json(R"JSON({ "quantity": 2 })JSON"),
            [&executions](const sourcemeta::core::JSON &arguments) {
              ++executions;
@@ -95,6 +95,7 @@ TEST(valid_arguments_execute_once_and_validate_structured_output) {
              return response;
            })};
   EXPECT_EQ(executions, 1);
+  EXPECT_EQ(result.at("id"), sourcemeta::core::JSON{"success-42"});
   EXPECT_FALSE(result.at("result").at("isError").to_boolean());
   EXPECT_EQ(result.at("result").at("structuredContent").at("accepted"),
             sourcemeta::core::JSON{2});
@@ -110,13 +111,14 @@ TEST(referenced_input_constraint_rejects_before_execution) {
   })JSON"))};
   int executions{0};
   const auto result{
-      call(input, nullptr,
+      call(sourcemeta::core::JSON{0}, input, nullptr,
            sourcemeta::core::parse_json(R"JSON({ "quantity": 0 })JSON"),
            [&executions](const sourcemeta::core::JSON &) {
              ++executions;
              return sourcemeta::core::JSON::make_object();
            })};
   EXPECT_EQ(executions, 0);
+  EXPECT_EQ(result.at("id"), sourcemeta::core::JSON{0});
   EXPECT_TRUE(result.at("result").at("isError").to_boolean());
 }
 
@@ -132,7 +134,8 @@ TEST(invalid_output_is_not_published_as_success) {
     "required": [ "accepted" ]
   })JSON"))};
   int executions{0};
-  const auto result{call(input, &output, sourcemeta::core::JSON::make_object(),
+  const auto result{call(sourcemeta::core::JSON{73}, input, &output,
+                         sourcemeta::core::JSON::make_object(),
                          [&executions](const sourcemeta::core::JSON &) {
                            ++executions;
                            return sourcemeta::core::parse_json(R"JSON({
@@ -140,6 +143,7 @@ TEST(invalid_output_is_not_published_as_success) {
                            })JSON");
                          })};
   EXPECT_EQ(executions, 1);
+  EXPECT_EQ(result.at("id"), sourcemeta::core::JSON{73});
   EXPECT_TRUE(result.at("result").at("isError").to_boolean());
   EXPECT_FALSE(result.at("result").defines("structuredContent"));
 }
@@ -150,12 +154,14 @@ TEST(no_declared_output_schema_still_checks_input) {
     "type": "object"
   })JSON"))};
   int executions{0};
-  const auto result{call(input, nullptr, sourcemeta::core::JSON::make_object(),
+  const auto result{call(sourcemeta::core::JSON{"without-output"}, input,
+                         nullptr, sourcemeta::core::JSON::make_object(),
                          [&executions](const sourcemeta::core::JSON &) {
                            ++executions;
                            return sourcemeta::core::JSON::make_object();
                          })};
   EXPECT_EQ(executions, 1);
+  EXPECT_EQ(result.at("id"), sourcemeta::core::JSON{"without-output"});
   EXPECT_FALSE(result.at("result").at("isError").to_boolean());
 }
 
