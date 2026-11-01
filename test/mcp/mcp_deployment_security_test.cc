@@ -10,7 +10,7 @@
 //
 // Resources: principal comes from verified transport authentication, never from
 // JSON arguments. Authorize the exact registered identifier before touching its
-// backing resource. This example deliberately has no arbitrary URI dereference,
+// backing resource. These tests deliberately have no arbitrary URI dereference,
 // path conversion, redirects or network access. A filesystem/HTTP handler needs
 // its own containment, race and egress controls; URI syntax is not permission.
 //
@@ -24,7 +24,7 @@
 // response shapes and token echo; the application controls ownership and use.
 // Consume once before execution. A throwing handler burns the token too: this
 // is at-most-once admission, not exactly-once side effects or a retry protocol.
-// This example synchronizes one in-memory record. Multiple workers need shared,
+// These tests synchronize one in-memory record. Multiple workers need shared,
 // atomic compare-and-consume storage; loss/restart must fail closed. Bound and
 // expire pending records, protect tokens from logs, and recheck authorization
 // and application schemas before any continued side effects.

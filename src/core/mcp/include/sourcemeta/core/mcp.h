@@ -38,11 +38,11 @@
 /// sourcemeta::core::mcp_validate_continuation checks protocol fields and,
 /// optionally, an exact state-token echo. The application must protect state
 /// integrity, bind it to the caller and operation, and enforce expiry and
-/// replay policy. The opt-in example in `examples/mcp-deployment-security`
-/// demonstrates bounded ingress, an exact resource ACL and server-held,
-/// single-use state. See its CMakeLists.txt for build commands and main.cc for
-/// tested policies and the limits of its process-local storage. These are
-/// application controls, not additional requirements imposed by Core's MCP
-/// validators.
+/// replay policy. Tests in `test/mcp/mcp_deployment_security_test.cc`
+/// demonstrate bounded ingress, an exact resource ACL and server-held,
+/// single-use state. These are application controls, not additional
+/// requirements imposed by Core's MCP validators. The replay policy tested
+/// there is process-local; multiple workers need shared atomic state
+/// consumption.
 
 #endif
