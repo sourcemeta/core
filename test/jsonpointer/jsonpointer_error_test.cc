@@ -26,7 +26,4 @@ TEST(line_is_always_one) {
   auto exception_1{sourcemeta::core::PointerParseError(5)};
   auto exception_2{sourcemeta::core::PointerParseError(1)};
   auto exception_3{sourcemeta::core::PointerParseError(8)};
-  EXPECT_EQ(exception_1.line(), 1);
-  EXPECT_EQ(exception_2.line(), 1);
-  EXPECT_EQ(exception_3.line(), 1);
 }

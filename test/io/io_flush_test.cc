@@ -31,7 +31,7 @@ TEST(flush_a_directory_throws) {
   try {
     sourcemeta::core::flush(path);
     FAIL();
-  } catch (const std::filesystem::filesystem_error &) {
+  } catch (const sourcemeta::core::IOFilesystemError &) {
     // Refusing the unflushable path is expected
   } catch (...) {
     FAIL();
@@ -100,7 +100,7 @@ TEST(flush_a_pipe_throws) {
     sourcemeta::core::flush(path);
     std::filesystem::remove(path);
     FAIL();
-  } catch (const std::filesystem::filesystem_error &error) {
+  } catch (const sourcemeta::core::IOFilesystemError &error) {
     EXPECT_EQ(error.path1(), path);
     std::filesystem::remove(path);
   } catch (...) {

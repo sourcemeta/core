@@ -4,14 +4,14 @@
 #include <filesystem> // std::filesystem::path
 
 TEST(fileview_error_message) {
-  const sourcemeta::core::FileViewError error{"/foo/bar.json",
-                                              "Failed to memory-map the file"};
+  const sourcemeta::core::FileViewError error{"Failed to memory-map the file",
+                                              "/foo/bar.json"};
   EXPECT_STREQ(error.what(), "Failed to memory-map the file");
 }
 
 TEST(fileview_error_path) {
-  const sourcemeta::core::FileViewError error{"/foo/bar.json",
-                                              "Failed to memory-map the file"};
+  const sourcemeta::core::FileViewError error{"Failed to memory-map the file",
+                                              "/foo/bar.json"};
   EXPECT_EQ(error.path(), std::filesystem::path{"/foo/bar.json"});
 }
 

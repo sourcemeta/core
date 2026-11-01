@@ -163,9 +163,8 @@ auto atomic_directory_swap(const std::filesystem::path &original,
       throw IOFilePermissionError{original};
     }
 
-    throw std::filesystem::filesystem_error{
-        "failed to atomically swap directories", replacement, original,
-        error_code};
+    throw IOFilesystemError{"Failed to atomically swap the directories",
+                            replacement, original, error_code};
   }
 
   // Atomic swap via renameatx_np with RENAME_SWAP
@@ -180,9 +179,8 @@ auto atomic_directory_swap(const std::filesystem::path &original,
       throw IOFilePermissionError{original};
     }
 
-    throw std::filesystem::filesystem_error{
-        "failed to atomically swap directories", replacement, original,
-        error_code};
+    throw IOFilesystemError{"Failed to atomically swap the directories",
+                            replacement, original, error_code};
   }
 
 #else

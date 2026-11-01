@@ -5,81 +5,57 @@
 #include <sourcemeta/core/numeric_export.h>
 #endif
 
-#include <exception> // std::exception
-#include <stdexcept> // std::out_of_range
+#include <sourcemeta/core/error.h>
 
 namespace sourcemeta::core {
 
-// Exporting symbols that depends on the standard C++ library is considered
-// safe.
-// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4251 4275)
-#endif
+SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 
 /// @ingroup numeric
 /// This class represents a decimal parse error
-class SOURCEMETA_CORE_NUMERIC_EXPORT DecimalParseError : public std::exception {
+class SOURCEMETA_CORE_NUMERIC_EXPORT DecimalParseError : public Error {
 public:
-  [[nodiscard]] auto what() const noexcept -> const char * override {
-    return "Invalid decimal string format";
-  }
+  DecimalParseError() : Error{"Invalid decimal string format"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric division by zero error
-class SOURCEMETA_CORE_NUMERIC_EXPORT NumericDivisionByZeroError
-    : public std::exception {
+class SOURCEMETA_CORE_NUMERIC_EXPORT NumericDivisionByZeroError : public Error {
 public:
-  [[nodiscard]] auto what() const noexcept -> const char * override {
-    return "Division by zero";
-  }
+  NumericDivisionByZeroError() : Error{"Division by zero"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric invalid operation error
 class SOURCEMETA_CORE_NUMERIC_EXPORT NumericInvalidOperationError
-    : public std::exception {
+    : public Error {
 public:
-  [[nodiscard]] auto what() const noexcept -> const char * override {
-    return "Invalid numeric operation";
-  }
+  NumericInvalidOperationError() : Error{"Invalid numeric operation"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric overflow error
-class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOverflowError
-    : public std::exception {
+class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOverflowError : public Error {
 public:
-  [[nodiscard]] auto what() const noexcept -> const char * override {
-    return "Numeric overflow";
-  }
+  NumericOverflowError() : Error{"Numeric overflow"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric value that falls outside the range of the
 /// target type
-class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOutOfRangeError
-    : public std::out_of_range {
+class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOutOfRangeError : public Error {
 public:
-  NumericOutOfRangeError()
-      : std::out_of_range{"Numeric value is out of range"} {}
+  NumericOutOfRangeError() : Error{"Numeric value is out of range"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric out of memory error
-class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOutOfMemoryError
-    : public std::exception {
+class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOutOfMemoryError : public Error {
 public:
-  [[nodiscard]] auto what() const noexcept -> const char * override {
-    return "Out of memory";
-  }
+  NumericOutOfMemoryError() : Error{"Out of memory"} {}
 };
 
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
+SOURCEMETA_CORE_ERROR_WARNINGS_POP
 
 } // namespace sourcemeta::core
 

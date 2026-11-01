@@ -8,23 +8,37 @@
 #include <string>   // std::string
 
 TEST(message) {
-  const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::GET,
-                                          "https://example.com",
-                                          "Connection refused"};
+  const sourcemeta::core::HTTPError error{"Connection refused",
+                                          sourcemeta::core::HTTPMethod::GET,
+                                          "https://example.com"};
   EXPECT_STREQ(error.what(), "Connection refused");
 }
 
 TEST(method) {
-  const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::POST,
-                                          "https://example.com",
-                                          "Connection refused"};
+  const sourcemeta::core::HTTPError error{"Connection refused",
+                                          sourcemeta::core::HTTPMethod::POST,
+                                          "https://example.com"};
   EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::POST);
 }
 
+TEST(detail) {
+  const sourcemeta::core::HTTPError error{
+      "The HTTP request failed", sourcemeta::core::HTTPMethod::GET,
+      "https://example.com", "Connection refused by peer"};
+  EXPECT_EQ(error.detail(), "Connection refused by peer");
+}
+
+TEST(detail_is_empty_without_one) {
+  const sourcemeta::core::HTTPError error{"Connection refused",
+                                          sourcemeta::core::HTTPMethod::GET,
+                                          "https://example.com"};
+  EXPECT_EQ(error.detail(), "");
+}
+
 TEST(url) {
-  const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::GET,
-                                          "https://example.com/schema.json",
-                                          "Connection refused"};
+  const sourcemeta::core::HTTPError error{"Connection refused",
+                                          sourcemeta::core::HTTPMethod::GET,
+                                          "https://example.com/schema.json"};
   EXPECT_EQ(error.url(), "https://example.com/schema.json");
 }
 

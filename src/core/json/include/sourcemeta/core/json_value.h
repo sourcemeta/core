@@ -6,6 +6,7 @@
 #endif
 
 #include <sourcemeta/core/json_array.h>
+#include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/json_hash.h>
 #include <sourcemeta/core/json_object.h>
 
@@ -912,7 +913,7 @@ public:
       const auto truncated{std::trunc(this->to_real())};
       if (truncated < static_cast<Real>(std::numeric_limits<Integer>::min()) ||
           truncated >= static_cast<Real>(std::numeric_limits<Integer>::max())) {
-        throw std::out_of_range{
+        throw JSONIntegerRangeError{
             "The real number does not fit in a 64-bit integer"};
       }
 
@@ -920,7 +921,7 @@ public:
     }
     const auto integral{this->to_decimal().to_integral()};
     if (!integral.is_int64()) {
-      throw std::out_of_range{
+      throw JSONIntegerRangeError{
           "The decimal number does not fit in a 64-bit integer"};
     }
 

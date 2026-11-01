@@ -1209,15 +1209,6 @@ TEST(duplicate_container_keyword) {
                              "/@context/a/@container/1");
 }
 
-TEST(error_code_value_is_owned) {
-  std::string code{"A custom error code longer than small string optimization"};
-  const sourcemeta::core::JSONLDError error{code.c_str(),
-                                            sourcemeta::core::Pointer{}};
-  code = std::string{};
-  EXPECT_STREQ(error.what(),
-               "A custom error code longer than small string optimization");
-}
-
 TEST(type_redefinition_with_non_boolean_protected) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "@type": { "@container": "@set", "@protected": 1 } }

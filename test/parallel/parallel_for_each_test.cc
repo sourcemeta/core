@@ -163,7 +163,7 @@ TEST(thread_creation_failure) {
         },
         4, SIZE_MAX);
     FAIL();
-  } catch (const std::runtime_error &error) {
+  } catch (const sourcemeta::core::ParallelThreadError &error) {
     EXPECT_STREQ(error.what(),
                  "The requested stack size is too large for this platform");
   }
@@ -189,7 +189,7 @@ TEST(thread_creation_failure) {
         },
         4, 1);
     FAIL();
-  } catch (const std::runtime_error &error) {
+  } catch (const sourcemeta::core::ParallelThreadError &error) {
     EXPECT_STREQ(error.what(),
                  "The requested stack size is not supported by this platform");
   }
@@ -228,7 +228,7 @@ TEST(thread_creation_failure_on_a_stack_too_large_to_allocate) {
         },
         4, 1uz << 62);
     FAIL();
-  } catch (const std::runtime_error &error) {
+  } catch (const sourcemeta::core::ParallelThreadError &error) {
     EXPECT_STREQ(error.what(), "Could not create thread");
   }
 

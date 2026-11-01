@@ -667,7 +667,7 @@ TEST(as_real_decimal_out_of_range_throws) {
   try {
     [[maybe_unused]] const auto value = document.as_real();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::NumericOutOfRangeError &error) {
     EXPECT_STREQ(error.what(), "Numeric value is out of range");
   }
 }
@@ -744,7 +744,7 @@ TEST(as_integer_decimal_out_of_range_throws) {
   try {
     [[maybe_unused]] const auto value = document.as_integer();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::JSONIntegerRangeError &error) {
     EXPECT_STREQ(error.what(),
                  "The decimal number does not fit in a 64-bit integer");
   }
@@ -756,7 +756,7 @@ TEST(as_integer_real_out_of_range_throws) {
   try {
     [[maybe_unused]] const auto value = document.as_integer();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::JSONIntegerRangeError &error) {
     EXPECT_STREQ(error.what(),
                  "The real number does not fit in a 64-bit integer");
   }

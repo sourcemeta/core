@@ -1066,7 +1066,7 @@ TEST(to_float_exceeds_max_float_throws) {
   try {
     [[maybe_unused]] const float result = value.to_float();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::NumericOutOfRangeError &error) {
     EXPECT_STREQ(error.what(), "Numeric value is out of range");
   }
 }
@@ -1077,7 +1077,7 @@ TEST(to_double_exceeds_max_double_throws) {
   try {
     [[maybe_unused]] const double result = value.to_double();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::NumericOutOfRangeError &error) {
     EXPECT_STREQ(error.what(), "Numeric value is out of range");
   }
 }
@@ -1088,7 +1088,7 @@ TEST(to_float_below_min_float_throws) {
   try {
     [[maybe_unused]] const float result = value.to_float();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::NumericOutOfRangeError &error) {
     EXPECT_STREQ(error.what(), "Numeric value is out of range");
   }
 }
@@ -1099,7 +1099,7 @@ TEST(to_double_below_min_double_throws) {
   try {
     [[maybe_unused]] const double result = value.to_double();
     FAIL();
-  } catch (const std::out_of_range &error) {
+  } catch (const sourcemeta::core::NumericOutOfRangeError &error) {
     EXPECT_STREQ(error.what(), "Numeric value is out of range");
   }
 }

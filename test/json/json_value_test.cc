@@ -923,7 +923,7 @@ TEST(real_below_int64_range_throws_on_as_integer) {
   try {
     static_cast<void>(value.as_integer());
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const sourcemeta::core::JSONIntegerRangeError &) {
     // Refusing the out of range value is expected
   }
 }

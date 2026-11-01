@@ -2,7 +2,9 @@
 #define SOURCEMETA_CORE_ERROR_H_
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/error_base.h>
 #include <sourcemeta/core/error_file.h>
+#include <sourcemeta/core/error_static_string.h>
 // NOLINTEND(misc-include-cleaner)
 
 /// @defgroup error Error

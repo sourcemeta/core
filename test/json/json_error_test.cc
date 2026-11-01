@@ -21,7 +21,7 @@ TEST(file_parse_error) {
                                   sourcemeta::core::JSONFileParseError>,
                 "Must subclass sourcemeta::core::JSONParseError");
   const sourcemeta::core::JSONFileParseError exception{
-      std::filesystem::path{"document.json"}, 5, 6, "My error"};
+      "My error", std::filesystem::path{"document.json"}, 5, 6};
   EXPECT_STREQ(exception.what(), "My error");
   EXPECT_EQ(exception.path(), std::filesystem::path{"document.json"});
   EXPECT_EQ(exception.line(), 5);
