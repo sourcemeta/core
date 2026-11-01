@@ -25,9 +25,9 @@
 /// ```
 ///
 /// @par Deployment boundaries
-/// Bound transport reads, decompression and JSON nesting before calling
-/// sourcemeta::core::parse_json. MCP envelope validation does not limit the
-/// memory or time already spent receiving and parsing a message.
+/// Enforce transport byte limits, decompression budgets and timeouts in the
+/// application. MCP envelope validation does not limit the memory or time
+/// already spent receiving and parsing a message.
 /// After parsing, sourcemeta::core::mcp_validate_request_meta checks envelope
 /// metadata, not the caller's identity or application authorization.
 ///
@@ -38,11 +38,8 @@
 /// sourcemeta::core::mcp_validate_continuation checks protocol fields and,
 /// optionally, an exact state-token echo. The application must protect state
 /// integrity, bind it to the caller and operation, and enforce expiry and
-/// replay policy. Tests in `test/mcp/mcp_deployment_security_test.cc`
-/// demonstrate bounded ingress, an exact resource ACL and server-held,
-/// single-use state. These are application controls, not additional
-/// requirements imposed by Core's MCP validators. The replay policy tested
-/// there is process-local; multiple workers need shared atomic state
+/// replay policy. These are application controls, not additional requirements
+/// imposed by Core's MCP validators. Multiple workers need shared atomic state
 /// consumption.
 
 #endif
