@@ -6,7 +6,6 @@
 #endif
 
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 // NOLINTBEGIN(misc-include-cleaner)
@@ -57,6 +56,74 @@ const Pointer EMPTY_POINTER;
 const WeakPointer EMPTY_WEAK_POINTER;
 
 /// @ingroup jsonpointer
+/// Get the member of a JSON object whose name is the decimal spelling of the
+/// given array index (`const` overload). The document must be an object that
+/// defines such a member.
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <cassert>
+/// #include <sstream>
+///
+/// std::istringstream stream{"{ \"0\": 1 }"};
+/// const sourcemeta::core::JSON document =
+///   sourcemeta::core::parse_json(stream);
+///
+/// const sourcemeta::core::JSON &value{
+///   sourcemeta::core::get_index_member(document, 0)};
+/// assert(value.to_integer() == 1);
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto get_index_member(const JSON &document, const Pointer::Token::Index index)
+    -> const JSON &;
+
+/// @ingroup jsonpointer
+/// Get the member of a JSON object whose name is the decimal spelling of the
+/// given array index (non-`const` overload). The document must be an object
+/// that defines such a member.
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <cassert>
+/// #include <sstream>
+///
+/// std::istringstream stream{"{ \"0\": 1 }"};
+/// sourcemeta::core::JSON document = sourcemeta::core::parse_json(stream);
+///
+/// sourcemeta::core::JSON &value{
+///   sourcemeta::core::get_index_member(document, 0)};
+/// value = sourcemeta::core::JSON{2};
+/// assert(document.at("0").to_integer() == 2);
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto get_index_member(JSON &document, const Pointer::Token::Index index)
+    -> JSON &;
+
+/// @ingroup jsonpointer
+/// Get the member of a JSON object whose name is the decimal spelling of the
+/// given array index, returning no result if the object does not define such a
+/// member. The document must be an object.
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <cassert>
+/// #include <sstream>
+///
+/// std::istringstream stream{"{ \"0\": 1 }"};
+/// const sourcemeta::core::JSON document =
+///   sourcemeta::core::parse_json(stream);
+///
+/// assert(sourcemeta::core::try_get_index_member(document, 0));
+/// assert(!sourcemeta::core::try_get_index_member(document, 1));
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto try_get_index_member(const JSON &document,
+                          const Pointer::Token::Index index) -> const JSON *;
+
+/// @ingroup jsonpointer
 /// Get a value from a JSON document using a JSON Pointer, preserving the
 /// constness of the document.
 ///
@@ -93,8 +160,7 @@ auto get(V &document, const PointerT &pointer) -> V & {
       // referenced value is an object, as the token is compared against the
       // member name
       // See https://www.rfc-editor.org/rfc/rfc6901#section-4
-      DigitsBuffer buffer;
-      current = &current->at(digits_view(token.to_index(), buffer));
+      current = &get_index_member(*current, token.to_index());
     } else {
       current = &current->at(token.to_index());
     }
@@ -156,8 +222,7 @@ auto try_get(const JSON &document, const PointerT &pointer) -> const JSON * {
     } else {
       const auto index{token.to_index()};
       if (is_object) {
-        DigitsBuffer buffer;
-        const auto *json_value{current->try_at(digits_view(index, buffer))};
+        const auto *json_value{try_get_index_member(*current, index)};
         if (json_value) {
           current = json_value;
         } else {
@@ -201,8 +266,7 @@ inline auto get(const JSON &document, const Pointer::Token &token)
   }
 
   if (document.is_object()) {
-    DigitsBuffer buffer;
-    return document.at(digits_view(token.to_index(), buffer));
+    return get_index_member(document, token.to_index());
   }
 
   return document.at(token.to_index());
@@ -236,8 +300,7 @@ inline auto get(const JSON &document, const WeakPointer::Token &token)
   }
 
   if (document.is_object()) {
-    DigitsBuffer buffer;
-    return document.at(digits_view(token.to_index(), buffer));
+    return get_index_member(document, token.to_index());
   }
 
   return document.at(token.to_index());
@@ -269,8 +332,7 @@ inline auto get(JSON &document, const Pointer::Token &token) -> JSON & {
   }
 
   if (document.is_object()) {
-    DigitsBuffer buffer;
-    return document.at(digits_view(token.to_index(), buffer));
+    return get_index_member(document, token.to_index());
   }
 
   return document.at(token.to_index());

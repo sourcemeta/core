@@ -37,7 +37,7 @@ BENCHMARK(Pointer_Object_Traverse) {
                                           "nine", "ten"};
 
   for (auto iteration : state) {
-    auto result{sourcemeta::core::get(document, pointer)};
+    const auto &result{sourcemeta::core::get(document, pointer)};
     assert(result.is_boolean());
     assert(result.to_boolean());
     sourcemeta::core::benchmark_do_not_optimize(result);
@@ -92,7 +92,7 @@ BENCHMARK(Pointer_Object_Traverse_Single_Property) {
   const sourcemeta::core::Pointer pointer{"five"};
 
   for (auto iteration : state) {
-    auto result{sourcemeta::core::get(document, pointer)};
+    const auto &result{sourcemeta::core::get(document, pointer)};
     assert(result.is_boolean());
     assert(result.to_boolean());
     sourcemeta::core::benchmark_do_not_optimize(result);

@@ -98,6 +98,24 @@ auto traverse(V &document, typename PointerT::const_iterator begin,
 
 namespace sourcemeta::core {
 
+auto get_index_member(const JSON &document, const Pointer::Token::Index index)
+    -> const JSON & {
+  DigitsBuffer buffer;
+  return document.at(digits_view(index, buffer));
+}
+
+auto get_index_member(JSON &document, const Pointer::Token::Index index)
+    -> JSON & {
+  DigitsBuffer buffer;
+  return document.at(digits_view(index, buffer));
+}
+
+auto try_get_index_member(const JSON &document,
+                          const Pointer::Token::Index index) -> const JSON * {
+  DigitsBuffer buffer;
+  return document.try_at(digits_view(index, buffer));
+}
+
 auto set(JSON &document, const Pointer &pointer, const JSON &value) -> void {
   if (pointer.empty()) {
     document.into(value);
