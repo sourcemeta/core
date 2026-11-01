@@ -1,0 +1,5 @@
+RUN --filter never_iterates --profile 1 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+2> error: The benchmark did not iterate over its state
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

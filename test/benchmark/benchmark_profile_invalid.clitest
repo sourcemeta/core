@@ -1,0 +1,15 @@
+RUN --filter addition --profile 0 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile -1 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile 1 2 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile nope STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile 18446744073709551616 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile 1.5 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --profile 1 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter nothingmatchesthis --profile 1 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter tion --profile 1 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+RUN --filter addition --profile 1 --output profile.json STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+2> error: --profile needs a positive iteration count, a filter matching exactly one benchmark, and no --output
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

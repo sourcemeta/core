@@ -13,6 +13,11 @@ sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME benchmark
 target_link_libraries(sourcemeta_core_benchmark_stray
   PRIVATE sourcemeta::core::benchmark sourcemeta::core::benchmark_main)
 
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core NAME benchmark
+  VARIANT profile SOURCES benchmark_profile.cc)
+target_link_libraries(sourcemeta_core_benchmark_profile
+  PRIVATE sourcemeta::core::benchmark sourcemeta::core::benchmark_main)
+
 # The framework's own command line is exercised through the script runner that
 # the test module ships, so the behaviour is proven the way a user meets it
 macro(add_benchmark_test name binary)
@@ -31,3 +36,6 @@ add_benchmark_test(bad_option sourcemeta_core_benchmark_success)
 add_benchmark_test(output_unwritable sourcemeta_core_benchmark_success)
 add_benchmark_test(empty sourcemeta_core_benchmark_empty)
 add_benchmark_test(stray sourcemeta_core_benchmark_stray)
+add_benchmark_test(profile sourcemeta_core_benchmark_profile)
+add_benchmark_test(profile_invalid sourcemeta_core_benchmark_success)
+add_benchmark_test(profile_stray sourcemeta_core_benchmark_stray)

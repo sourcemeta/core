@@ -1,0 +1,13 @@
+RUN --filter counted --profile 3 STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL EXPECTED
+1> Observed iterations: 3
+1> Profiled counted: 3 iterations (timings suppressed)
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --filter counted --profile 1 STDIN /dev/null IN . INTO result.txt EXPECTING 0
+WRITE expected.txt UNTIL EXPECTED
+1> Observed iterations: 1
+1> Profiled counted: 1 iterations (timings suppressed)
+EXPECTED
+COMPARE result.txt AGAINST expected.txt

@@ -1,6 +1,7 @@
 #include <sourcemeta/core/benchmark.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/process.h>
 
@@ -183,6 +184,8 @@ auto print_usage(const std::string_view program) -> void {
                "contains <text>\n"
             << "  -o, --output <path>  Also write the results as JSON to "
                "<path>\n"
+            << "      --profile <n>    Run one filtered benchmark once for <n> "
+               "iterations; no timing results\n"
             << "  -h, --help           Show this message\n";
 }
 
@@ -346,6 +349,7 @@ auto benchmark_run(int argc, char **argv) -> int {
   Options options;
   options.option("filter", {"f"});
   options.option("output", {"o"});
+  options.option("profile", {});
   options.flag("help", {"h"});
 
   try {
@@ -370,6 +374,33 @@ auto benchmark_run(int argc, char **argv) -> int {
     if (needle.empty() || entry.name.contains(needle)) {
       selected.push_back(&entry);
     }
+  }
+
+  if (options.contains("profile")) {
+    const auto &values{options.at("profile")};
+    const auto iterations{values.size() == 1 ? to_uint64_t(values.front())
+                                             : std::nullopt};
+    if (!iterations.has_value() || iterations.value() == 0 || needle.empty() ||
+        selected.size() != 1 || options.contains("output") ||
+        !options.positional().empty()) {
+      std::cerr
+          << "error: --profile needs a positive iteration count, a filter "
+             "matching exactly one benchmark, and no --output\n";
+      return EXIT_FAILURE;
+    }
+
+    // This is an allocation-profiler workload, not an adaptive timing run.
+    // Setup, process startup and teardown remain visible to an external
+    // profiler; no per-iteration allocation or speed claims follow from it.
+    BenchmarkState state{iterations.value()};
+    selected.front()->body(state);
+    if (!state.measured()) {
+      std::cerr << "error: The benchmark did not iterate over its state\n";
+      return EXIT_FAILURE;
+    }
+    std::cout << "Profiled " << selected.front()->name << ": "
+              << iterations.value() << " iterations (timings suppressed)\n";
+    return EXIT_SUCCESS;
   }
 
   // An unfiltered run that selects nothing means registration is broken, which
