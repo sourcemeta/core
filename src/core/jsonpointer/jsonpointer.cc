@@ -94,26 +94,82 @@ auto traverse(V &document, typename PointerT::const_iterator begin,
   return *current;
 }
 
+// A single reference token is evaluated the same way wherever it appears, and
+// the spelling of an index as a member name is kept here rather than in the
+// header so that an inlined traversal stays small
+// See https://www.rfc-editor.org/rfc/rfc6901#section-4
+template <typename V, typename TokenT>
+auto resolve_token(V &document, const TokenT &token) -> V & {
+  if (token.is_property()) {
+    return document.at(token.to_property(), token.property_hash());
+  }
+
+  if (document.is_object()) {
+    sourcemeta::core::DigitsBuffer buffer;
+    return document.at(sourcemeta::core::digits_view(token.to_index(), buffer));
+  }
+
+  return document.at(token.to_index());
+}
+
+template <typename TokenT>
+auto try_resolve_token(const sourcemeta::core::JSON &document,
+                       const TokenT &token) -> const sourcemeta::core::JSON * {
+  if (token.is_property()) {
+    if (!document.is_object()) {
+      return nullptr;
+    }
+
+    return document.try_at(token.to_property(), token.property_hash());
+  }
+
+  if (document.is_object()) {
+    sourcemeta::core::DigitsBuffer buffer;
+    return document.try_at(
+        sourcemeta::core::digits_view(token.to_index(), buffer));
+  }
+
+  if (!document.is_array()) {
+    return nullptr;
+  }
+
+  const auto index{token.to_index()};
+  if (index >= document.size()) {
+    return nullptr;
+  }
+
+  return &document.at(index);
+}
+
 } // namespace
 
 namespace sourcemeta::core {
 
-auto get_index_member(const JSON &document, const Pointer::Token::Index index)
+auto get(const JSON &document, const Pointer::Token &token) -> const JSON & {
+  return resolve_token(document, token);
+}
+
+auto get(const JSON &document, const WeakPointer::Token &token)
     -> const JSON & {
-  DigitsBuffer buffer;
-  return document.at(digits_view(index, buffer));
+  return resolve_token(document, token);
 }
 
-auto get_index_member(JSON &document, const Pointer::Token::Index index)
-    -> JSON & {
-  DigitsBuffer buffer;
-  return document.at(digits_view(index, buffer));
+auto get(JSON &document, const Pointer::Token &token) -> JSON & {
+  return resolve_token(document, token);
 }
 
-auto try_get_index_member(const JSON &document,
-                          const Pointer::Token::Index index) -> const JSON * {
-  DigitsBuffer buffer;
-  return document.try_at(digits_view(index, buffer));
+auto get(JSON &document, const WeakPointer::Token &token) -> JSON & {
+  return resolve_token(document, token);
+}
+
+auto try_get(const JSON &document, const Pointer::Token &token)
+    -> const JSON * {
+  return try_resolve_token(document, token);
+}
+
+auto try_get(const JSON &document, const WeakPointer::Token &token)
+    -> const JSON * {
+  return try_resolve_token(document, token);
 }
 
 auto set(JSON &document, const Pointer &pointer, const JSON &value) -> void {
