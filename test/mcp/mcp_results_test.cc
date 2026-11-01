@@ -9838,3 +9838,11 @@ TEST(input_required_result_rejects_a_nested_request_of_another_operation) {
                          std::nullopt, capabilities),
                      "Invalid or unsupported nested input requests");
 }
+
+TEST(envelope_builder_does_not_evaluate_an_application_schema) {
+  const auto result{sourcemeta::core::mcp_make_tool_success(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::JSON{1},
+      sourcemeta::core::parse_json(R"JSON({ "accepted": "wrong type" })JSON"))};
+  EXPECT_FALSE(result.at("result").at("isError").to_boolean());
+}

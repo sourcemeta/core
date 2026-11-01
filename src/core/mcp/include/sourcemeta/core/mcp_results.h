@@ -443,8 +443,9 @@ mcp_make_text_block(const JSON::StringView text) -> sourcemeta::core::JSON;
 /// the MCP result shape, not the payload against a tool's outputSchema.
 /// Evaluate declared output schemas before publishing a successful result;
 /// rejecting a result cannot undo side effects of a tool that already ran. The
-/// standalone examples/mcp-schema-validation program demonstrates input checks
-/// before execution and output checks using the optional Blaze evaluator. For
+/// optional tests in `test/mcp/mcp_schema_validation_test.cc` demonstrate input
+/// and output checks using Blaze. Enable `SOURCEMETA_CORE_MCP_TESTS_BLAZE` with
+/// an installed Blaze available through `CMAKE_PREFIX_PATH` to run them. For
 /// example:
 ///
 /// ```cpp

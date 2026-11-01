@@ -19,7 +19,7 @@ auto compile(const sourcemeta::core::JSON &schema)
       schema.at("$schema") !=
           sourcemeta::core::JSON{
               "https://json-schema.org/draft/2020-12/schema"}) {
-    throw std::invalid_argument{"This example requires explicit Draft 2020-12"};
+    throw std::invalid_argument{"Explicit Draft 2020-12 required"};
   }
   return sourcemeta::blaze::compile(
       schema, sourcemeta::core::schema_walker,
@@ -159,14 +159,6 @@ TEST(no_declared_output_schema_still_checks_input) {
   EXPECT_FALSE(result.at("result").at("isError").to_boolean());
 }
 
-TEST(envelope_builder_does_not_evaluate_an_application_schema) {
-  const auto result{sourcemeta::core::mcp_make_tool_success(
-      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
-      sourcemeta::core::JSON{1},
-      sourcemeta::core::parse_json(R"JSON({ "accepted": "wrong type" })JSON"))};
-  EXPECT_FALSE(result.at("result").at("isError").to_boolean());
-}
-
 TEST(unsupported_dialect_is_not_silently_relabelled) {
   try {
     [[maybe_unused]] const auto compiled{
@@ -176,7 +168,7 @@ TEST(unsupported_dialect_is_not_silently_relabelled) {
     })JSON"))};
     FAIL();
   } catch (const std::invalid_argument &error) {
-    EXPECT_STREQ(error.what(), "This example requires explicit Draft 2020-12");
+    EXPECT_STREQ(error.what(), "Explicit Draft 2020-12 required");
   }
 }
 
@@ -188,7 +180,7 @@ TEST(missing_dialect_is_not_silently_guessed) {
     })JSON"))};
     FAIL();
   } catch (const std::invalid_argument &error) {
-    EXPECT_STREQ(error.what(), "This example requires explicit Draft 2020-12");
+    EXPECT_STREQ(error.what(), "Explicit Draft 2020-12 required");
   }
 }
 
