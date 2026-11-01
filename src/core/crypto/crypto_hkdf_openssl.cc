@@ -19,7 +19,8 @@ namespace {
 struct HkdfAlgorithm {
   HkdfAlgorithm() : handle{EVP_KDF_fetch(nullptr, "HKDF", nullptr)} {
     if (this->handle == nullptr) {
-      throw CryptoError("Could not fetch the OpenSSL HKDF algorithm");
+      throw sourcemeta::core::CryptoError(
+          "Could not fetch the OpenSSL HKDF algorithm");
     }
   }
   ~HkdfAlgorithm() { EVP_KDF_free(this->handle); }

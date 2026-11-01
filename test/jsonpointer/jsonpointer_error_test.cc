@@ -1,4 +1,3 @@
-#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
@@ -7,6 +6,9 @@
 #include <type_traits> // std::is_base_of_v
 
 TEST(parse_error) {
+  static_assert(std::is_base_of_v<sourcemeta::core::Error,
+                                  sourcemeta::core::PointerParseError>,
+                "Must subclass sourcemeta::core::Error");
   static_assert(
       std::is_base_of_v<std::exception, sourcemeta::core::PointerParseError>,
       "Must subclass std::exception");
@@ -20,10 +22,4 @@ TEST(parse_error) {
   EXPECT_EQ(std::string{exception.what()},
             "The input is not a valid JSON Pointer");
   EXPECT_EQ(exception.column(), 5);
-}
-
-TEST(line_is_always_one) {
-  auto exception_1{sourcemeta::core::PointerParseError(5)};
-  auto exception_2{sourcemeta::core::PointerParseError(1)};
-  auto exception_3{sourcemeta::core::PointerParseError(8)};
 }

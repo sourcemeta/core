@@ -4,11 +4,12 @@
 // NSURL, NSMutableURLRequest, NSURLSession, NSHTTPURLResponse, dispatch_*
 #import <Foundation/Foundation.h>
 
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::uint16_t
-#include <optional> // std::optional
-#include <string>   // std::string
-#include <utility>  // std::move
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint16_t
+#include <optional>    // std::optional
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 namespace {
 

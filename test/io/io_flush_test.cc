@@ -101,7 +101,7 @@ TEST(flush_a_pipe_throws) {
     std::filesystem::remove(path);
     FAIL();
   } catch (const sourcemeta::core::IOFilesystemError &error) {
-    EXPECT_EQ(error.path1(), path);
+    EXPECT_EQ(error.path(), path);
     std::filesystem::remove(path);
   } catch (...) {
     std::filesystem::remove(path);

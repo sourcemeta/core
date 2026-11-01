@@ -20,7 +20,8 @@ namespace {
 struct HmacAlgorithm {
   HmacAlgorithm() : handle{EVP_MAC_fetch(nullptr, "HMAC", nullptr)} {
     if (this->handle == nullptr) {
-      throw CryptoError("Could not fetch the OpenSSL HMAC algorithm");
+      throw sourcemeta::core::CryptoError(
+          "Could not fetch the OpenSSL HMAC algorithm");
     }
   }
   ~HmacAlgorithm() { EVP_MAC_free(this->handle); }
