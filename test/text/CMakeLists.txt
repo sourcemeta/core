@@ -1,5 +1,6 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME text
-  SOURCES text_to_title_case_test.cc text_to_lowercase_test.cc
+  SOURCES text_static_string_test.cc
+          text_to_title_case_test.cc text_to_lowercase_test.cc
           text_is_lowercase_test.cc
           text_is_alpha_test.cc text_is_digit_test.cc text_is_alphanum_test.cc
           text_is_punctuation_test.cc

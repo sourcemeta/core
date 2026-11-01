@@ -28,7 +28,7 @@ TEST(resolution_error_throw) {
                                   sourcemeta::core::SchemaResolutionError>,
                 "Must subclass std::exception");
   auto exception{sourcemeta::core::SchemaResolutionError(
-      "https://sourcemeta.com/test", "My error")};
+      "My error", "https://sourcemeta.com/test")};
   try {
     // Thrown by name on purpose, so that the assertion after the catch can
     // check the original object survived being thrown
@@ -48,8 +48,8 @@ TEST(reference_error_throw) {
       "Must subclass std::exception");
   try {
     throw sourcemeta::core::SchemaReferenceError(
-        "https://sourcemeta.com/test",
-        sourcemeta::core::Pointer{"properties", "foo", "$ref"}, "My error");
+        "My error", "https://sourcemeta.com/test",
+        sourcemeta::core::Pointer{"properties", "foo", "$ref"});
   } catch (const sourcemeta::core::SchemaReferenceError &error) {
     EXPECT_STREQ(error.what(), "My error");
     EXPECT_EQ(error.identifier(), "https://sourcemeta.com/test");

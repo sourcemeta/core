@@ -105,7 +105,7 @@ TEST(prefix_too_long_for_a_path) {
   try {
     const sourcemeta::core::TemporaryDirectory temporary{parent, prefix};
     FAIL();
-  } catch (const std::filesystem::filesystem_error &error) {
-    EXPECT_EQ(error.path1(), parent);
+  } catch (const sourcemeta::core::IOFilesystemError &error) {
+    EXPECT_EQ(error.path(), parent);
   }
 }

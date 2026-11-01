@@ -24,26 +24,26 @@ TEST(parse_error_default_message_column) {
 }
 
 TEST(file_parse_error_message) {
-  const sourcemeta::core::YAMLFileParseError error{"/foo/bar.yaml", 4, 7,
-                                                   "Unexpected scalar"};
+  const sourcemeta::core::YAMLFileParseError error{"Unexpected scalar",
+                                                   "/foo/bar.yaml", 4, 7};
   EXPECT_STREQ(error.what(), "Unexpected scalar");
 }
 
 TEST(file_parse_error_path) {
-  const sourcemeta::core::YAMLFileParseError error{"/foo/bar.yaml", 4, 7,
-                                                   "Unexpected scalar"};
+  const sourcemeta::core::YAMLFileParseError error{"Unexpected scalar",
+                                                   "/foo/bar.yaml", 4, 7};
   EXPECT_EQ(error.path(), std::filesystem::path{"/foo/bar.yaml"});
 }
 
 TEST(file_parse_error_line) {
-  const sourcemeta::core::YAMLFileParseError error{"/foo/bar.yaml", 4, 7,
-                                                   "Unexpected scalar"};
+  const sourcemeta::core::YAMLFileParseError error{"Unexpected scalar",
+                                                   "/foo/bar.yaml", 4, 7};
   EXPECT_EQ(error.line(), 4);
 }
 
 TEST(file_parse_error_column) {
-  const sourcemeta::core::YAMLFileParseError error{"/foo/bar.yaml", 4, 7,
-                                                   "Unexpected scalar"};
+  const sourcemeta::core::YAMLFileParseError error{"Unexpected scalar",
+                                                   "/foo/bar.yaml", 4, 7};
   EXPECT_EQ(error.column(), 7);
 }
 

@@ -2481,14 +2481,13 @@ TEST(empty_set_keeps_empty_property) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(error_message_survives_buffer_destruction_and_copy) {
+TEST(error_message_survives_copy) {
   std::optional<sourcemeta::core::JSONLDError> copy;
 
   {
-    std::string code{
-        "A custom error code longer than small string optimization"};
     const sourcemeta::core::JSONLDError error{
-        code.c_str(), sourcemeta::core::Pointer{"where"}};
+        "A custom error code longer than small string optimization",
+        sourcemeta::core::Pointer{"where"}};
     copy.emplace(error);
   }
 
