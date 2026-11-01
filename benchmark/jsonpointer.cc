@@ -80,6 +80,45 @@ BENCHMARK(Pointer_Object_Try_Traverse) {
   }
 }
 
+BENCHMARK(Pointer_Object_Traverse_Single_Property) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": true
+  })JSON")};
+
+  const sourcemeta::core::Pointer pointer{"five"};
+
+  for (auto iteration : state) {
+    auto result{sourcemeta::core::get(document, pointer)};
+    assert(result.is_boolean());
+    assert(result.to_boolean());
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(Pointer_Object_Try_Traverse_Single_Property) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": true
+  })JSON")};
+
+  const sourcemeta::core::Pointer pointer{"five"};
+
+  for (auto iteration : state) {
+    const auto *result{sourcemeta::core::try_get(document, pointer)};
+    assert(result);
+    assert(result->is_boolean());
+    assert(result->to_boolean());
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer) {
   const sourcemeta::core::Pointer pointer{"QG5",
                                           "hzh4HOy0CDatvDds",
