@@ -29,11 +29,17 @@ public:
   template <std::size_t Length>
   // Binding to the array rather than to a pointer is what rejects a message
   // that does not outlive the error, and the implicit conversion is what lets
-  // a throw site read as a bare literal
+  // a throw site read as a bare literal. It is not noexcept, as the throw
+  // below is what rejects a bad argument, and nothing observes that, since a
+  // consteval constructor never runs
   // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions,modernize-avoid-c-arrays)
-  consteval StaticString(const char (&value)[Length]) noexcept : value_{value} {
+  consteval StaticString(const char (&value)[Length]) : value_{value} {
+    // A throw-expression is not a constant expression, which is how an array
+    // that is not null-terminated becomes a compile-time error rather than a
+    // read past its end. It can never run, as the only way to reach it is an
+    // argument that does not compile
     if (value[Length - 1] != '\0') {
-      not_null_terminated();
+      throw "A static string must be null-terminated";
     }
   }
 
@@ -52,11 +58,6 @@ public:
   }
 
 private:
-  // Declared and never defined. The constructor above is only ever evaluated
-  // at compile time, so reaching this call makes the invocation ill-formed and
-  // names the reason, while no call to it can ever be emitted
-  [[noreturn]] static auto not_null_terminated() -> void;
-
   const char *value_;
 };
 
