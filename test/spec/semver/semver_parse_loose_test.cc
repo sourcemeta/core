@@ -270,3 +270,144 @@ TEST(from_loose_trailing_garbage_returns_nullopt) {
                    "1.2.3x", sourcemeta::core::SemVer::Mode::Loose)
                    .has_value());
 }
+
+// Tests to hit position < input.size() branches in parse_semver loose mode
+TEST(from_loose_major_no_dot_ends_at_input_end) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "42", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 42);
+  EXPECT_EQ(result->minor(), 0);
+  EXPECT_EQ(result->patch(), 0);
+}
+
+TEST(from_loose_major_minor_no_dot_ends_at_input_end) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "5.7", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 5);
+  EXPECT_EQ(result->minor(), 7);
+  EXPECT_EQ(result->patch(), 0);
+}
+
+TEST(from_loose_v_prefix_major_only_ends_at_input_end) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "v8", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 8);
+}
+
+TEST(from_loose_V_prefix_major_minor_ends_at_input_end) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "V3.4", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 3);
+  EXPECT_EQ(result->minor(), 4);
+}
+
+// Test position >= input.size() after scanning pre-release
+TEST(from_loose_ends_exactly_after_pre_release) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "1.0-rc1", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->pre_release(), "rc1");
+  EXPECT_TRUE(result->build().empty());
+}
+
+// Tests to ensure all parse branches are hit in loose mode
+TEST(from_loose_major_with_pre_release_no_dots) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "9-beta", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 9);
+  EXPECT_EQ(result->minor(), 0);
+  EXPECT_EQ(result->patch(), 0);
+  EXPECT_EQ(result->pre_release(), "beta");
+}
+
+TEST(from_loose_major_with_build_no_dots) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "7+snapshot", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 7);
+  EXPECT_EQ(result->build(), "snapshot");
+}
+
+TEST(from_loose_major_minor_with_pre_release_no_patch_dot) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "2.5-alpha", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 2);
+  EXPECT_EQ(result->minor(), 5);
+  EXPECT_EQ(result->pre_release(), "alpha");
+}
+
+TEST(from_loose_major_minor_with_build_no_patch_dot) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "3.6+dev", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 3);
+  EXPECT_EQ(result->minor(), 6);
+  EXPECT_EQ(result->build(), "dev");
+}
+
+// Tests using constructor (ShouldThrow=true) to hit parse branches
+TEST(constructor_loose_major_only_with_pre_release) {
+  const sourcemeta::core::SemVer version{"4-rc",
+                                         sourcemeta::core::SemVer::Mode::Loose};
+  EXPECT_EQ(version.major(), 4);
+  EXPECT_EQ(version.pre_release(), "rc");
+}
+
+// Test empty string in loose mode via constructor (hits line 254)
+TEST(from_loose_empty_string_fails) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("", sourcemeta::core::SemVer::Mode::Loose)
+          .has_value());
+}
+
+TEST(constructor_loose_major_only_with_build) {
+  const sourcemeta::core::SemVer version{"5+build",
+                                         sourcemeta::core::SemVer::Mode::Loose};
+  EXPECT_EQ(version.major(), 5);
+  EXPECT_EQ(version.build(), "build");
+}
+
+TEST(constructor_loose_major_minor_with_pre_release) {
+  const sourcemeta::core::SemVer version{"6.7-alpha",
+                                         sourcemeta::core::SemVer::Mode::Loose};
+  EXPECT_EQ(version.major(), 6);
+  EXPECT_EQ(version.minor(), 7);
+  EXPECT_EQ(version.pre_release(), "alpha");
+}
+
+TEST(constructor_loose_major_minor_with_build) {
+  const sourcemeta::core::SemVer version{"8.9+snapshot",
+                                         sourcemeta::core::SemVer::Mode::Loose};
+  EXPECT_EQ(version.major(), 8);
+  EXPECT_EQ(version.minor(), 9);
+  EXPECT_EQ(version.build(), "snapshot");
+}
+
+TEST(from_loose_pre_release_and_build) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "v1.2-rc.1+build.5", sourcemeta::core::SemVer::Mode::Loose);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 1);
+  EXPECT_EQ(result->minor(), 2);
+  EXPECT_EQ(result->patch(), 0);
+  EXPECT_EQ(result->pre_release(), "rc.1");
+  EXPECT_EQ(result->build(), "build.5");
+}
+
+TEST(from_loose_major_then_letter_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1x", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}
+
+TEST(from_loose_major_minor_then_letter_returns_nullopt) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from(
+                   "1.2x", sourcemeta::core::SemVer::Mode::Loose)
+                   .has_value());
+}

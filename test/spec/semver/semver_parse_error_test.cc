@@ -192,3 +192,7 @@ TEST(overflow_from_returns_nullopt) {
 TEST(leading_zero_long_is_parse_error_not_overflow) {
   EXPECT_SEMVER_ERROR("09999999999999999999999.0.0", 1);
 }
+
+TEST(major_then_pre_release) { EXPECT_SEMVER_ERROR("1-alpha", 2); }
+
+TEST(major_minor_then_build) { EXPECT_SEMVER_ERROR("1.2+build", 4); }
