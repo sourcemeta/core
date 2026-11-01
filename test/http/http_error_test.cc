@@ -126,3 +126,9 @@ TEST(status_error_owns_status_data) {
   EXPECT_EQ(error.value().status().phrase, "Custom Experimental Phrase");
   EXPECT_EQ(error.value().status().wire, "599 Custom Experimental Phrase");
 }
+
+TEST(entropy_error_message) {
+  const sourcemeta::core::HTTPEntropyError error{};
+  EXPECT_STREQ(error.what(),
+               "Could not draw a non-zero trace context identifier");
+}
