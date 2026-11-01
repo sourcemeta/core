@@ -1,5 +1,5 @@
-#include <sourcemeta/core/error.h>
 #include <sourcemeta/core/test.h>
+#include <sourcemeta/core/text.h>
 
 #include <concepts>
 #include <cstring>

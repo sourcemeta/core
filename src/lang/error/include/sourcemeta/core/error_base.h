@@ -5,7 +5,7 @@
 #include <sourcemeta/core/error_export.h>
 #endif
 
-#include <sourcemeta/core/error_static_string.h>
+#include <sourcemeta/core/text_static_string.h>
 
 #include <exception> // std::exception
 

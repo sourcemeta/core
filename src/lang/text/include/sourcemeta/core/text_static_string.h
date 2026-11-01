@@ -1,21 +1,16 @@
-#ifndef SOURCEMETA_CORE_ERROR_STATIC_STRING_H_
-#define SOURCEMETA_CORE_ERROR_STATIC_STRING_H_
+#ifndef SOURCEMETA_CORE_TEXT_STATIC_STRING_H_
+#define SOURCEMETA_CORE_TEXT_STATIC_STRING_H_
 
 #include <cstddef> // std::size_t
 
 namespace sourcemeta::core {
 
-// Declared and never defined. A consteval constructor is only ever evaluated
-// at compile time, so reaching this call makes the invocation ill-formed and
-// names the reason, while no call to it can ever be emitted
-[[noreturn]] auto static_string_is_not_null_terminated() -> void;
-
-/// @ingroup error
-/// A null-terminated string that is known at compile time to outlive every
-/// error that carries it.
+/// @ingroup text
+/// A null-terminated string that can only be built from a literal, and
+/// therefore outlives every object that stores it.
 ///
 /// ```cpp
-/// #include <sourcemeta/core/error.h>
+/// #include <sourcemeta/core/text.h>
 /// #include <cstring>
 /// #include <cassert>
 ///
@@ -27,7 +22,7 @@ public:
   /// Construct from a string literal.
   ///
   /// ```cpp
-  /// #include <sourcemeta/core/error.h>
+  /// #include <sourcemeta/core/text.h>
   ///
   /// const sourcemeta::core::StaticString message{"Something went wrong"};
   /// ```
@@ -38,14 +33,14 @@ public:
   // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions,modernize-avoid-c-arrays)
   consteval StaticString(const char (&value)[Length]) noexcept : value_{value} {
     if (value[Length - 1] != '\0') {
-      static_string_is_not_null_terminated();
+      not_null_terminated();
     }
   }
 
   /// Get the underlying null-terminated string.
   ///
   /// ```cpp
-  /// #include <sourcemeta/core/error.h>
+  /// #include <sourcemeta/core/text.h>
   /// #include <cstring>
   /// #include <cassert>
   ///
@@ -57,6 +52,11 @@ public:
   }
 
 private:
+  // Declared and never defined. The constructor above is only ever evaluated
+  // at compile time, so reaching this call makes the invocation ill-formed and
+  // names the reason, while no call to it can ever be emitted
+  [[noreturn]] static auto not_null_terminated() -> void;
+
   const char *value_;
 };
 
