@@ -189,7 +189,7 @@ auto print_usage(const std::string_view program) -> void {
                "contains <text> (repeatable)\n"
             << "  -o, --output <path>  Also write the results as JSON to "
                "<path>\n"
-            << "      --repeat <n>     Run each selected benchmark <n> times, "
+            << "  -r, --repeat <n>     Run each selected benchmark <n> times, "
                "one iteration per run\n"
             << "  -h, --help           Show this message\n";
 }
@@ -354,7 +354,7 @@ auto benchmark_run(int argc, char **argv) -> int {
   Options options;
   options.option("filter", {"f"});
   options.option("output", {"o"});
-  options.option("repeat", {});
+  options.option("repeat", {"r"});
   options.flag("help", {"h"});
 
   try {

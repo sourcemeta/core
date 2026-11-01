@@ -55,7 +55,7 @@ WRITE expected.txt UNTIL EXPECTED
 1> Options:
 1>   -f, --filter <text>  Only run benchmarks whose name contains <text> (repeatable)
 1>   -o, --output <path>  Also write the results as JSON to <path>
-1>       --repeat <n>     Run each selected benchmark <n> times, one iteration per run
+1>   -r, --repeat <n>     Run each selected benchmark <n> times, one iteration per run
 1>   -h, --help           Show this message
 EXPECTED
 COMPARE result.txt AGAINST expected.txt
@@ -69,7 +69,20 @@ WRITE expected.txt UNTIL EXPECTED
 1> Options:
 1>   -f, --filter <text>  Only run benchmarks whose name contains <text> (repeatable)
 1>   -o, --output <path>  Also write the results as JSON to <path>
-1>       --repeat <n>     Run each selected benchmark <n> times, one iteration per run
+1>   -r, --repeat <n>     Run each selected benchmark <n> times, one iteration per run
 1>   -h, --help           Show this message
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+
+RUN -r 0 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+2> error: --repeat needs a positive integer count and no positional arguments
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 1 -r 2 STDIN /dev/null IN . INTO result.txt EXPECTING 1
+WRITE expected.txt UNTIL EXPECTED
+2> error: --repeat needs a positive integer count and no positional arguments
 EXPECTED
 COMPARE result.txt AGAINST expected.txt
