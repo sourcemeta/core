@@ -18,7 +18,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_URI_EXPORT URIParseError : public Error {
 public:
   /// Construct an error from the column at which parsing failed
-  URIParseError(const std::uint64_t column)
+  URIParseError(const std::uint64_t column) noexcept
       : Error{"The input is not a valid URI"}, column_{column} {}
 
   /// Get the column number of the error
@@ -35,7 +35,7 @@ private:
 class SOURCEMETA_CORE_URI_EXPORT URIError : public Error {
 public:
   /// Construct an error with the given message
-  URIError(const StaticString message) : Error{message} {}
+  URIError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

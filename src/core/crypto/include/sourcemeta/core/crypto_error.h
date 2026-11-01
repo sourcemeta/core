@@ -17,7 +17,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_CRYPTO_EXPORT CryptoError : public Error {
 public:
   /// Construct an error with the given message
-  CryptoError(const StaticString message) : Error{message} {}
+  CryptoError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

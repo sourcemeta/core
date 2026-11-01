@@ -20,13 +20,13 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_JSON_EXPORT JSONParseError : public Error {
 public:
   /// Create a parsing error
-  JSONParseError(const std::uint64_t line, const std::uint64_t column)
+  JSONParseError(const std::uint64_t line, const std::uint64_t column) noexcept
       : Error{"Failed to parse the JSON document"}, line_{line},
         column_{column} {}
 
   /// Create a parsing error with a custom message
   JSONParseError(const StaticString message, const std::uint64_t line,
-                 const std::uint64_t column)
+                 const std::uint64_t column) noexcept
       : Error{message}, line_{line}, column_{column} {}
 
   /// Get the line number of the error
@@ -72,7 +72,8 @@ private:
 /// define, as per ECMA-404
 class SOURCEMETA_CORE_JSON_EXPORT JSONNonFiniteError : public Error {
 public:
-  JSONNonFiniteError() : Error{"JSON does not support Infinity or NaN"} {}
+  JSONNonFiniteError() noexcept
+      : Error{"JSON does not support Infinity or NaN"} {}
 };
 
 /// @ingroup json
@@ -81,7 +82,7 @@ public:
 class SOURCEMETA_CORE_JSON_EXPORT JSONIntegerRangeError : public Error {
 public:
   /// Construct an error with the given message
-  JSONIntegerRangeError(const StaticString message) : Error{message} {}
+  JSONIntegerRangeError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

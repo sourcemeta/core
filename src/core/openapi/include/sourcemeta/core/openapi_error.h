@@ -31,7 +31,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 /// ```
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIError : public Error {
 public:
-  /// Construct an error from where the problem is and a message
+  /// Construct an error from a message and where the problem is
   OpenAPIError(const StaticString message, Pointer location)
       : Error{message}, location_{std::move(location)} {}
 
@@ -74,8 +74,8 @@ private:
 /// ```
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIResolutionError : public Error {
 public:
-  /// Create a resolution error from the document the reference was made in,
-  /// where in it the reference sits, what it names, and a message
+  /// Create a resolution error from a message, the document the reference was
+  /// made in, where in it the reference sits, and what it names
   OpenAPIResolutionError(const StaticString message, JSON::String base,
                          Pointer location, JSON::String identifier)
       : Error{message}, base_{std::move(base)}, location_{std::move(location)},
@@ -120,8 +120,8 @@ private:
 /// ```
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIReferenceError : public Error {
 public:
-  /// Create a reference error from the document the reference was made in,
-  /// where in it the reference sits, what it names, and a message
+  /// Create a reference error from a message, the document the reference was
+  /// made in, where in it the reference sits, and what it names
   OpenAPIReferenceError(const StaticString message, JSON::String base,
                         Pointer location, JSON::String identifier)
       : Error{message}, base_{std::move(base)}, location_{std::move(location)},
@@ -163,7 +163,7 @@ private:
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIFrameLimitError : public Error {
 public:
   /// Create a framing limit error
-  OpenAPIFrameLimitError(const std::uint64_t limit)
+  OpenAPIFrameLimitError(const std::uint64_t limit) noexcept
       : Error{"The OpenAPI Description exceeds the maximum number of "
               "locations that framing may register"},
         limit_{limit} {}
@@ -191,7 +191,7 @@ private:
 class SOURCEMETA_CORE_OPENAPI_EXPORT OpenAPIBundleLimitError : public Error {
 public:
   /// Create a bundling limit error
-  OpenAPIBundleLimitError(const std::uint64_t limit)
+  OpenAPIBundleLimitError(const std::uint64_t limit) noexcept
       : Error{"The OpenAPI Description exceeds the maximum number of "
               "locations that bundling may analyse"},
         limit_{limit} {}

@@ -287,7 +287,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 /// protected resource metadata document.
 class SOURCEMETA_CORE_OAUTH_EXPORT OAuthMetadataParseError : public Error {
 public:
-  OAuthMetadataParseError()
+  OAuthMetadataParseError() noexcept
       : Error{"The input is not a valid OAuth metadata document"} {}
 };
 
@@ -296,7 +296,7 @@ public:
 /// request or response.
 class SOURCEMETA_CORE_OAUTH_EXPORT OAuthRegistrationParseError : public Error {
 public:
-  OAuthRegistrationParseError()
+  OAuthRegistrationParseError() noexcept
       : Error{"The input is not a valid OAuth client registration document"} {}
 };
 

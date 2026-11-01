@@ -42,7 +42,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_MCP_EXPORT MCPError : public Error {
 public:
   /// Construct an error with a descriptive message
-  MCPError(const StaticString message) : Error{message} {}
+  MCPError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

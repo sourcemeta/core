@@ -1142,7 +1142,7 @@ TEST(error_code_to_http_status_unmapped_code) {
                    .has_value());
 }
 
-TEST(mcp_error_is_catchable_as_an_invalid_argument) {
+TEST(mcp_error_is_catchable_as_an_mcp_error) {
   try {
     [[maybe_unused]] const auto result{sourcemeta::core::mcp_make_resource_link(
         sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///a", "a")};

@@ -10,7 +10,7 @@ namespace sourcemeta::core {
 class ParallelThreadError : public Error {
 public:
   /// Construct an error with the given message
-  ParallelThreadError(const StaticString message) : Error{message} {}
+  ParallelThreadError(const StaticString message) noexcept : Error{message} {}
 };
 
 } // namespace sourcemeta::core

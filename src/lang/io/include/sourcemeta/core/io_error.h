@@ -160,7 +160,7 @@ private:
 /// data.
 class SOURCEMETA_CORE_IO_EXPORT IOReadOutOfBoundsError : public Error {
 public:
-  IOReadOutOfBoundsError()
+  IOReadOutOfBoundsError() noexcept
       : Error{"Read past the end of the underlying data"} {}
 };
 
@@ -168,7 +168,7 @@ public:
 /// A write to the underlying stream failed.
 class SOURCEMETA_CORE_IO_EXPORT IOStreamWriteError : public Error {
 public:
-  IOStreamWriteError() : Error{"Failed to write to stream"} {}
+  IOStreamWriteError() noexcept : Error{"Failed to write to stream"} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

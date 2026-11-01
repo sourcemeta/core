@@ -22,7 +22,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_YAML_EXPORT YAMLError : public Error {
 public:
   /// Create a general error
-  YAMLError(const StaticString message) : Error{message} {}
+  YAMLError(const StaticString message) noexcept : Error{message} {}
 };
 
 /// @ingroup yaml
@@ -30,13 +30,13 @@ public:
 class SOURCEMETA_CORE_YAML_EXPORT YAMLParseError : public Error {
 public:
   /// Create a parsing error
-  YAMLParseError(const std::uint64_t line, const std::uint64_t column)
+  YAMLParseError(const std::uint64_t line, const std::uint64_t column) noexcept
       : Error{"Failed to parse the YAML document"}, line_{line},
         column_{column} {}
 
   /// Create a parsing error with a custom message
   YAMLParseError(const StaticString message, const std::uint64_t line,
-                 const std::uint64_t column)
+                 const std::uint64_t column) noexcept
       : Error{message}, line_{line}, column_{column} {}
 
   /// Get the line number of the error

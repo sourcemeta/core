@@ -19,7 +19,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_OPTIONS_EXPORT OptionsError : public Error {
 public:
   /// Construct the error given a message.
-  OptionsError(const StaticString message) : Error{message} {}
+  OptionsError(const StaticString message) noexcept : Error{message} {}
 };
 
 /// @ingroup options

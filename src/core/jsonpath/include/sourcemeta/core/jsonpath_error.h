@@ -18,7 +18,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_JSONPATH_EXPORT JSONPathParseError : public Error {
 public:
   /// Construct an error given the column number where parsing failed
-  JSONPathParseError(const std::uint64_t column)
+  JSONPathParseError(const std::uint64_t column) noexcept
       : Error{"The input is not a valid JSON Path query"}, column_{column} {}
 
   /// Get the column number of the error

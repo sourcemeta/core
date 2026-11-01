@@ -20,7 +20,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 /// document.
 class SOURCEMETA_CORE_OIDC_EXPORT OIDCMetadataParseError : public Error {
 public:
-  OIDCMetadataParseError()
+  OIDCMetadataParseError() noexcept
       : Error{"The input is not a valid OpenID Provider metadata document"} {}
 };
 
@@ -29,7 +29,7 @@ public:
 /// registration document.
 class SOURCEMETA_CORE_OIDC_EXPORT OIDCRegistrationParseError : public Error {
 public:
-  OIDCRegistrationParseError()
+  OIDCRegistrationParseError() noexcept
       : Error{"The input is not a valid OpenID Connect client registration "
               "document"} {}
 };

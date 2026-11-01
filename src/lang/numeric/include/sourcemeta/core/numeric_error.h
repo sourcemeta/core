@@ -15,14 +15,14 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 /// This class represents a decimal parse error
 class SOURCEMETA_CORE_NUMERIC_EXPORT DecimalParseError : public Error {
 public:
-  DecimalParseError() : Error{"Invalid decimal string format"} {}
+  DecimalParseError() noexcept : Error{"Invalid decimal string format"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric division by zero error
 class SOURCEMETA_CORE_NUMERIC_EXPORT NumericDivisionByZeroError : public Error {
 public:
-  NumericDivisionByZeroError() : Error{"Division by zero"} {}
+  NumericDivisionByZeroError() noexcept : Error{"Division by zero"} {}
 };
 
 /// @ingroup numeric
@@ -30,14 +30,15 @@ public:
 class SOURCEMETA_CORE_NUMERIC_EXPORT NumericInvalidOperationError
     : public Error {
 public:
-  NumericInvalidOperationError() : Error{"Invalid numeric operation"} {}
+  NumericInvalidOperationError() noexcept
+      : Error{"Invalid numeric operation"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric overflow error
 class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOverflowError : public Error {
 public:
-  NumericOverflowError() : Error{"Numeric overflow"} {}
+  NumericOverflowError() noexcept : Error{"Numeric overflow"} {}
 };
 
 /// @ingroup numeric
@@ -45,14 +46,14 @@ public:
 /// target type
 class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOutOfRangeError : public Error {
 public:
-  NumericOutOfRangeError() : Error{"Numeric value is out of range"} {}
+  NumericOutOfRangeError() noexcept : Error{"Numeric value is out of range"} {}
 };
 
 /// @ingroup numeric
 /// This class represents a numeric out of memory error
 class SOURCEMETA_CORE_NUMERIC_EXPORT NumericOutOfMemoryError : public Error {
 public:
-  NumericOutOfMemoryError() : Error{"Out of memory"} {}
+  NumericOutOfMemoryError() noexcept : Error{"Out of memory"} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

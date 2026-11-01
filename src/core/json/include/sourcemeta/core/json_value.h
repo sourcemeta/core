@@ -27,7 +27,6 @@
 #include <set>              // std::set
 #include <span>             // std::span
 #include <sstream>          // std::basic_istringstream
-#include <stdexcept>        // std::out_of_range
 #include <string>           // std::basic_string, std::char_traits
 #include <string_view>      // std::basic_string_view
 #include <type_traits>      // std::is_same_v, std::remove_cvref_t
@@ -871,7 +870,8 @@ public:
 
   /// Get the JSON numeric document as a real number if it is not one already.
   /// A decimal whose magnitude does not fit in a double throws
-  /// `std::out_of_range`, matching the behaviour of converting that decimal
+  /// `JSONIntegerRangeError`, matching the behaviour of converting that
+  /// decimal
   /// directly. For example:
   ///
   /// ```cpp
@@ -895,7 +895,7 @@ public:
   /// Get the JSON numeric document as an integer number if it is not one
   /// already. If the number is a real number, truncation will take place. A
   /// value whose magnitude does not fit in a 64-bit integer throws
-  /// `std::out_of_range`. For example:
+  /// `JSONIntegerRangeError`. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>

@@ -16,7 +16,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_GZIP_EXPORT GZIPError : public Error {
 public:
   /// Construct an error with the given message
-  GZIPError(const StaticString message) : Error{message} {}
+  GZIPError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

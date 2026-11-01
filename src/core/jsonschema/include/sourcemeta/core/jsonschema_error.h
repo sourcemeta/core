@@ -21,7 +21,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaError : public Error {
 public:
   /// Create a general schema error
-  SchemaError(const StaticString message) : Error{message} {}
+  SchemaError(const StaticString message) noexcept : Error{message} {}
 
 private:
 };
@@ -108,7 +108,7 @@ private:
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaUnknownDialectError
     : public Error {
 public:
-  SchemaUnknownDialectError()
+  SchemaUnknownDialectError() noexcept
       : Error{"Could not determine the dialect of the schema"} {}
 };
 
@@ -118,7 +118,7 @@ public:
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaUnknownBaseDialectError
     : public Error {
 public:
-  SchemaUnknownBaseDialectError()
+  SchemaUnknownBaseDialectError() noexcept
       : Error{"Could not determine the base dialect of the schema"} {}
 };
 
@@ -256,7 +256,7 @@ private:
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaFrameLimitError : public Error {
 public:
   /// Create a framing limit error
-  SchemaFrameLimitError(const std::uint64_t limit)
+  SchemaFrameLimitError(const std::uint64_t limit) noexcept
       : Error{"The schema exceeds the maximum number of frame locations"},
         limit_{limit} {}
 

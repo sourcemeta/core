@@ -139,7 +139,7 @@ private:
 /// An error raised when no non-zero trace context identifier could be drawn.
 class SOURCEMETA_CORE_HTTP_EXPORT HTTPEntropyError : public Error {
 public:
-  HTTPEntropyError()
+  HTTPEntropyError() noexcept
       : Error{"Could not draw a non-zero trace context identifier"} {}
 };
 

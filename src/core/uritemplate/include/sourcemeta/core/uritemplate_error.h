@@ -22,7 +22,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateParseError : public Error {
 public:
   /// Construct an error given the column number where parsing failed
-  URITemplateParseError(const std::uint64_t column)
+  URITemplateParseError(const std::uint64_t column) noexcept
       : Error{"The input is not a valid URI Template"}, column_{column} {}
 
   /// Get the column number of the error
@@ -40,7 +40,8 @@ class SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateExpansionError
     : public Error {
 public:
   /// Construct an error with a descriptive message
-  URITemplateExpansionError(const StaticString message) : Error{message} {}
+  URITemplateExpansionError(const StaticString message) noexcept
+      : Error{message} {}
 };
 
 /// @ingroup uritemplate
@@ -132,7 +133,7 @@ private:
 class SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateRouterSaveError
     : public Error {
 public:
-  /// Construct an error given the target path and a descriptive message
+  /// Construct an error given a descriptive message and the target path
   URITemplateRouterSaveError(const StaticString message,
                              std::filesystem::path path)
       : Error{message}, path_{std::move(path)} {}

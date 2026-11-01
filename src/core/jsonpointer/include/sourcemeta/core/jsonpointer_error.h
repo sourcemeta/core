@@ -18,7 +18,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_JSONPOINTER_EXPORT PointerParseError : public Error {
 public:
   /// Create a parsing error
-  PointerParseError(const std::uint64_t column)
+  PointerParseError(const std::uint64_t column) noexcept
       : Error{"The input is not a valid JSON Pointer"}, column_{column} {}
 
   /// Get the column number of the error

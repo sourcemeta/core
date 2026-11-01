@@ -17,7 +17,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_SEMVER_EXPORT SemVerParseError : public Error {
 public:
   /// Construct an error located at the given column of the input.
-  SemVerParseError(const std::uint64_t column)
+  SemVerParseError(const std::uint64_t column) noexcept
       : Error{"The input is not a valid Semantic Version"}, column_{column} {}
 
   /// The column at which the parsing failure occurred.
@@ -33,7 +33,7 @@ private:
 class SOURCEMETA_CORE_SEMVER_EXPORT SemVerOverflowError : public Error {
 public:
   /// Construct an error located at the given column of the input.
-  SemVerOverflowError(const std::uint64_t column)
+  SemVerOverflowError(const std::uint64_t column) noexcept
       : Error{"The numeric component of the Semantic Version overflows"},
         column_{column} {}
 

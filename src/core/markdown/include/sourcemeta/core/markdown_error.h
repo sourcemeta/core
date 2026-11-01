@@ -17,7 +17,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_MARKDOWN_EXPORT MarkdownError : public Error {
 public:
   /// Construct an error with the given message
-  MarkdownError(const StaticString message) : Error{message} {}
+  MarkdownError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

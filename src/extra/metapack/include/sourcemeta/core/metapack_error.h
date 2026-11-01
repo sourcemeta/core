@@ -17,7 +17,7 @@ SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 class SOURCEMETA_CORE_METAPACK_EXPORT MetapackError : public Error {
 public:
   /// Construct an error with the given message
-  MetapackError(const StaticString message) : Error{message} {}
+  MetapackError(const StaticString message) noexcept : Error{message} {}
 };
 
 SOURCEMETA_CORE_ERROR_WARNINGS_POP

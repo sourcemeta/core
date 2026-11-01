@@ -5,6 +5,11 @@
 
 namespace sourcemeta::core {
 
+// Declared and never defined. A consteval constructor is only ever evaluated
+// at compile time, so reaching this call makes the invocation ill-formed and
+// names the reason, while no call to it can ever be emitted
+[[noreturn]] auto static_string_is_not_null_terminated() -> void;
+
 /// @ingroup error
 /// A null-terminated string that is known at compile time to outlive every
 /// error that carries it.
@@ -31,8 +36,11 @@ public:
   // that does not outlive the error, and the implicit conversion is what lets
   // a throw site read as a bare literal
   // NOLINTNEXTLINE(google-explicit-constructor,hicpp-explicit-conversions,modernize-avoid-c-arrays)
-  consteval StaticString(const char (&value)[Length]) noexcept
-      : value_{value} {}
+  consteval StaticString(const char (&value)[Length]) noexcept : value_{value} {
+    if (value[Length - 1] != '\0') {
+      static_string_is_not_null_terminated();
+    }
+  }
 
   /// Get the underlying null-terminated string.
   ///
