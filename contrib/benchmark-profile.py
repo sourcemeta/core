@@ -17,6 +17,9 @@ left at exit includes runtime caches and is not by itself evidence of a leak.
 RSS includes profiler overhead; Massif snapshots can miss short-lived peaks.
 Use these profiles to select workloads, not to compare execution times. Run
 ordinary benchmarks separately without heaptrack for timing measurements.
+Automatic provenance is limited to the verified workload names listed by --help.
+Other benchmarks remain available through the benchmark executable's --profile
+mode, but need a verified source/input entry before this launcher can record them.
 """
 
 import argparse
@@ -28,6 +31,16 @@ import platform
 import re
 import shutil
 import subprocess
+
+
+# Keep fixture provenance explicit rather than guessing inputs from a name.
+WORKLOADS = {
+    "JSON_Parse_KrakenD": ("json.cc", ("2019_09_krakend.json",)),
+    "JSON_Parse_Schema_ISO_Language": ("json.cc", ("2020_12_iso_language_2023_set_3.json",)),
+    "JSON_Stringify_ISO_Language": ("json.cc", ("2020_12_iso_language_2023_set_3.json",)),
+    "JSON_Prettify_KrakenD": ("json.cc", ("2019_09_krakend.json",)),
+    "JSON_Parse_Integer": ("json.cc", ("integer_array.json",)),
+}
 
 
 def run(command, **kwargs):
@@ -46,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("build", type=Path)
-    parser.add_argument("--filter", required=True)
+    parser.add_argument("--filter", required=True, choices=sorted(WORKLOADS))
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -71,8 +84,12 @@ def main():
     source = Path(cache["CMAKE_HOME_DIRECTORY"])
     binary = build / "benchmark/sourcemeta_core_benchmarks"
     commands = json.loads((build / "compile_commands.json").read_text())
-    compilation = next(entry for entry in commands
-                       if Path(entry["file"]) == source / "benchmark/json.cc")
+    source_name, fixture_names = WORKLOADS[args.filter]
+    workload_source = source / "benchmark" / source_name
+    compilation = next((entry for entry in commands
+                        if Path(entry["file"]).resolve() == workload_source.resolve()), None)
+    if compilation is None:
+        parser.error("no compile command found for the selected workload source")
     compiler = cache["CMAKE_CXX_COMPILER"]
     revision = run(["git", "-C", str(source), "rev-parse", "HEAD"]).strip()
     diff = run(["git", "-C", str(source), "diff", "HEAD", "--"])
@@ -89,7 +106,8 @@ def main():
     (output / "capture.txt").write_text(capture)
     completed = re.search(r"^Profiled (.+): (\d+) iterations \(timings suppressed\)$",
                           capture, re.MULTILINE)
-    if not completed or int(completed[2]) != args.iterations:
+    if (not completed or completed[1] != args.filter
+            or int(completed[2]) != args.iterations):
         raise RuntimeError("profile workload did not report completion")
     traces = [path for path in output.glob("trace.*") if path.is_file()]
     if len(traces) != 1:
@@ -121,11 +139,11 @@ def main():
         "capture_scope": "whole process including fixture setup and teardown",
         "timing_comparison": False,
         "system_allocator_build": True, "compilation": compilation,
+        "workload_source": str(workload_source),
         "capture_command": command, "analysis_command": analyze,
         "inputs": [{"path": str(inputs / name),
                     "bytes": (inputs / name).stat().st_size,
-                    "sha256": digest(inputs / name)} for name in (
-                        "2019_09_krakend.json", "2020_12_iso_language_2023_set_3.json")],
+                    "sha256": digest(inputs / name)} for name in fixture_names],
         "artifacts": {path.name: digest(path) for path in output.iterdir()
                       if path.is_file()}}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

@@ -385,7 +385,8 @@ auto benchmark_run(int argc, char **argv) -> int {
         !options.positional().empty()) {
       std::cerr
           << "error: --profile needs a positive iteration count, a filter "
-             "matching exactly one benchmark, and no --output\n";
+             "matching exactly one benchmark, no --output, and no positional "
+             "arguments\n";
       return EXIT_FAILURE;
     }
 
