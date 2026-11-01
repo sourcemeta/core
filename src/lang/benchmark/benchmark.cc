@@ -396,7 +396,11 @@ auto benchmark_run(int argc, char **argv) -> int {
 
   // An empty registry is broken registration; a filter selecting nothing is
   // instead an ordinary thing to ask for interactively.
-  if (registry().empty() && filters.empty()) {
+  if (registry().empty() &&
+      (filters.empty() ||
+       std::ranges::any_of(filters, [](const auto &filter) {
+         return filter.empty();
+       }))) {
     std::cerr << "error: No benchmarks were registered\n";
     return EXIT_FAILURE;
   }
