@@ -189,135 +189,135 @@ if(SOURCEMETA_CORE_LANG_BENCHMARK)
 endif()
 
 if(SOURCEMETA_CORE_UNICODE)
-  add_subdirectory(src/core/unicode)
+  add_subdirectory(src/spec/unicode)
 endif()
 
 if(SOURCEMETA_CORE_PUNYCODE)
-  add_subdirectory(src/core/punycode)
+  add_subdirectory(src/spec/punycode)
 endif()
 
 if(SOURCEMETA_CORE_TIME)
-  add_subdirectory(src/core/time)
+  add_subdirectory(src/spec/time)
 endif()
 
 if(SOURCEMETA_CORE_CRYPTO)
-  add_subdirectory(src/core/crypto)
+  add_subdirectory(src/spec/crypto)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
-  add_subdirectory(src/core/regex)
+  add_subdirectory(src/spec/regex)
 endif()
 
 if(SOURCEMETA_CORE_IP)
-  add_subdirectory(src/core/ip)
+  add_subdirectory(src/spec/ip)
 endif()
 
 if(SOURCEMETA_CORE_IDNA)
-  add_subdirectory(src/core/idna)
+  add_subdirectory(src/spec/idna)
 endif()
 
 if(SOURCEMETA_CORE_DNS)
-  add_subdirectory(src/core/dns)
+  add_subdirectory(src/spec/dns)
 endif()
 
 if(SOURCEMETA_CORE_EMAIL)
-  add_subdirectory(src/core/email)
+  add_subdirectory(src/spec/email)
 endif()
 
 if(SOURCEMETA_CORE_LANGTAG)
-  add_subdirectory(src/core/langtag)
+  add_subdirectory(src/spec/langtag)
 endif()
 
 if(SOURCEMETA_CORE_URI)
-  add_subdirectory(src/core/uri)
+  add_subdirectory(src/spec/uri)
 endif()
 
 if(SOURCEMETA_CORE_URITEMPLATE)
-  add_subdirectory(src/core/uritemplate)
+  add_subdirectory(src/spec/uritemplate)
 endif()
 
 if(SOURCEMETA_CORE_JSON)
-  add_subdirectory(src/core/json)
+  add_subdirectory(src/spec/json)
 endif()
 
 if(SOURCEMETA_CORE_JSONPOINTER)
-  add_subdirectory(src/core/jsonpointer)
+  add_subdirectory(src/spec/jsonpointer)
 endif()
 
 if(SOURCEMETA_CORE_JSONSCHEMA)
-  add_subdirectory(src/core/jsonschema)
+  add_subdirectory(src/spec/jsonschema)
 endif()
 
 if(SOURCEMETA_CORE_JSONPATH)
-  add_subdirectory(src/core/jsonpath)
+  add_subdirectory(src/spec/jsonpath)
 endif()
 
 if(SOURCEMETA_CORE_JSONLD)
-  add_subdirectory(src/core/jsonld)
+  add_subdirectory(src/spec/jsonld)
 endif()
 
 if(SOURCEMETA_CORE_GZIP)
-  add_subdirectory(src/core/gzip)
+  add_subdirectory(src/spec/gzip)
 endif()
 
 if(SOURCEMETA_CORE_JSONL)
-  add_subdirectory(src/core/jsonl)
+  add_subdirectory(src/spec/jsonl)
 endif()
 
 if(SOURCEMETA_CORE_YAML)
-  add_subdirectory(src/core/yaml)
+  add_subdirectory(src/spec/yaml)
 endif()
 
 if(SOURCEMETA_CORE_JSONRPC)
-  add_subdirectory(src/core/jsonrpc)
+  add_subdirectory(src/spec/jsonrpc)
 endif()
 
 if(SOURCEMETA_CORE_HTTP)
-  add_subdirectory(src/core/http)
+  add_subdirectory(src/spec/http)
 endif()
 
 if(SOURCEMETA_CORE_MCP)
-  add_subdirectory(src/core/mcp)
+  add_subdirectory(src/spec/mcp)
 endif()
 
 if(SOURCEMETA_CORE_OPENAPI)
-  add_subdirectory(src/core/openapi)
+  add_subdirectory(src/spec/openapi)
 endif()
 
 if(SOURCEMETA_CORE_JOSE)
-  add_subdirectory(src/core/jose)
+  add_subdirectory(src/spec/jose)
 endif()
 
 if(SOURCEMETA_CORE_OAUTH)
-  add_subdirectory(src/core/oauth)
+  add_subdirectory(src/spec/oauth)
 endif()
 
 if(SOURCEMETA_CORE_OIDC)
-  add_subdirectory(src/core/oidc)
+  add_subdirectory(src/spec/oidc)
 endif()
 
 if(SOURCEMETA_CORE_SEMVER)
-  add_subdirectory(src/core/semver)
+  add_subdirectory(src/spec/semver)
 endif()
 
 if(SOURCEMETA_CORE_HTML)
-  add_subdirectory(src/core/html)
+  add_subdirectory(src/spec/html)
 endif()
 
 if(SOURCEMETA_CORE_CSS)
-  add_subdirectory(src/core/css)
+  add_subdirectory(src/spec/css)
 endif()
 
 if(SOURCEMETA_CORE_MARKDOWN)
-  add_subdirectory(src/core/markdown)
+  add_subdirectory(src/spec/markdown)
 endif()
 
 if(SOURCEMETA_CORE_DIFF)
-  add_subdirectory(src/core/diff)
+  add_subdirectory(src/spec/diff)
 endif()
 
 if(SOURCEMETA_CORE_TERMINAL)
-  add_subdirectory(src/core/terminal)
+  add_subdirectory(src/spec/terminal)
 endif()
 
 if(SOURCEMETA_CORE_EXTRA_METAPACK)
@@ -392,135 +392,135 @@ if(SOURCEMETA_CORE_TESTS)
   endif()
 
   if(SOURCEMETA_CORE_UNICODE)
-    add_subdirectory(test/core/unicode)
+    add_subdirectory(test/spec/unicode)
   endif()
 
   if(SOURCEMETA_CORE_PUNYCODE)
-    add_subdirectory(test/core/punycode)
+    add_subdirectory(test/spec/punycode)
   endif()
 
   if(SOURCEMETA_CORE_TIME)
-    add_subdirectory(test/core/time)
+    add_subdirectory(test/spec/time)
   endif()
 
   if(SOURCEMETA_CORE_CRYPTO)
-    add_subdirectory(test/core/crypto)
+    add_subdirectory(test/spec/crypto)
   endif()
 
   if(SOURCEMETA_CORE_REGEX)
-    add_subdirectory(test/core/regex)
+    add_subdirectory(test/spec/regex)
   endif()
 
   if(SOURCEMETA_CORE_IP)
-    add_subdirectory(test/core/ip)
+    add_subdirectory(test/spec/ip)
   endif()
 
   if(SOURCEMETA_CORE_IDNA)
-    add_subdirectory(test/core/idna)
+    add_subdirectory(test/spec/idna)
   endif()
 
   if(SOURCEMETA_CORE_DNS)
-    add_subdirectory(test/core/dns)
+    add_subdirectory(test/spec/dns)
   endif()
 
   if(SOURCEMETA_CORE_EMAIL)
-    add_subdirectory(test/core/email)
+    add_subdirectory(test/spec/email)
   endif()
 
   if(SOURCEMETA_CORE_LANGTAG)
-    add_subdirectory(test/core/langtag)
+    add_subdirectory(test/spec/langtag)
   endif()
 
   if(SOURCEMETA_CORE_URI)
-    add_subdirectory(test/core/uri)
+    add_subdirectory(test/spec/uri)
   endif()
 
   if(SOURCEMETA_CORE_URITEMPLATE)
-    add_subdirectory(test/core/uritemplate)
+    add_subdirectory(test/spec/uritemplate)
   endif()
 
   if(SOURCEMETA_CORE_JSON)
-    add_subdirectory(test/core/json)
+    add_subdirectory(test/spec/json)
   endif()
 
   if(SOURCEMETA_CORE_JSONPOINTER)
-    add_subdirectory(test/core/jsonpointer)
+    add_subdirectory(test/spec/jsonpointer)
   endif()
 
   if(SOURCEMETA_CORE_JSONSCHEMA)
-    add_subdirectory(test/core/jsonschema)
+    add_subdirectory(test/spec/jsonschema)
   endif()
 
   if(SOURCEMETA_CORE_JSONPATH)
-    add_subdirectory(test/core/jsonpath)
+    add_subdirectory(test/spec/jsonpath)
   endif()
 
   if(SOURCEMETA_CORE_JSONLD)
-    add_subdirectory(test/core/jsonld)
+    add_subdirectory(test/spec/jsonld)
   endif()
 
   if(SOURCEMETA_CORE_GZIP)
-    add_subdirectory(test/core/gzip)
+    add_subdirectory(test/spec/gzip)
   endif()
 
   if(SOURCEMETA_CORE_JSONL)
-    add_subdirectory(test/core/jsonl)
+    add_subdirectory(test/spec/jsonl)
   endif()
 
   if(SOURCEMETA_CORE_YAML)
-    add_subdirectory(test/core/yaml)
+    add_subdirectory(test/spec/yaml)
   endif()
 
   if(SOURCEMETA_CORE_JSONRPC)
-    add_subdirectory(test/core/jsonrpc)
+    add_subdirectory(test/spec/jsonrpc)
   endif()
 
   if(SOURCEMETA_CORE_HTTP)
-    add_subdirectory(test/core/http)
+    add_subdirectory(test/spec/http)
   endif()
 
   if(SOURCEMETA_CORE_MCP)
-    add_subdirectory(test/core/mcp)
+    add_subdirectory(test/spec/mcp)
   endif()
 
   if(SOURCEMETA_CORE_OPENAPI)
-    add_subdirectory(test/core/openapi)
+    add_subdirectory(test/spec/openapi)
   endif()
 
   if(SOURCEMETA_CORE_JOSE)
-    add_subdirectory(test/core/jose)
+    add_subdirectory(test/spec/jose)
   endif()
 
   if(SOURCEMETA_CORE_OAUTH)
-    add_subdirectory(test/core/oauth)
+    add_subdirectory(test/spec/oauth)
   endif()
 
   if(SOURCEMETA_CORE_OIDC)
-    add_subdirectory(test/core/oidc)
+    add_subdirectory(test/spec/oidc)
   endif()
 
   if(SOURCEMETA_CORE_SEMVER)
-    add_subdirectory(test/core/semver)
+    add_subdirectory(test/spec/semver)
   endif()
 
   if(SOURCEMETA_CORE_HTML)
-    add_subdirectory(test/core/html)
+    add_subdirectory(test/spec/html)
   endif()
 
   if(SOURCEMETA_CORE_CSS)
-    add_subdirectory(test/core/css)
+    add_subdirectory(test/spec/css)
   endif()
 
   if(SOURCEMETA_CORE_MARKDOWN)
-    add_subdirectory(test/core/markdown)
+    add_subdirectory(test/spec/markdown)
   endif()
 
   if(SOURCEMETA_CORE_DIFF)
-    add_subdirectory(test/core/diff)
+    add_subdirectory(test/spec/diff)
   endif()
 
   if(SOURCEMETA_CORE_TERMINAL)
-    add_subdirectory(test/core/terminal)
+    add_subdirectory(test/spec/terminal)
   endif()
 
   if(SOURCEMETA_CORE_EXTRA_METAPACK)
@@ -540,7 +540,7 @@ if(SOURCEMETA_CORE_TESTS_CI)
   enable_testing()
 
   if(SOURCEMETA_CORE_HTTP)
-    add_subdirectory(test/core/http/ci)
+    add_subdirectory(test/spec/http/ci)
   endif()
 endif()
 

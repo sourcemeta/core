@@ -3,8 +3,8 @@
 # These fixtures are parser input, so their bytes, including their line
 # endings, must reach the working directory exactly as committed on every
 # platform
-/test/core/json/stub_*.json -text
-/test/core/yaml/stubs/** -text
+/test/spec/json/stub_*.json -text
+/test/spec/yaml/stubs/** -text
 /vendor/aws-sig-v4-test-suite/** -text
 /vendor/unicodetools/unicodetools/data/** -text
 

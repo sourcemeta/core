@@ -1,63 +1,63 @@
 set(BENCHMARK_SOURCES)
 
 if(SOURCEMETA_CORE_MCP)
-  list(APPEND BENCHMARK_SOURCES core/mcp.cc)
+  list(APPEND BENCHMARK_SOURCES spec/mcp.cc)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
-  list(APPEND BENCHMARK_SOURCES core/regex.cc)
+  list(APPEND BENCHMARK_SOURCES spec/regex.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSON)
-  list(APPEND BENCHMARK_SOURCES core/json.cc)
+  list(APPEND BENCHMARK_SOURCES spec/json.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONPOINTER)
-  list(APPEND BENCHMARK_SOURCES core/jsonpointer.cc)
+  list(APPEND BENCHMARK_SOURCES spec/jsonpointer.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONSCHEMA)
-  list(APPEND BENCHMARK_SOURCES core/jsonschema.cc)
+  list(APPEND BENCHMARK_SOURCES spec/jsonschema.cc)
 endif()
 
 if(SOURCEMETA_CORE_OPENAPI)
-  list(APPEND BENCHMARK_SOURCES core/openapi.cc)
+  list(APPEND BENCHMARK_SOURCES spec/openapi.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONPATH)
-  list(APPEND BENCHMARK_SOURCES core/jsonpath.cc)
+  list(APPEND BENCHMARK_SOURCES spec/jsonpath.cc)
 endif()
 
 if(SOURCEMETA_CORE_URITEMPLATE)
-  list(APPEND BENCHMARK_SOURCES core/uritemplate.cc)
+  list(APPEND BENCHMARK_SOURCES spec/uritemplate.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONL)
-  list(APPEND BENCHMARK_SOURCES core/jsonl.cc)
+  list(APPEND BENCHMARK_SOURCES spec/jsonl.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONLD)
-  list(APPEND BENCHMARK_SOURCES core/jsonld.cc)
+  list(APPEND BENCHMARK_SOURCES spec/jsonld.cc)
 endif()
 
 if(SOURCEMETA_CORE_HTML)
-  list(APPEND BENCHMARK_SOURCES core/html.cc)
+  list(APPEND BENCHMARK_SOURCES spec/html.cc)
 endif()
 
 if(SOURCEMETA_CORE_MARKDOWN)
-  list(APPEND BENCHMARK_SOURCES core/markdown.cc)
+  list(APPEND BENCHMARK_SOURCES spec/markdown.cc)
 endif()
 
 if(SOURCEMETA_CORE_GZIP)
-  list(APPEND BENCHMARK_SOURCES core/gzip.cc)
+  list(APPEND BENCHMARK_SOURCES spec/gzip.cc)
 endif()
 
 if(SOURCEMETA_CORE_JOSE)
-  list(APPEND BENCHMARK_SOURCES core/jose.cc)
+  list(APPEND BENCHMARK_SOURCES spec/jose.cc)
 endif()
 
 if(SOURCEMETA_CORE_CRYPTO)
-  list(APPEND BENCHMARK_SOURCES core/crypto.cc)
+  list(APPEND BENCHMARK_SOURCES spec/crypto.cc)
 endif()
 
 if(SOURCEMETA_CORE_EXTRA_METAPACK)
