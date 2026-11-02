@@ -38,54 +38,10 @@
       }
     }
   },
-  "result": {
-    "openapi": "3.0.4",
-    "info": {
-      "title": "Example",
-      "version": "1.0.0"
-    },
-    "paths": {},
-    "components": {
-      "schemas": {
-        "Pet": {
-          "discriminator": {
-            "propertyName": "t",
-            "mapping": {
-              "cat": "https://example.com/pets#Cat",
-              "dog": "https://example.com/pets#Dog"
-            }
-          }
-        },
-        "pets": {
-          "$id": "https://example.com/pets",
-          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
-          "$defs": {
-            "Cat": {
-              "$anchor": "Cat",
-              "title": "CAT"
-            },
-            "Dog": {
-              "$anchor": "Dog",
-              "title": "DOG"
-            }
-          }
-        }
-      }
-    }
-  },
-  "inserted": [
-    {
-      "from": "https://example.com/pets",
-      "at": "/components/schemas/pets"
-    }
-  ],
-  "reads": {
-    "https://example.com/pets": 1
-  },
-  "schemaReads": {
-    "https://example.com/pets": 1
-  },
-  "standalone": true,
-  "relocatable": true,
-  "operations": []
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This mapping must name a schema written against the dialect that this revision publishes",
+    "identifier": "https://example.com/pets",
+    "location": "/components/schemas/Pet/discriminator/mapping/cat"
+  }
 }

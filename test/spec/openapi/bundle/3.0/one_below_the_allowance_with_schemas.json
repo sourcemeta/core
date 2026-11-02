@@ -1,0 +1,30 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "pet.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "maxLocations": 27,
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/pet.json": {
+      "type": "string"
+    }
+  },
+  "error": {
+    "type": "OpenAPIBundleLimitError",
+    "message": "The OpenAPI Description exceeds the maximum number of locations that bundling may analyse",
+    "limit": 27
+  }
+}

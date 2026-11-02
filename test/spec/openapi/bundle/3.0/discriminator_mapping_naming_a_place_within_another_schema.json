@@ -31,48 +31,10 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema"
     }
   },
-  "result": {
-    "openapi": "3.0.4",
-    "info": {
-      "title": "Example",
-      "version": "1.0.0"
-    },
-    "components": {
-      "schemas": {
-        "Pet": {
-          "discriminator": {
-            "propertyName": "t",
-            "mapping": {
-              "x": "https://example.com/schemas/bag#/$defs/X"
-            }
-          }
-        },
-        "bag": {
-          "$defs": {
-            "X": {
-              "title": "X"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$id": "https://example.com/schemas/bag"
-        }
-      }
-    },
-    "paths": {}
-  },
-  "inserted": [
-    {
-      "from": "https://example.com/schemas/bag",
-      "at": "/components/schemas/bag"
-    }
-  ],
-  "reads": {
-    "https://example.com/schemas/bag": 1
-  },
-  "schemaReads": {
-    "https://example.com/schemas/bag": 1
-  },
-  "standalone": true,
-  "relocatable": true,
-  "operations": []
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This mapping must name a schema written against the dialect that this revision publishes",
+    "identifier": "https://example.com/schemas/bag",
+    "location": "/components/schemas/Pet/discriminator/mapping/x"
+  }
 }
