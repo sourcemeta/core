@@ -23,5 +23,23 @@
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
 /// ```
+///
+/// @par Deployment boundaries
+/// Enforce transport byte limits, decompression budgets and timeouts in the
+/// application. MCP envelope validation does not limit the memory or time
+/// already spent receiving and parsing a message.
+/// After parsing, sourcemeta::core::mcp_validate_request_meta checks envelope
+/// metadata, not the caller's identity or application authorization.
+///
+/// Authenticate the caller and authorize each resource before opening a file or
+/// making a network request. URI validation and
+/// sourcemeta::core::mcp_make_resource do not grant resource-access permission.
+///
+/// sourcemeta::core::mcp_validate_continuation checks protocol fields and,
+/// optionally, an exact state-token echo. The application must protect state
+/// integrity, bind it to the caller and operation, and enforce expiry and
+/// replay policy. These are application controls, not additional requirements
+/// imposed by Core's MCP validators. Multiple workers need shared atomic state
+/// consumption.
 
 #endif

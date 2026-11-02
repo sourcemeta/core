@@ -2214,3 +2214,45 @@ TEST(validate_continuation_root_empty_file_authority) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, input, prior,
       "state"));
 }
+
+// Validation has no replay memory; consuming state belongs to the application.
+TEST(validate_continuation_does_not_consume_expected_state) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "opaque-token",
+    "inputResponses": {
+      "roots": { "roots": [{ "uri": "file:///reports" }] }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "opaque-token"));
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "opaque-token"));
+}
+
+TEST(validate_continuation_matching_state_does_not_bypass_response_validation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "requestState": "opaque-token",
+    "inputResponses": {
+      "roots": { "roots": "invalid" }
+    }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "roots": { "method": "roots/list" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      "opaque-token"));
+}
