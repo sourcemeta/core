@@ -3,7 +3,6 @@
 
 #include <sourcemeta/core/numeric_error.h>
 
-#include <cassert> // assert
 #include <cstddef> // std::byte, std::size_t
 #include <cstdint> // std::uint8_t, std::uint64_t
 #include <utility> // std::unreachable
@@ -92,7 +91,10 @@ inline auto varint_decode(const std::byte *const source, const std::size_t size)
   std::uint64_t result{0};
   for (std::size_t index = 0; index < size; index++) {
     const auto byte{static_cast<std::uint8_t>(source[index])};
-    assert(index + 1 == size || (byte & CONTINUATION_BIT) != 0);
+    if (index + 1 != size && (byte & CONTINUATION_BIT) == 0) {
+      throw VarintParseError{};
+    }
+
     result |= static_cast<std::uint64_t>(byte & PAYLOAD_MASK)
               << (PAYLOAD_BITS * index);
   }

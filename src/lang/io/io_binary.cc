@@ -20,9 +20,17 @@ template <typename T> auto to_little_endian(const T value) -> T {
   }
 }
 
-// A stream that cannot report a position, such as one without a buffer,
-// counts from the start of what it writes or reads instead
-auto stream_position(const std::streampos position) -> std::size_t {
+// Going through the stream to take its position would run its sentry, which
+// turns a stream that reports no position into a failed one. A stream that
+// cannot report a position, such as one without a buffer or one that cannot
+// seek, counts from the start of what it writes or reads instead
+auto buffer_position(std::streambuf *const buffer,
+                     const std::ios::openmode mode) -> std::size_t {
+  if (buffer == nullptr) {
+    return 0;
+  }
+
+  const auto position{buffer->pubseekoff(0, std::ios::cur, mode)};
   if (position == std::streampos{-1}) {
     return 0;
   }
@@ -35,7 +43,8 @@ auto stream_position(const std::streampos position) -> std::size_t {
 namespace sourcemeta::core {
 
 BinaryWriter::BinaryWriter(std::ostream &stream)
-    : stream_{&stream}, offset_{stream_position(stream.tellp())} {}
+    : stream_{&stream},
+      offset_{buffer_position(stream.rdbuf(), std::ios::out)} {}
 
 auto BinaryWriter::put_byte(const std::uint8_t value) -> void {
   this->put(value);
@@ -90,7 +99,8 @@ auto BinaryWriter::position() const noexcept -> std::size_t {
 BinaryReader::BinaryReader(const FileView &view) noexcept : view_{&view} {}
 
 BinaryReader::BinaryReader(std::istream &stream)
-    : stream_{&stream}, offset_{stream_position(stream.tellg())} {}
+    : stream_{&stream}, offset_{buffer_position(stream.rdbuf(), std::ios::in)} {
+}
 
 auto BinaryReader::get_byte() -> std::uint8_t {
   return this->get<std::uint8_t>();
@@ -188,11 +198,10 @@ auto BinaryReader::get_bytes(std::byte *destination, const std::size_t size)
   this->stream_->read(reinterpret_cast<char *>(destination),
                       static_cast<std::streamsize>(size));
   const auto consumed{static_cast<std::size_t>(this->stream_->gcount())};
+  this->offset_ += consumed;
   if (consumed != size) {
     throw IOReadOutOfBoundsError{};
   }
-
-  this->offset_ += size;
 }
 
 auto BinaryReader::has_more_data() const -> bool {
@@ -202,6 +211,10 @@ auto BinaryReader::has_more_data() const -> bool {
 
   assert(this->stream_);
   auto *buffer{this->stream_->rdbuf()};
+  if (buffer == nullptr) {
+    return false;
+  }
+
   return buffer->in_avail() > 0 ||
          buffer->sgetc() != std::char_traits<char>::eof();
 }

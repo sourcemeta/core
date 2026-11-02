@@ -188,6 +188,28 @@ TEST(decode_too_many_bytes_throws) {
   }
 }
 
+TEST(decode_with_an_early_terminating_byte_throws) {
+  const std::array<std::byte, 2> bytes{{std::byte{0x01}, std::byte{0x00}}};
+  try {
+    [[maybe_unused]] const auto value{
+        sourcemeta::core::varint_decode(bytes.data(), bytes.size())};
+    FAIL();
+  } catch (const sourcemeta::core::VarintParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid variable-length integer");
+  }
+}
+
+TEST(decode_two_integers_at_once_throws) {
+  const std::array<std::byte, 2> bytes{{std::byte{0x01}, std::byte{0x02}}};
+  try {
+    [[maybe_unused]] const auto value{
+        sourcemeta::core::varint_decode(bytes.data(), bytes.size())};
+    FAIL();
+  } catch (const sourcemeta::core::VarintParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid variable-length integer");
+  }
+}
+
 TEST(decode_past_uint64_maximum_throws) {
   const std::array<std::byte, 10> bytes{
       {std::byte{0xFF}, std::byte{0xFF}, std::byte{0xFF}, std::byte{0xFF},

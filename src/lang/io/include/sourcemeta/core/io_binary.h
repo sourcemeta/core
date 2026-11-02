@@ -19,7 +19,8 @@ namespace sourcemeta::core {
 
 /// @ingroup io
 ///
-/// Typed wrapper over an output stream.
+/// Typed wrapper over an output stream. It tracks the position it writes at,
+/// so the stream must not be repositioned elsewhere while it is alive.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -75,7 +76,9 @@ private:
 
 /// @ingroup io
 ///
-/// Cursor-tracking reader over a `FileView` or an `std::istream`.
+/// Cursor-tracking reader over a `FileView` or an `std::istream`. It tracks
+/// the position it reads from, so the stream must not be repositioned
+/// elsewhere while it is alive.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>

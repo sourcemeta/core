@@ -455,7 +455,7 @@ TEST(rewind_past_the_beginning_throws) {
   }
 }
 
-TEST(the_position_of_a_stream_survives_a_failed_read) {
+TEST(the_position_of_a_stream_after_a_failed_read_counts_what_it_consumed) {
   std::istringstream input{"AB"};
   sourcemeta::core::BinaryReader reader{input};
   try {
@@ -465,7 +465,22 @@ TEST(the_position_of_a_stream_survives_a_failed_read) {
     EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
   }
 
-  EXPECT_EQ(reader.position(), 0);
+  EXPECT_EQ(reader.position(), 2);
+}
+
+// Taking the position of a stream through the stream itself would run its
+// sentry, which turns a stream that has nothing left into a failed one
+TEST(a_reader_over_a_stream_at_its_end_can_seek_back) {
+  std::istringstream input{"ABC"};
+  input.seekg(3);
+  [[maybe_unused]] const auto ignored{input.peek()};
+  EXPECT_TRUE(input.eof());
+  EXPECT_FALSE(input.fail());
+
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.position(), 3);
+  reader.seek(0);
+  EXPECT_EQ(reader.get_byte(), 'A');
 }
 
 TEST_F(IOBinaryTest, put_dword_to_file) {
@@ -674,6 +689,12 @@ TEST(the_read_position_of_a_stream_with_no_buffer_is_zero) {
   std::istream input{nullptr};
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_EQ(reader.position(), 0);
+}
+
+TEST(has_more_data_on_a_stream_with_no_buffer_is_false) {
+  std::istream input{nullptr};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_FALSE(reader.has_more_data());
 }
 
 TEST(seeking_a_stream_with_no_buffer_throws) {
