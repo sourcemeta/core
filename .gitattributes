@@ -3,12 +3,12 @@
 # These fixtures are parser input, so their bytes, including their line
 # endings, must reach the working directory exactly as committed on every
 # platform
-/test/json/stub_*.json -text
-/test/yaml/stubs/** -text
+/test/core/json/stub_*.json -text
+/test/core/yaml/stubs/** -text
 /vendor/aws-sig-v4-test-suite/** -text
 /vendor/unicodetools/unicodetools/data/** -text
 
 # One of these is committed with carriage returns on purpose, to prove the
 # script runner takes a script written the way a Windows checkout spells one, so
 # a checkout that rewrote it would leave that test passing without testing that
-/test/test/clitest/*.clitest -text
+/test/lang/test/clitest/*.clitest -text
