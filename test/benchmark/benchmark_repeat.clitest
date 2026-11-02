@@ -1,0 +1,124 @@
+RUN --repeat 3 -f counted_other STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Other iterations: 1
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 1 STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Observed iterations: 1
+1> counted_first
+1>   <measurement>
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 2 -f counted STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Observed iterations: 1
+1> Observed iterations: 1
+1> counted_first
+1>   <measurement>
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 2 -f counted -f other STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Observed iterations: 1
+1> Observed iterations: 1
+1> counted_first
+1>   <measurement>
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 2 -f nothingmatchesthis STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat=2 -f counted_other STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 2 -f "" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Observed iterations: 1
+1> Observed iterations: 1
+1> counted_first
+1>   <measurement>
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+RUN --repeat 2 -f counted_first -f counted_other STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Observed iterations: 1
+1> Observed iterations: 1
+1> counted_first
+1>   <measurement>
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
+
+
+RUN -r 3 -f counted_other STDIN /dev/null IN . INTO result.txt EXPECTING 0
+REPLACE MATCHING "Running on [0-9]+ processors" WITH "Running on N processors" IN result.txt
+REPLACE MATCHING "time: [0-9]+\.[0-9]+ [a-z]+(?:, cpu: [0-9]+\.[0-9]+ [a-z]+)?, first: [0-9]+\.[0-9]+ [a-z]+, iterations: [0-9]+" WITH "<measurement>" IN result.txt
+WRITE expected.txt UNTIL EXPECTED
+1> Running on N processors
+1> Other iterations: 1
+1> Other iterations: 1
+1> Other iterations: 1
+1> counted_other
+1>   <measurement>
+EXPECTED
+COMPARE result.txt AGAINST expected.txt
