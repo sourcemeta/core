@@ -48,7 +48,7 @@ target_link_libraries(sourcemeta_core_jsonschema_referencing_suite_unit PRIVATE 
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema_frame_suite
   SOURCES framesuite.cc)
 target_compile_definitions(sourcemeta_core_jsonschema_frame_suite_unit
-  PRIVATE FRAME_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/core/jsonschema/frame")
+  PRIVATE FRAME_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/spec/jsonschema/frame")
 target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE sourcemeta::core::jsonpointer)
 target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE sourcemeta::core::jsonschema)
@@ -57,7 +57,7 @@ target_link_libraries(sourcemeta_core_jsonschema_frame_suite_unit PRIVATE source
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema_bundle_suite
   SOURCES bundlesuite.cc)
 target_compile_definitions(sourcemeta_core_jsonschema_bundle_suite_unit
-  PRIVATE BUNDLE_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/core/jsonschema/bundle")
+  PRIVATE BUNDLE_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/spec/jsonschema/bundle")
 target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::jsonpointer)
 target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::jsonschema)
