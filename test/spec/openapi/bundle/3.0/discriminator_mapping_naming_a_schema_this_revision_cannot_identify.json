@@ -1,0 +1,65 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "dog": "https://example.com/schemas/dog"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/dog": {
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "dog": "#/components/schemas/dog"
+            }
+          }
+        },
+        "dog": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/dog",
+      "at": "/components/schemas/dog"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/dog": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

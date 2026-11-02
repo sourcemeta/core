@@ -28,8 +28,6 @@
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/a": {
-      "$id": "https://example.com/schemas/a",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "next": {
           "$ref": "https://example.com/schemas/b"
@@ -37,8 +35,6 @@
       }
     },
     "https://example.com/schemas/b": {
-      "$id": "https://example.com/schemas/b",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "next": {
           "$ref": "https://example.com/schemas/c"
@@ -46,14 +42,88 @@
       }
     },
     "https://example.com/schemas/c": {
-      "$id": "https://example.com/schemas/c",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "string"
     }
   },
-  "error": {
-    "type": "OpenAPIError",
-    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect",
-    "location": "/components/schemas/a"
-  }
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/a"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "c": {
+          "type": "string"
+        },
+        "b": {
+          "properties": {
+            "next": {
+              "$ref": "#/components/schemas/c"
+            }
+          }
+        },
+        "a": {
+          "properties": {
+            "next": {
+              "$ref": "#/components/schemas/b"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/c",
+      "at": "/components/schemas/c"
+    },
+    {
+      "from": "https://example.com/schemas/b",
+      "at": "/components/schemas/b"
+    },
+    {
+      "from": "https://example.com/schemas/a",
+      "at": "/components/schemas/a"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/a": 1,
+    "https://example.com/schemas/b": 1,
+    "https://example.com/schemas/c": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

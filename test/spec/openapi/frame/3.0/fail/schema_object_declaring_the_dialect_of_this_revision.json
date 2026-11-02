@@ -1,0 +1,25 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "The dialect that this schema declares does not define the keyword that declares it",
+    "keyword": "$schema",
+    "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "location": ""
+  }
+}

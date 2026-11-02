@@ -44,14 +44,75 @@
   },
   "schemaResolver": {
     "https://example.com/schemas/error": {
-      "$id": "https://example.com/schemas/error",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object"
     }
   },
-  "error": {
-    "type": "OpenAPIError",
-    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect",
-    "location": "/components/schemas/error"
-  }
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "NotFound": {
+          "description": "Not found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/error"
+              }
+            }
+          }
+        }
+      },
+      "schemas": {
+        "error": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/NotFound",
+      "at": "/components/responses/NotFound"
+    },
+    {
+      "from": "https://example.com/schemas/error",
+      "at": "/components/schemas/error"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {
+    "https://example.com/schemas/error": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
 }

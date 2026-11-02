@@ -1752,9 +1752,17 @@ auto adopt_mappings(
       }
 
       for (const auto &pending : entry.second) {
-        JSON named{pending.scope == base
-                       ? to_uri(previous->second).recompose()
-                       : openapi_location_uri(base, previous->second)};
+        // Section 4.3.3 reads "no aspect of implicit connection resolution
+        // changes how URIs are resolved, or restricts their possible targets",
+        // so what a mapping names may be a place within that schema rather
+        // than the whole of it. Such a place travels with the schema, so the
+        // route to it is counted from wherever the schema landed
+        const auto nested{target_of(pending.destination)};
+        const auto reached{nested.has_value()
+                               ? previous->second.concat(nested.value())
+                               : previous->second};
+        JSON named{pending.scope == base ? to_uri(reached).recompose()
+                                         : openapi_location_uri(base, reached)};
         const auto *written{try_get(document, pending.origin)};
         if (written != nullptr && *written != named) {
           set(document, pending.origin, std::move(named));
@@ -2058,6 +2066,16 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
 
       if (names_a_schema && !declared.has_value() &&
           unavailable.contains(identifier)) {
+        // A mapping whose schema has already been brought in still names the
+        // URI that schema was fetched by, and a revision that gives an
+        // embedded Schema Object no way of keeping that URI leaves nothing in
+        // the result answering to it. Leaving it here would hand back a
+        // description that does not hold what it names, so it goes on to be
+        // pointed at where that schema landed instead
+        if (reference.mapping) {
+          deferred[reference.destination].push_back(reference);
+        }
+
         continue;
       }
 

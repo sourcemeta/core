@@ -1,0 +1,37 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/schemas/near"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/near": {
+      "properties": {
+        "far": {
+          "$ref": "https://example.com/schemas/far"
+        }
+      }
+    },
+    "https://example.com/schemas/far": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    }
+  },
+  "error": {
+    "type": "OpenAPIError",
+    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect",
+    "location": "/components/schemas/far"
+  }
+}
