@@ -28,8 +28,6 @@
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/pet": {
-      "$id": "https://example.com/schemas/pet",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
         "name": {
@@ -53,7 +51,7 @@
               "content": {
                 "application/json": {
                   "schema": {
-                    "$ref": "https://example.com/schemas/pet"
+                    "$ref": "#/components/schemas/pet"
                   }
                 }
               }
@@ -65,8 +63,6 @@
     "components": {
       "schemas": {
         "pet": {
-          "$id": "https://example.com/schemas/pet",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "name": {

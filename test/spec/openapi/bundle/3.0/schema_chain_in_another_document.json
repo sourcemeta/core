@@ -28,8 +28,6 @@
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/pet": {
-      "$id": "https://example.com/schemas/pet",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "properties": {
         "owner": {
@@ -38,8 +36,6 @@
       }
     },
     "https://example.com/schemas/owner": {
-      "$id": "https://example.com/schemas/owner",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "string"
     }
   },
@@ -58,7 +54,7 @@
               "content": {
                 "application/json": {
                   "schema": {
-                    "$ref": "https://example.com/schemas/pet"
+                    "$ref": "#/components/schemas/pet"
                   }
                 }
               }
@@ -70,17 +66,13 @@
     "components": {
       "schemas": {
         "owner": {
-          "$id": "https://example.com/schemas/owner",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "string"
         },
         "pet": {
-          "$id": "https://example.com/schemas/pet",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "owner": {
-              "$ref": "https://example.com/schemas/owner"
+              "$ref": "#/components/schemas/owner"
             }
           }
         }

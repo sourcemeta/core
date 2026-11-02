@@ -35,8 +35,6 @@
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/pet": {
-      "$id": "https://example.com/schemas/pet",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object"
     }
   },
@@ -55,7 +53,7 @@
               "content": {
                 "application/json": {
                   "schema": {
-                    "$ref": "https://example.com/schemas/pet"
+                    "$ref": "#/components/schemas/pet_"
                   }
                 }
               }
@@ -70,8 +68,6 @@
           "type": "integer"
         },
         "pet_": {
-          "$id": "https://example.com/schemas/pet",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object"
         }
       }

@@ -53,14 +53,10 @@
   },
   "schemaResolver": {
     "https://example.com/shared/kind.json": {
-      "$id": "https://example.com/shared/kind.json",
-      "title": "RIGHT KIND",
-      "$schema": "https://json-schema.org/draft/2020-12/schema"
+      "title": "RIGHT KIND"
     },
     "https://example.com/kind.json": {
-      "$id": "https://example.com/kind.json",
-      "title": "WRONG KIND",
-      "$schema": "https://json-schema.org/draft/2020-12/schema"
+      "title": "WRONG KIND"
     }
   },
   "result": {
@@ -80,16 +76,14 @@
               "title": "REMOTE CAT",
               "properties": {
                 "kind": {
-                  "$ref": "https://example.com/shared/kind.json"
+                  "$ref": "#/components/schemas/kind.json"
                 }
               }
             }
           }
         },
         "kind.json": {
-          "$id": "https://example.com/shared/kind.json",
-          "title": "RIGHT KIND",
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "title": "RIGHT KIND"
         }
       }
     },

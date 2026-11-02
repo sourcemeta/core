@@ -1,0 +1,75 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "x": "https://example.com/schemas/bag#/properties"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/bag": {
+      "properties": {
+        "X": {
+          "title": "X"
+        }
+      }
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "x": "#/components/schemas/bag/properties"
+            }
+          }
+        },
+        "bag": {
+          "properties": {
+            "X": {
+              "title": "X"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/bag",
+      "at": "/components/schemas/bag"
+    }
+  ],
+  "reads": {
+    "https://example.com/schemas/bag": 1
+  },
+  "schemaReads": {
+    "https://example.com/schemas/bag": 1
+  },
+  "standalone": false,
+  "relocatable": false,
+  "operations": []
+}

@@ -44,8 +44,6 @@
   },
   "schemaResolver": {
     "https://example.com/schemas/error": {
-      "$id": "https://example.com/schemas/error",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object"
     }
   },
@@ -73,7 +71,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "https://example.com/schemas/error"
+                "$ref": "#/components/schemas/error"
               }
             }
           }
@@ -81,8 +79,6 @@
       },
       "schemas": {
         "error": {
-          "$id": "https://example.com/schemas/error",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object"
         }
       }

@@ -28,8 +28,8 @@ const std::vector<std::string> KNOWN_KEYS{"document",       "defaultBase",
                                           "schemaResolver", "frame",
                                           "maxLocations",   "error"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "message", "location", "base",  "identifier",
-    "keyword", "value",    "other", "limit"};
+    "message", "location", "base",  "identifier", "keyword",
+    "value",   "other",    "limit", "dialect"};
 const std::vector<std::string> KNOWN_METHODS{"get",    "put",     "post",
                                              "delete", "options", "head",
                                              "patch",  "trace",   "query"};
@@ -895,6 +895,20 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_TRUE(test.at("error").defines("identifier"));
     EXPECT_EQ(error.identifier(),
               test.at("error").at("identifier").to_string());
+  } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+    refused = true;
+    EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
+
+    // A declaration that asserts the conditions under which it could not have
+    // been written, so both halves of it are read back, along with where in
+    // the schema it sits
+    EXPECT_TRUE(test.at("error").defines("keyword"));
+    EXPECT_EQ(error.keyword(), test.at("error").at("keyword").to_string());
+    EXPECT_TRUE(test.at("error").defines("dialect"));
+    EXPECT_EQ(error.dialect(), test.at("error").at("dialect").to_string());
+    EXPECT_TRUE(test.at("error").defines("location"));
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              test.at("error").at("location").to_string());
   } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
     refused = true;
     check_schema_refusal(test, error.what());

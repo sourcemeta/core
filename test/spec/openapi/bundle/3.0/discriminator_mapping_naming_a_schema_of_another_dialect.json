@@ -29,43 +29,10 @@
       "type": "object"
     }
   },
-  "result": {
-    "openapi": "3.0.4",
-    "info": {
-      "title": "Example",
-      "version": "1.0.0"
-    },
-    "paths": {},
-    "components": {
-      "schemas": {
-        "Pet": {
-          "discriminator": {
-            "propertyName": "kind",
-            "mapping": {
-              "dog": "https://example.com/dog.json"
-            }
-          },
-          "type": "object"
-        },
-        "dog.json": {
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$id": "https://example.com/dog.json",
-          "type": "object"
-        }
-      }
-    }
-  },
-  "inserted": [
-    {
-      "from": "https://example.com/dog.json",
-      "at": "/components/schemas/dog.json"
-    }
-  ],
-  "reads": {},
-  "schemaReads": {
-    "https://example.com/dog.json": 1
-  },
-  "standalone": true,
-  "relocatable": true,
-  "operations": []
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This mapping must name a schema written against the dialect that this revision publishes",
+    "identifier": "https://example.com/dog.json",
+    "location": "/components/schemas/Pet/discriminator/mapping/dog"
+  }
 }

@@ -1,0 +1,29 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$id": "https://example.com/child.json",
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "error": {
+    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect",
+    "location": "/components/schemas/Pet/properties/child"
+  }
+}

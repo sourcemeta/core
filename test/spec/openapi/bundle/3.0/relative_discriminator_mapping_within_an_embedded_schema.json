@@ -54,8 +54,6 @@
   },
   "schemaResolver": {
     "https://example.com/shared/schemas/cat": {
-      "$id": "https://example.com/shared/schemas/cat",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object"
     }
   },
@@ -85,13 +83,13 @@
               "schema": {
                 "oneOf": [
                   {
-                    "$ref": "https://example.com/shared/schemas/cat"
+                    "$ref": "#/components/schemas/cat_"
                   }
                 ],
                 "discriminator": {
                   "propertyName": "petType",
                   "mapping": {
-                    "cat": "https://example.com/shared/schemas/cat"
+                    "cat": "#/components/schemas/cat"
                   }
                 }
               }
@@ -101,8 +99,9 @@
       },
       "schemas": {
         "cat": {
-          "$id": "https://example.com/shared/schemas/cat",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object"
+        },
+        "cat_": {
           "type": "object"
         }
       }
@@ -116,13 +115,17 @@
     {
       "from": "https://example.com/shared/schemas/cat",
       "at": "/components/schemas/cat"
+    },
+    {
+      "from": "https://example.com/shared/schemas/cat",
+      "at": "/components/schemas/cat_"
     }
   ],
   "reads": {
     "https://example.com/shared/api.json": 1
   },
   "schemaReads": {
-    "https://example.com/shared/schemas/cat": 1
+    "https://example.com/shared/schemas/cat": 2
   },
   "standalone": true,
   "relocatable": true,

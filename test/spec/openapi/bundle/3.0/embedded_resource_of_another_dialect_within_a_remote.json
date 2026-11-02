@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/schemas/pet"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/pet": {
+      "properties": {
+        "child": {
+          "$id": "https://example.com/schemas/child",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "error": {
+    "type": "OpenAPIError",
+    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect",
+    "location": "/components/schemas/pet/properties/child"
+  }
+}

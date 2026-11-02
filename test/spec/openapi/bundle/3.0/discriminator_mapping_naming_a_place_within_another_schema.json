@@ -5,30 +5,29 @@
       "title": "Example",
       "version": "1.0.0"
     },
+    "paths": {},
     "components": {
       "schemas": {
         "Pet": {
           "discriminator": {
             "propertyName": "t",
             "mapping": {
-              "x": "https://example.com/schemas/bag#/$defs/X"
+              "x": "https://example.com/schemas/bag#/properties/X"
             }
           }
         }
       }
-    },
-    "paths": {}
+    }
   },
   "defaultBase": "https://example.com/openapi.json",
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/bag": {
-      "$defs": {
+      "properties": {
         "X": {
           "title": "X"
         }
-      },
-      "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
     }
   },
   "result": {
@@ -37,28 +36,26 @@
       "title": "Example",
       "version": "1.0.0"
     },
+    "paths": {},
     "components": {
       "schemas": {
         "Pet": {
           "discriminator": {
             "propertyName": "t",
             "mapping": {
-              "x": "https://example.com/schemas/bag#/$defs/X"
+              "x": "#/components/schemas/bag/properties/X"
             }
           }
         },
         "bag": {
-          "$defs": {
+          "properties": {
             "X": {
               "title": "X"
             }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$id": "https://example.com/schemas/bag"
+          }
         }
       }
-    },
-    "paths": {}
+    }
   },
   "inserted": [
     {

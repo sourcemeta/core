@@ -28,8 +28,6 @@
   "openapiResolver": {},
   "schemaResolver": {
     "https://example.com/schemas/a": {
-      "$id": "https://example.com/schemas/a",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "next": {
           "$ref": "https://example.com/schemas/b"
@@ -37,8 +35,6 @@
       }
     },
     "https://example.com/schemas/b": {
-      "$id": "https://example.com/schemas/b",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "next": {
           "$ref": "https://example.com/schemas/c"
@@ -46,8 +42,6 @@
       }
     },
     "https://example.com/schemas/c": {
-      "$id": "https://example.com/schemas/c",
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "string"
     }
   },
@@ -66,7 +60,7 @@
               "content": {
                 "application/json": {
                   "schema": {
-                    "$ref": "https://example.com/schemas/a"
+                    "$ref": "#/components/schemas/a"
                   }
                 }
               }
@@ -78,25 +72,19 @@
     "components": {
       "schemas": {
         "c": {
-          "$id": "https://example.com/schemas/c",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "string"
         },
         "b": {
-          "$id": "https://example.com/schemas/b",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
             "next": {
-              "$ref": "https://example.com/schemas/c"
+              "$ref": "#/components/schemas/c"
             }
           }
         },
         "a": {
-          "$id": "https://example.com/schemas/a",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
             "next": {
-              "$ref": "https://example.com/schemas/b"
+              "$ref": "#/components/schemas/b"
             }
           }
         }

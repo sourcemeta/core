@@ -1,0 +1,115 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "https://example.com/schemas/a#/properties/A"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/a": {
+      "properties": {
+        "A": {
+          "discriminator": {
+            "propertyName": "u",
+            "mapping": {
+              "b": "https://example.com/schemas/b#/properties/B"
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/schemas/b": {
+      "properties": {
+        "B": {
+          "discriminator": {
+            "propertyName": "v",
+            "mapping": {
+              "a": "https://example.com/schemas/a#/properties/A"
+            }
+          }
+        }
+      }
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "t",
+            "mapping": {
+              "a": "#/components/schemas/a/properties/A"
+            }
+          }
+        },
+        "a": {
+          "properties": {
+            "A": {
+              "discriminator": {
+                "propertyName": "u",
+                "mapping": {
+                  "b": "#/components/schemas/b/properties/B"
+                }
+              }
+            }
+          }
+        },
+        "b": {
+          "properties": {
+            "B": {
+              "discriminator": {
+                "propertyName": "v",
+                "mapping": {
+                  "a": "#/components/schemas/a/properties/A"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/a",
+      "at": "/components/schemas/a"
+    },
+    {
+      "from": "https://example.com/schemas/b",
+      "at": "/components/schemas/b"
+    }
+  ],
+  "reads": {
+    "https://example.com/schemas/a": 1,
+    "https://example.com/schemas/b": 1
+  },
+  "schemaReads": {
+    "https://example.com/schemas/a": 1,
+    "https://example.com/schemas/b": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}
