@@ -1,67 +1,67 @@
 set(BENCHMARK_SOURCES)
 
 if(SOURCEMETA_CORE_MCP)
-  list(APPEND BENCHMARK_SOURCES mcp.cc)
+  list(APPEND BENCHMARK_SOURCES core/mcp.cc)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
-  list(APPEND BENCHMARK_SOURCES regex.cc)
+  list(APPEND BENCHMARK_SOURCES core/regex.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSON)
-  list(APPEND BENCHMARK_SOURCES json.cc)
+  list(APPEND BENCHMARK_SOURCES core/json.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONPOINTER)
-  list(APPEND BENCHMARK_SOURCES jsonpointer.cc)
+  list(APPEND BENCHMARK_SOURCES core/jsonpointer.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONSCHEMA)
-  list(APPEND BENCHMARK_SOURCES jsonschema.cc)
+  list(APPEND BENCHMARK_SOURCES core/jsonschema.cc)
 endif()
 
 if(SOURCEMETA_CORE_OPENAPI)
-  list(APPEND BENCHMARK_SOURCES openapi.cc)
+  list(APPEND BENCHMARK_SOURCES core/openapi.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONPATH)
-  list(APPEND BENCHMARK_SOURCES jsonpath.cc)
+  list(APPEND BENCHMARK_SOURCES core/jsonpath.cc)
 endif()
 
 if(SOURCEMETA_CORE_URITEMPLATE)
-  list(APPEND BENCHMARK_SOURCES uritemplate.cc)
+  list(APPEND BENCHMARK_SOURCES core/uritemplate.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONL)
-  list(APPEND BENCHMARK_SOURCES jsonl.cc)
+  list(APPEND BENCHMARK_SOURCES core/jsonl.cc)
 endif()
 
 if(SOURCEMETA_CORE_JSONLD)
-  list(APPEND BENCHMARK_SOURCES jsonld.cc)
+  list(APPEND BENCHMARK_SOURCES core/jsonld.cc)
 endif()
 
 if(SOURCEMETA_CORE_HTML)
-  list(APPEND BENCHMARK_SOURCES html.cc)
+  list(APPEND BENCHMARK_SOURCES core/html.cc)
 endif()
 
 if(SOURCEMETA_CORE_MARKDOWN)
-  list(APPEND BENCHMARK_SOURCES markdown.cc)
+  list(APPEND BENCHMARK_SOURCES core/markdown.cc)
 endif()
 
 if(SOURCEMETA_CORE_GZIP)
-  list(APPEND BENCHMARK_SOURCES gzip.cc)
+  list(APPEND BENCHMARK_SOURCES core/gzip.cc)
 endif()
 
 if(SOURCEMETA_CORE_JOSE)
-  list(APPEND BENCHMARK_SOURCES jose.cc)
+  list(APPEND BENCHMARK_SOURCES core/jose.cc)
 endif()
 
 if(SOURCEMETA_CORE_CRYPTO)
-  list(APPEND BENCHMARK_SOURCES crypto.cc)
+  list(APPEND BENCHMARK_SOURCES core/crypto.cc)
 endif()
 
 if(SOURCEMETA_CORE_EXTRA_METAPACK)
-  list(APPEND BENCHMARK_SOURCES metapack.cc)
+  list(APPEND BENCHMARK_SOURCES extra/metapack.cc)
 endif()
 
 if(BENCHMARK_SOURCES)
