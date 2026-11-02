@@ -1,4 +1,5 @@
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/test.h>
 
 #include <array>   // std::array
@@ -8,6 +9,7 @@
 #include <fstream>      // std::ifstream, std::ofstream
 #include <ios>          // std::ios::binary
 #include <istream>      // std::istream
+#include <limits>       // std::numeric_limits
 #include <ostream>      // std::ostream
 #include <sstream>      // std::istringstream, std::ostringstream
 #include <string>       // std::string
@@ -127,6 +129,60 @@ TEST(position_advances_after_writes) {
   EXPECT_EQ(writer.position(), 3);
   writer.put_dword(0xDEADBEEF);
   EXPECT_EQ(writer.position(), 7);
+}
+
+TEST(put_varint_fits_in_one_byte) {
+  std::ostringstream stream;
+  sourcemeta::core::BinaryWriter writer{stream};
+  writer.put_varint(127);
+  const auto bytes{stream.str()};
+  EXPECT_EQ(bytes.size(), 1);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0x7F);
+  EXPECT_EQ(writer.position(), 1);
+}
+
+TEST(put_varint_spans_multiple_bytes) {
+  std::ostringstream stream;
+  sourcemeta::core::BinaryWriter writer{stream};
+  writer.put_varint(300);
+  const auto bytes{stream.str()};
+  EXPECT_EQ(bytes.size(), 2);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xAC);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0x02);
+  EXPECT_EQ(writer.position(), 2);
+}
+
+TEST(put_varint_maximum_value) {
+  std::ostringstream stream;
+  sourcemeta::core::BinaryWriter writer{stream};
+  writer.put_varint(std::numeric_limits<std::uint64_t>::max());
+  EXPECT_EQ(stream.str().size(), sourcemeta::core::VARINT_MAXIMUM_BYTES);
+  EXPECT_EQ(writer.position(), sourcemeta::core::VARINT_MAXIMUM_BYTES);
+}
+
+TEST(put_varint_zigzag_emits_the_sign_in_the_lowest_bit) {
+  std::ostringstream stream;
+  sourcemeta::core::BinaryWriter writer{stream};
+  writer.put_varint_zigzag(-1);
+  const auto bytes{stream.str()};
+  EXPECT_EQ(bytes.size(), 1);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0x01);
+}
+
+TEST(put_string_emits_its_characters) {
+  std::ostringstream stream;
+  sourcemeta::core::BinaryWriter writer{stream};
+  writer.put_string("foo");
+  EXPECT_EQ(stream.str(), "foo");
+  EXPECT_EQ(writer.position(), 3);
+}
+
+TEST(put_string_empty_emits_nothing) {
+  std::ostringstream stream;
+  sourcemeta::core::BinaryWriter writer{stream};
+  writer.put_string("");
+  EXPECT_TRUE(stream.str().empty());
+  EXPECT_EQ(writer.position(), 0);
 }
 
 TEST(get_byte_from_stringstream) {
@@ -250,6 +306,166 @@ TEST(has_more_data_treats_null_byte_as_data) {
   std::istringstream input{std::string(1, '\0')};
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_TRUE(reader.has_more_data());
+}
+
+TEST(get_varint_roundtrip_zero_via_stringstream) {
+  std::ostringstream output;
+  sourcemeta::core::BinaryWriter writer{output};
+  writer.put_varint(0);
+
+  std::istringstream input{output.str()};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.get_varint(), 0);
+  EXPECT_EQ(reader.position(), 1);
+}
+
+TEST(get_varint_roundtrip_via_stringstream) {
+  std::ostringstream output;
+  sourcemeta::core::BinaryWriter writer{output};
+  writer.put_varint(300);
+
+  std::istringstream input{output.str()};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.get_varint(), 300);
+  EXPECT_EQ(reader.position(), 2);
+}
+
+TEST(get_varint_roundtrip_maximum_via_stringstream) {
+  std::ostringstream output;
+  sourcemeta::core::BinaryWriter writer{output};
+  writer.put_varint(std::numeric_limits<std::uint64_t>::max());
+
+  std::istringstream input{output.str()};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.get_varint(), std::numeric_limits<std::uint64_t>::max());
+  EXPECT_EQ(reader.position(), sourcemeta::core::VARINT_MAXIMUM_BYTES);
+}
+
+TEST(get_varint_zigzag_roundtrip_via_stringstream) {
+  std::ostringstream output;
+  sourcemeta::core::BinaryWriter writer{output};
+  writer.put_varint_zigzag(-4000);
+
+  std::istringstream input{output.str()};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.get_varint_zigzag(), -4000);
+}
+
+TEST(get_varint_zigzag_roundtrip_minimum_via_stringstream) {
+  std::ostringstream output;
+  sourcemeta::core::BinaryWriter writer{output};
+  writer.put_varint_zigzag(std::numeric_limits<std::int64_t>::min());
+
+  std::istringstream input{output.str()};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.get_varint_zigzag(),
+            std::numeric_limits<std::int64_t>::min());
+}
+
+TEST(get_varint_without_a_terminating_byte_throws) {
+  sourcemeta::core::InputByteStream input{0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                                          0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  sourcemeta::core::BinaryReader reader{input};
+  try {
+    [[maybe_unused]] const auto value{reader.get_varint()};
+    FAIL();
+  } catch (const sourcemeta::core::VarintParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid variable-length integer");
+  }
+}
+
+TEST(get_varint_cut_short_by_the_end_of_the_data_throws) {
+  sourcemeta::core::InputByteStream input{0x80};
+  sourcemeta::core::BinaryReader reader{input};
+  try {
+    [[maybe_unused]] const auto value{reader.get_varint()};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  }
+}
+
+TEST(get_string_roundtrip_via_stringstream) {
+  std::ostringstream output;
+  sourcemeta::core::BinaryWriter writer{output};
+  writer.put_string("foo bar");
+
+  std::istringstream input{output.str()};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_EQ(reader.get_string(7), "foo bar");
+  EXPECT_EQ(reader.position(), 7);
+}
+
+TEST(get_string_of_zero_length_reads_nothing) {
+  std::istringstream input{"foo"};
+  sourcemeta::core::BinaryReader reader{input};
+  EXPECT_TRUE(reader.get_string(0).empty());
+  EXPECT_EQ(reader.position(), 0);
+}
+
+TEST(get_string_past_the_end_throws) {
+  std::istringstream input{"foo"};
+  sourcemeta::core::BinaryReader reader{input};
+  try {
+    [[maybe_unused]] const auto value{reader.get_string(4)};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  }
+}
+
+TEST(rewind_returns_the_position_it_moved_from) {
+  std::istringstream input{"ABCDEF"};
+  sourcemeta::core::BinaryReader reader{input};
+  reader.seek(4);
+  EXPECT_EQ(reader.rewind(3, reader.position()), 4);
+  EXPECT_EQ(reader.position(), 1);
+  EXPECT_EQ(reader.get_byte(), 'B');
+}
+
+TEST(rewind_is_relative_to_the_given_position) {
+  std::istringstream input{"ABCDEF"};
+  sourcemeta::core::BinaryReader reader{input};
+  reader.seek(2);
+  const auto base{reader.position()};
+  EXPECT_EQ(reader.get_byte(), 'C');
+  EXPECT_EQ(reader.rewind(2, base), 3);
+  EXPECT_EQ(reader.position(), 0);
+  EXPECT_EQ(reader.get_byte(), 'A');
+}
+
+TEST(rewind_to_the_beginning_is_allowed) {
+  std::istringstream input{"ABCDEF"};
+  sourcemeta::core::BinaryReader reader{input};
+  reader.seek(4);
+  EXPECT_EQ(reader.rewind(4, reader.position()), 4);
+  EXPECT_EQ(reader.position(), 0);
+  EXPECT_EQ(reader.get_byte(), 'A');
+}
+
+TEST(rewind_past_the_beginning_throws) {
+  std::istringstream input{"ABCDEF"};
+  sourcemeta::core::BinaryReader reader{input};
+  reader.seek(2);
+  try {
+    [[maybe_unused]] const auto previous{reader.rewind(3, reader.position())};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  }
+}
+
+TEST(the_position_of_a_stream_survives_a_failed_read) {
+  std::istringstream input{"AB"};
+  sourcemeta::core::BinaryReader reader{input};
+  try {
+    [[maybe_unused]] const auto value{reader.get_dword()};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  }
+
+  EXPECT_EQ(reader.position(), 0);
 }
 
 TEST_F(IOBinaryTest, put_dword_to_file) {
@@ -448,26 +664,16 @@ TEST(write_to_a_stream_with_no_buffer_throws) {
   }
 }
 
-TEST(the_position_of_a_stream_with_no_buffer_throws) {
+TEST(the_position_of_a_stream_with_no_buffer_is_zero) {
   std::ostream output{nullptr};
   sourcemeta::core::BinaryWriter writer{output};
-  try {
-    [[maybe_unused]] const auto position{writer.position()};
-    FAIL();
-  } catch (const sourcemeta::core::IOStreamWriteError &error) {
-    EXPECT_STREQ(error.what(), "Failed to write to stream");
-  }
+  EXPECT_EQ(writer.position(), 0);
 }
 
-TEST(the_read_position_of_a_stream_with_no_buffer_throws) {
+TEST(the_read_position_of_a_stream_with_no_buffer_is_zero) {
   std::istream input{nullptr};
   sourcemeta::core::BinaryReader reader{input};
-  try {
-    [[maybe_unused]] const auto position{reader.position()};
-    FAIL();
-  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
-    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
-  }
+  EXPECT_EQ(reader.position(), 0);
 }
 
 TEST(seeking_a_stream_with_no_buffer_throws) {
@@ -526,4 +732,52 @@ TEST(has_more_data_on_a_file_stream_before_any_read) {
   EXPECT_TRUE(input.good());
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_TRUE(reader.has_more_data());
+}
+
+TEST_F(IOBinaryTest, get_varint_via_file) {
+  const auto path{this->workspace_ / "varint.bin"};
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.put_varint(300);
+    writer.put_varint(1);
+  }
+
+  const sourcemeta::core::FileView view{path};
+  sourcemeta::core::BinaryReader reader{view};
+  EXPECT_EQ(reader.get_varint(), 300);
+  EXPECT_EQ(reader.position(), 2);
+  EXPECT_EQ(reader.get_varint(), 1);
+  EXPECT_EQ(reader.position(), 3);
+  EXPECT_FALSE(reader.has_more_data());
+}
+
+TEST_F(IOBinaryTest, get_string_via_file) {
+  const auto path{this->workspace_ / "string.bin"};
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.put_string("foo bar");
+  }
+
+  const sourcemeta::core::FileView view{path};
+  sourcemeta::core::BinaryReader reader{view};
+  EXPECT_EQ(reader.get_string(7), "foo bar");
+  EXPECT_EQ(reader.position(), 7);
+}
+
+TEST_F(IOBinaryTest, rewind_via_file) {
+  const auto path{this->workspace_ / "rewind.bin"};
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.put_string("ABCDEF");
+  }
+
+  const sourcemeta::core::FileView view{path};
+  sourcemeta::core::BinaryReader reader{view};
+  reader.seek(4);
+  EXPECT_EQ(reader.rewind(3, reader.position()), 4);
+  EXPECT_EQ(reader.position(), 1);
+  EXPECT_EQ(reader.get_byte(), 'B');
 }
