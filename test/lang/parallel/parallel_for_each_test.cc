@@ -147,7 +147,7 @@ TEST(single_pass_multiple_elements) {
 }
 
 TEST(forward_iterator_retains_parallel_workers) {
-  const std::array items{1, 2, 3, 4};
+  const std::array<int, 4> items{{1, 2, 3, 4}};
   const auto caller{std::this_thread::get_id()};
   std::mutex mutex;
   std::vector<std::array<std::size_t, 3>> processed;

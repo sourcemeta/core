@@ -55,10 +55,11 @@ inline auto hold_first_exception(std::mutex &mutex, std::exception_ptr &holder,
 /// @ingroup parallel
 ///
 /// Process a collection in parallel. If the parallelism is set to zero, the
-/// function will run using the available number of cores. If the stack size is
-/// set to zero, the platform default applies, and a stack size the platform
-/// cannot honour throws. Single-pass iterators are processed sequentially,
-/// with the callback receiving an effective parallelism of one. For example:
+/// function will run using the available number of cores. When worker threads
+/// are created, a stack size of zero uses the platform default, and an
+/// unsupported stack size throws. Sequential execution uses the calling
+/// thread's stack. Single-pass iterators are processed sequentially, with the
+/// callback receiving an effective parallelism of one. For example:
 ///
 /// ```c++
 /// #include <sourcemeta/core/parallel.h>
@@ -133,7 +134,8 @@ auto parallel_for_each(
   // environment by reference. It will be heap-copied into the native thread
   // API.
   auto worker_callable = [&tasks, &queue_mutex, &effective_callback, &exception,
-                          &exception_mutex, effective_parallelism, total] {
+                          &exception_mutex,
+                          worker_parallelism = effective_parallelism, total] {
     try {
       while (true) {
         // The lock is given up before the work runs, as holding it across the
@@ -148,7 +150,7 @@ auto parallel_for_each(
         const auto cursor{total - tasks.size() + 1};
         tasks.pop();
         lock.unlock();
-        effective_callback(*iterator, effective_parallelism, cursor);
+        effective_callback(*iterator, worker_parallelism, cursor);
       }
     } catch (...) {
       hold_first_exception(exception_mutex, exception,
