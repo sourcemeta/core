@@ -783,8 +783,46 @@ TEST_F(IOBinaryTest, get_string_via_file) {
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
-  EXPECT_EQ(reader.get_string(7), "foo bar");
-  EXPECT_EQ(reader.position(), 7);
+  reader.seek(4);
+  EXPECT_EQ(reader.get_string(3), "bar");
+  EXPECT_EQ(reader.position(), view.size());
+  EXPECT_TRUE(reader.get_string(0).empty());
+  EXPECT_EQ(reader.position(), view.size());
+}
+
+TEST_F(IOBinaryTest, get_string_one_past_mapped_end) {
+  const auto path{this->workspace_ / "string.bin"};
+  std::ofstream{path, std::ios::binary} << "ab";
+
+  const sourcemeta::core::FileView view{path};
+  sourcemeta::core::BinaryReader reader{view};
+  reader.seek(1);
+  try {
+    [[maybe_unused]] const auto value{reader.get_string(2)};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &) {
+  }
+
+  EXPECT_EQ(reader.position(), 1);
+  EXPECT_EQ(reader.get_string(1), "b");
+}
+
+TEST_F(IOBinaryTest, get_string_oversized_mapped_length) {
+  const auto path{this->workspace_ / "string.bin"};
+  std::ofstream{path, std::ios::binary} << "ab";
+
+  const sourcemeta::core::FileView view{path};
+  sourcemeta::core::BinaryReader reader{view};
+  reader.seek(1);
+  try {
+    [[maybe_unused]] const auto value{
+        reader.get_string(std::numeric_limits<std::size_t>::max())};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &) {
+  }
+
+  EXPECT_EQ(reader.position(), 1);
+  EXPECT_EQ(reader.get_string(1), "b");
 }
 
 TEST_F(IOBinaryTest, rewind_via_file) {
