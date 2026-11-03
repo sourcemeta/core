@@ -801,9 +801,9 @@ TEST_F(IOBinaryTest, get_string_one_past_mapped_end) {
     [[maybe_unused]] const auto value{reader.get_string(2)};
     FAIL();
   } catch (const sourcemeta::core::IOReadOutOfBoundsError &) {
+    EXPECT_EQ(reader.position(), 1);
   }
 
-  EXPECT_EQ(reader.position(), 1);
   EXPECT_EQ(reader.get_string(1), "b");
 }
 
@@ -819,9 +819,9 @@ TEST_F(IOBinaryTest, get_string_oversized_mapped_length) {
         reader.get_string(std::numeric_limits<std::size_t>::max())};
     FAIL();
   } catch (const sourcemeta::core::IOReadOutOfBoundsError &) {
+    EXPECT_EQ(reader.position(), 1);
   }
 
-  EXPECT_EQ(reader.position(), 1);
   EXPECT_EQ(reader.get_string(1), "b");
 }
 
