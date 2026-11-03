@@ -261,14 +261,15 @@ TEST(jwt_verify_hs256_full_round_trip) {
   EXPECT_FALSE(error.has_value());
 }
 
-static auto expect_signed_audience_error(const std::string_view payload)
-    -> void {
+TEST(jwt_verify_rejects_non_string_audience_after_match) {
   const auto jwk{sourcemeta::core::parse_json(OCT_JWK)};
   const auto key{sourcemeta::core::JWKPrivate::from(jwk)};
   EXPECT_TRUE(key.has_value());
   const auto token_string{sourcemeta::core::jwt_sign(
       sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
-      sourcemeta::core::parse_json(payload), key.value())};
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": [ "client", 42 ], "exp": 2000 })"),
+      key.value())};
   EXPECT_TRUE(token_string.has_value());
   const auto token{sourcemeta::core::JWT::from(token_string.value())};
   EXPECT_TRUE(token.has_value());
@@ -285,14 +286,29 @@ static auto expect_signed_audience_error(const std::string_view payload)
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
 }
 
-TEST(jwt_verify_rejects_non_string_audience_after_match) {
-  expect_signed_audience_error(
-      R"({ "iss": "acme", "aud": [ "client", 42 ], "exp": 2000 })");
-}
-
 TEST(jwt_verify_rejects_non_string_audience_before_match) {
-  expect_signed_audience_error(
-      R"({ "iss": "acme", "aud": [ 42, "client" ], "exp": 2000 })");
+  const auto jwk{sourcemeta::core::parse_json(OCT_JWK)};
+  const auto key{sourcemeta::core::JWKPrivate::from(jwk)};
+  EXPECT_TRUE(key.has_value());
+  const auto token_string{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": [ 42, "client" ], "exp": 2000 })"),
+      key.value())};
+  EXPECT_TRUE(token_string.has_value());
+  const auto token{sourcemeta::core::JWT::from(token_string.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto keys{sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(
+      std::string{R"({ "keys": [)"}.append(OCT_JWK).append("]}")))};
+  EXPECT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), {}, std::nullopt,
+      std::nullopt)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
 }
 
 TEST(jwt_verify_hs256_rejected_when_not_allowed) {

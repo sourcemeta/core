@@ -176,9 +176,10 @@ TEST(audience_array_contains) {
   EXPECT_FALSE(error.has_value());
 }
 
-static auto expect_audience_error(const std::string_view payload) -> void {
-  const auto token{sourcemeta::core::JWT::from(
-      make_token(R"({ "alg": "RS256" })", payload, "sig"))};
+TEST(audience_array_rejects_non_string_after_match) {
+  const auto token{sourcemeta::core::JWT::from(make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": [ "client", 42 ], "exp": 2000 })", "sig"))};
   EXPECT_TRUE(token.has_value());
   const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
@@ -187,14 +188,16 @@ static auto expect_audience_error(const std::string_view payload) -> void {
   EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
 }
 
-TEST(audience_array_rejects_non_string_after_match) {
-  expect_audience_error(
-      R"({ "iss": "acme", "aud": [ "client", 42 ], "exp": 2000 })");
-}
-
 TEST(audience_array_rejects_non_string_before_match) {
-  expect_audience_error(
-      R"({ "iss": "acme", "aud": [ 42, "client" ], "exp": 2000 })");
+  const auto token{sourcemeta::core::JWT::from(make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": [ 42, "client" ], "exp": 2000 })", "sig"))};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000))};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
 }
 
 TEST(valid_with_subject) {

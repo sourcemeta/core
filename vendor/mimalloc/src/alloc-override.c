@@ -340,8 +340,7 @@ mi_decl_nodiscard size_t mi_malloc_usable_size(const void *p) mi_attr_noexcept {
   void*  reallocf(void* p, size_t newsize) MI_FORWARD2(mi_reallocf,p,newsize)
   size_t malloc_size(const void* p)        MI_FORWARD1(mi_malloc_size,p)
   #if !defined(__ANDROID__) && !defined(__FreeBSD__) && !defined(__DragonFly__)
-  // The system declaration takes void*, so it cannot alias the const void* function.
-  mi_decl_export size_t malloc_usable_size(void *p) { return mi_malloc_usable_size(p); }
+  size_t malloc_usable_size(void *p)       MI_FORWARD1(mi_malloc_usable_size,p)
   #else
   size_t malloc_usable_size(const void *p) MI_FORWARD1(mi_malloc_usable_size,p)
   #endif
