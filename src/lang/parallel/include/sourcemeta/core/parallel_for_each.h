@@ -54,12 +54,12 @@ inline auto hold_first_exception(std::mutex &mutex, std::exception_ptr &holder,
 
 /// @ingroup parallel
 ///
-/// Process a collection in parallel. If the parallelism is set to zero, the
-/// function will run using the available number of cores. When worker threads
-/// are created, a stack size of zero uses the platform default, and an
-/// unsupported stack size throws. Sequential execution uses the calling
-/// thread's stack. Single-pass iterators are processed sequentially, with the
-/// callback receiving an effective parallelism of one. For example:
+/// Process a collection in parallel. By default, parallelism uses the
+/// available number of cores. Setting parallelism to zero runs sequentially.
+/// When worker threads are created, a stack size of zero uses the platform
+/// default, and an unsupported stack size throws. Sequential execution uses
+/// the calling thread's stack. Single-pass iterators run sequentially and
+/// report an effective parallelism of one to the callback. For example:
 ///
 /// ```c++
 /// #include <sourcemeta/core/parallel.h>
