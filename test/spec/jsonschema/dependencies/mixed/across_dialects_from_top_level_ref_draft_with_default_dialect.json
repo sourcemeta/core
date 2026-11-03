@@ -1,0 +1,24 @@
+{
+  "schema": {
+    "$ref": "https://www.sourcemeta.com/test-4"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-4": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/test-4",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "http://json-schema.org/draft-07/schema#",
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/test-4"
+    }
+  ],
+  "locations": 2,
+  "fetched": [
+    "https://www.sourcemeta.com/test-4"
+  ]
+}

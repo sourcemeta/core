@@ -1,0 +1,57 @@
+{
+  "schema": {
+    "$schema": "https://www.sourcemeta.com/meta",
+    "$id": "https://www.sourcemeta.com/entry",
+    "properties": {
+      "p": {
+        "$ref": "https://www.sourcemeta.com/t1"
+      }
+    },
+    "items": {
+      "$ref": "https://www.sourcemeta.com/t2"
+    },
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/t3"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/meta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/meta",
+      "$ref": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "https://www.sourcemeta.com/t1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/t1",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/t2": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/t2",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/t3": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/t3",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/meta"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/meta",
+      "pointer": "/$ref",
+      "destination": "https://json-schema.org/draft/2020-12/schema"
+    }
+  ],
+  "locations": 2,
+  "fetched": [
+    "https://www.sourcemeta.com/meta"
+  ]
+}

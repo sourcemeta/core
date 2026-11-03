@@ -1,0 +1,34 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "id": "http://www.example.com/entry",
+    "properties": {
+      "sibling": {
+        "$ref": "http://www.example.com/target",
+        "properties": {
+          "ignored": {
+            "$ref": "http://www.example.com/nowhere"
+          }
+        }
+      }
+    }
+  },
+  "resolver": {
+    "http://www.example.com/target": {
+      "$schema": "http://json-schema.org/draft-03/schema#",
+      "id": "http://www.example.com/target",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "http://www.example.com/entry",
+      "pointer": "/properties/sibling/$ref",
+      "destination": "http://www.example.com/target"
+    }
+  ],
+  "locations": 3,
+  "fetched": [
+    "http://www.example.com/target"
+  ]
+}

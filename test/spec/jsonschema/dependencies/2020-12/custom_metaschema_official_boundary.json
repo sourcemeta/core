@@ -1,0 +1,55 @@
+{
+  "schema": {
+    "$id": "https://www.example.com",
+    "$schema": "https://www.sourcemeta.com/custom-metaschema",
+    "type": "string"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/custom-metaschema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/custom-metaschema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      },
+      "allOf": [
+        {
+          "$ref": "https://json-schema.org/draft/2020-12/meta/core"
+        },
+        {
+          "$ref": "https://json-schema.org/draft/2020-12/meta/applicator"
+        },
+        {
+          "$ref": "https://json-schema.org/draft/2020-12/meta/validation"
+        }
+      ]
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/custom-metaschema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/custom-metaschema",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://json-schema.org/draft/2020-12/meta/core"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/custom-metaschema",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://json-schema.org/draft/2020-12/meta/applicator"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/custom-metaschema",
+      "pointer": "/allOf/2/$ref",
+      "destination": "https://json-schema.org/draft/2020-12/meta/validation"
+    }
+  ],
+  "locations": 5,
+  "fetched": [
+    "https://www.sourcemeta.com/custom-metaschema"
+  ]
+}

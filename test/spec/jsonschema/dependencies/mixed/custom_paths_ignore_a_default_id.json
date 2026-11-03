@@ -1,0 +1,30 @@
+{
+  "schema": {
+    "common": {
+      "entry": {
+        "$ref": "test-1"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultId": "https://www.sourcemeta.com/wrapper",
+  "paths": [
+    "/common/entry"
+  ],
+  "dependencies": [],
+  "fetched": [
+    "test-1"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "test-1"
+  }
+}

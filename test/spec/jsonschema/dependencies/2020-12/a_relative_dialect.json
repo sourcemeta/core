@@ -1,0 +1,15 @@
+{
+  "schema": {
+    "$schema": "relative-meta",
+    "type": "string"
+  },
+  "dependencies": [],
+  "fetched": [
+    "relative-meta"
+  ],
+  "error": {
+    "type": "SchemaRelativeMetaschemaResolutionError",
+    "message": "Relative meta-schema URIs are not valid according to the JSON Schema specification",
+    "identifier": "relative-meta"
+  }
+}

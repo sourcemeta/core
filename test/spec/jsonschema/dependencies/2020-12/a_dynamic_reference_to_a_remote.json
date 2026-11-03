@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "items": {
+      "$dynamicRef": "https://www.sourcemeta.com/anchored#thing"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/anchored": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/anchored",
+      "$dynamicAnchor": "thing",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/items/$dynamicRef",
+      "destination": "https://www.sourcemeta.com/anchored"
+    }
+  ],
+  "locations": 5,
+  "fetched": [
+    "https://www.sourcemeta.com/anchored"
+  ]
+}

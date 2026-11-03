@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "$ref": "https://www.sourcemeta.com/fetched-as"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/fetched-as": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/declares-as",
+      "$ref": "https://www.sourcemeta.com/leaf"
+    },
+    "https://www.sourcemeta.com/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/leaf",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/fetched-as"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/fetched-as",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/leaf"
+    }
+  ],
+  "locations": 4,
+  "fetched": [
+    "https://www.sourcemeta.com/fetched-as",
+    "https://www.sourcemeta.com/leaf"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schema": {
+    "$schema": "https://www.sourcemeta.com/custom-meta",
+    "$id": "https://www.sourcemeta.com/entry",
+    "$ref": "https://www.sourcemeta.com/r"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/custom-meta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/custom-meta",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      }
+    },
+    "https://www.sourcemeta.com/r": {
+      "$schema": "https://www.sourcemeta.com/custom-meta",
+      "$id": "https://www.sourcemeta.com/r",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/r"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/custom-meta"
+    }
+  ],
+  "locations": 3,
+  "fetched": [
+    "https://www.sourcemeta.com/custom-meta",
+    "https://www.sourcemeta.com/r",
+    "https://www.sourcemeta.com/custom-meta"
+  ]
+}

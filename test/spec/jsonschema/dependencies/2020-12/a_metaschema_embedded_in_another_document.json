@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/entry",
+    "$ref": "https://example.com/b",
+    "$defs": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        },
+        "type": "object"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/b": {
+      "$schema": "https://example.com/meta",
+      "$id": "https://example.com/b",
+      "type": "string"
+    }
+  },
+  "dependencies": [],
+  "fetched": [
+    "https://example.com/b",
+    "https://example.com/meta"
+  ],
+  "error": {
+    "type": "SchemaReferenceError",
+    "message": "The JSON document is not a valid JSON Schema",
+    "identifier": "https://example.com/b",
+    "location": "/$ref"
+  }
+}

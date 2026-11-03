@@ -1,0 +1,49 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/aaa-consumer"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/zzz-host"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/zzz-host": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/zzz-host",
+      "$defs": {
+        "inner": {
+          "$id": "https://www.sourcemeta.com/r",
+          "type": "string"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/aaa-consumer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/aaa-consumer",
+      "$ref": "https://www.sourcemeta.com/r"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/aaa-consumer"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/zzz-host"
+    }
+  ],
+  "locations": 7,
+  "fetched": [
+    "https://www.sourcemeta.com/aaa-consumer",
+    "https://www.sourcemeta.com/zzz-host",
+    "https://www.sourcemeta.com/r"
+  ]
+}

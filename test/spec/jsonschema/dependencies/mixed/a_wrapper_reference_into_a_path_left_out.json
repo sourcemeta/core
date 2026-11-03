@@ -1,0 +1,20 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$ref": "#/components/schemas/Missing"
+        }
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultBase": "https://example.com/openapi.json",
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "dependencies": [],
+  "locations": 1,
+  "fetched": []
+}

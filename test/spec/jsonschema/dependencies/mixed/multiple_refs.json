@@ -1,0 +1,58 @@
+{
+  "schema": {
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-3"
+      },
+      "bar": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/test-3": {
+      "$schema": "http://json-schema.org/draft-06/schema#",
+      "$id": "https://www.sourcemeta.com/test-3",
+      "allOf": [
+        {
+          "$ref": "test-4"
+        }
+      ]
+    },
+    "https://www.sourcemeta.com/test-4": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/test-4",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/properties/bar/$ref",
+      "destination": "https://www.sourcemeta.com/test-1"
+    },
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/properties/foo/$ref",
+      "destination": "https://www.sourcemeta.com/test-3"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/test-3",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/test-4"
+    }
+  ],
+  "locations": 7,
+  "fetched": [
+    "https://www.sourcemeta.com/test-1",
+    "https://www.sourcemeta.com/test-3",
+    "https://www.sourcemeta.com/test-4"
+  ]
+}

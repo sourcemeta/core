@@ -1,0 +1,26 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "$ref": "https://www.sourcemeta.com/target#/$defs/missing"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/target": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/target",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/items/$ref",
+      "destination": "https://www.sourcemeta.com/target"
+    }
+  ],
+  "locations": 3,
+  "fetched": [
+    "https://www.sourcemeta.com/target"
+  ]
+}

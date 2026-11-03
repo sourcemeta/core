@@ -1,0 +1,31 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "$recursiveAnchor": true,
+    "items": {
+      "$recursiveRef": "#"
+    },
+    "contains": {
+      "$ref": "https://www.sourcemeta.com/target"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/target": {
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "$id": "https://www.sourcemeta.com/target",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/contains/$ref",
+      "destination": "https://www.sourcemeta.com/target"
+    }
+  ],
+  "locations": 5,
+  "fetched": [
+    "https://www.sourcemeta.com/target"
+  ]
+}
