@@ -176,6 +176,30 @@ TEST(audience_array_contains) {
   EXPECT_FALSE(error.has_value());
 }
 
+TEST(audience_array_rejects_non_string_after_match) {
+  const auto token{sourcemeta::core::JWT::from(make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": [ "client", 42 ], "exp": 2000 })", "sig"))};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000))};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
+}
+
+TEST(audience_array_rejects_non_string_before_match) {
+  const auto token{sourcemeta::core::JWT::from(make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": [ 42, "client" ], "exp": 2000 })", "sig"))};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000))};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
+}
+
 TEST(valid_with_subject) {
   const auto input{make_token(
       R"({ "alg": "RS256" })",
