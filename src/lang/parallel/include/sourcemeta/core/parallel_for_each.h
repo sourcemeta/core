@@ -57,7 +57,8 @@ inline auto hold_first_exception(std::mutex &mutex, std::exception_ptr &holder,
 /// Process a collection in parallel. If the parallelism is set to zero, the
 /// function will run using the available number of cores. If the stack size is
 /// set to zero, the platform default applies, and a stack size the platform
-/// cannot honour throws. For example:
+/// cannot honour throws. Single-pass iterators are processed sequentially,
+/// with the callback receiving an effective parallelism of one. For example:
 ///
 /// ```c++
 /// #include <sourcemeta/core/parallel.h>
@@ -92,7 +93,8 @@ auto parallel_for_each(
     Iterator first, Iterator last, Callback &&callback,
     const std::size_t parallelism = std::thread::hardware_concurrency(),
     const std::size_t stack_size_bytes = 0) -> void {
-  const auto effective_parallelism{(std::max)(parallelism, 1uz)};
+  const auto effective_parallelism{
+      std::forward_iterator<Iterator> ? (std::max)(parallelism, 1uz) : 1uz};
 
   // Empty list
   if (first == last) {
@@ -101,7 +103,7 @@ auto parallel_for_each(
 
   // If it is a single element or there is no parallelism,
   // just do a normal loop without dealing with threads
-  if (effective_parallelism == 1 || std::next(first) == last) {
+  if (effective_parallelism == 1 || std::ranges::next(first) == last) {
     std::size_t cursor{1};
     for (auto iterator = first; iterator != last; ++iterator, ++cursor) {
       callback(*iterator, effective_parallelism, cursor);

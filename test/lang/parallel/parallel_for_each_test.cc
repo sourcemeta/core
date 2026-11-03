@@ -6,8 +6,10 @@
 #include <atomic>
 #include <climits>
 #include <cstdint>
+#include <iterator>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -98,6 +100,77 @@ TEST(empty_range) {
       });
 
   EXPECT_EQ(touched.load(), 0);
+}
+
+static auto expect_single_pass(std::istringstream &input,
+                               const std::vector<int> &expected) -> void {
+  std::mutex mutex;
+  std::vector<int> values;
+  std::vector<std::size_t> cursors;
+  std::set<std::size_t> parallelism;
+  sourcemeta::core::parallel_for_each(
+      std::istream_iterator<int>{input}, std::istream_iterator<int>{},
+      [&](const auto value, const auto concurrency, const auto cursor) {
+        const std::scoped_lock lock{mutex};
+        values.push_back(value);
+        cursors.push_back(cursor);
+        parallelism.emplace(concurrency);
+      },
+      2);
+
+  EXPECT_EQ(values, expected);
+  EXPECT_EQ(cursors.size(), expected.size());
+  for (std::size_t index = 0; index < cursors.size(); ++index) {
+    EXPECT_EQ(cursors[index], index + 1);
+  }
+  if (expected.empty()) {
+    EXPECT_TRUE(parallelism.empty());
+  } else {
+    EXPECT_EQ(parallelism.size(), 1);
+    EXPECT_TRUE(parallelism.contains(1));
+  }
+}
+
+TEST(single_pass_empty) {
+  std::istringstream input;
+  expect_single_pass(input, {});
+}
+
+TEST(single_pass_one_element) {
+  std::istringstream input{"42"};
+  expect_single_pass(input, {42});
+}
+
+TEST(single_pass_multiple_elements) {
+  std::istringstream input{"1 2 3 4"};
+  expect_single_pass(input, {1, 2, 3, 4});
+}
+
+TEST(forward_iterator_retains_parallel_workers) {
+  const std::array items{1, 2, 3, 4};
+  const auto caller{std::this_thread::get_id()};
+  std::mutex mutex;
+  std::vector<std::array<std::size_t, 3>> processed;
+  bool used_caller{false};
+
+  sourcemeta::core::parallel_for_each(
+      items.cbegin(), items.cend(),
+      [&](const auto value, const auto concurrency, const auto cursor) {
+        const std::scoped_lock lock{mutex};
+        processed.push_back(
+            {{cursor, static_cast<std::size_t>(value), concurrency}});
+        used_caller = used_caller || std::this_thread::get_id() == caller;
+      },
+      2);
+
+  std::sort(processed.begin(), processed.end());
+  EXPECT_EQ(processed.size(), items.size());
+  for (std::size_t index = 0; index < processed.size(); ++index) {
+    EXPECT_EQ(processed[index][0], index + 1);
+    EXPECT_EQ(processed[index][1], static_cast<std::size_t>(items[index]));
+    EXPECT_EQ(processed[index][2], 2);
+  }
+  EXPECT_FALSE(used_caller);
 }
 
 TEST(work_callback_throw) {
