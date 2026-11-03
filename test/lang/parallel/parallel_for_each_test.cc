@@ -6,8 +6,10 @@
 #include <atomic>
 #include <climits>
 #include <cstdint>
+#include <iterator>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -98,6 +100,84 @@ TEST(empty_range) {
       });
 
   EXPECT_EQ(touched.load(), 0);
+}
+
+TEST(single_pass_empty) {
+  std::istringstream input;
+  std::atomic<std::size_t> touched{0};
+  sourcemeta::core::parallel_for_each(
+      std::istream_iterator<int>{input}, std::istream_iterator<int>{},
+      [&touched](const auto, const auto, const auto) {
+        touched.fetch_add(1, std::memory_order_relaxed);
+      },
+      2);
+
+  EXPECT_EQ(touched.load(), 0);
+}
+
+TEST(single_pass_one_element) {
+  std::istringstream input{"42"};
+  std::mutex mutex;
+  std::vector<std::array<std::size_t, 3>> processed;
+
+  sourcemeta::core::parallel_for_each(
+      std::istream_iterator<int>{input}, std::istream_iterator<int>{},
+      [&](const auto value, const auto concurrency, const auto cursor) {
+        const std::scoped_lock lock{mutex};
+        processed.push_back(
+            {{cursor, static_cast<std::size_t>(value), concurrency}});
+      },
+      2);
+
+  EXPECT_EQ(processed.size(), 1);
+  EXPECT_EQ(processed[0], (std::array<std::size_t, 3>{{1, 42, 1}}));
+}
+
+TEST(single_pass_multiple_elements) {
+  std::istringstream input{"1 2 3 4"};
+  std::mutex mutex;
+  std::vector<std::array<std::size_t, 3>> processed;
+
+  sourcemeta::core::parallel_for_each(
+      std::istream_iterator<int>{input}, std::istream_iterator<int>{},
+      [&](const auto value, const auto concurrency, const auto cursor) {
+        const std::scoped_lock lock{mutex};
+        processed.push_back(
+            {{cursor, static_cast<std::size_t>(value), concurrency}});
+      },
+      2);
+
+  EXPECT_EQ(processed.size(), 4);
+  EXPECT_EQ(processed[0], (std::array<std::size_t, 3>{{1, 1, 1}}));
+  EXPECT_EQ(processed[1], (std::array<std::size_t, 3>{{2, 2, 1}}));
+  EXPECT_EQ(processed[2], (std::array<std::size_t, 3>{{3, 3, 1}}));
+  EXPECT_EQ(processed[3], (std::array<std::size_t, 3>{{4, 4, 1}}));
+}
+
+TEST(forward_iterator_retains_parallel_workers) {
+  const std::array<int, 4> items{{1, 2, 3, 4}};
+  const auto caller{std::this_thread::get_id()};
+  std::mutex mutex;
+  std::vector<std::array<std::size_t, 3>> processed;
+  bool used_caller{false};
+
+  sourcemeta::core::parallel_for_each(
+      items.cbegin(), items.cend(),
+      [&](const auto value, const auto concurrency, const auto cursor) {
+        const std::scoped_lock lock{mutex};
+        processed.push_back(
+            {{cursor, static_cast<std::size_t>(value), concurrency}});
+        used_caller = used_caller || std::this_thread::get_id() == caller;
+      },
+      2);
+
+  std::sort(processed.begin(), processed.end());
+  EXPECT_EQ(processed.size(), items.size());
+  EXPECT_EQ(processed[0], (std::array<std::size_t, 3>{{1, 1, 2}}));
+  EXPECT_EQ(processed[1], (std::array<std::size_t, 3>{{2, 2, 2}}));
+  EXPECT_EQ(processed[2], (std::array<std::size_t, 3>{{3, 3, 2}}));
+  EXPECT_EQ(processed[3], (std::array<std::size_t, 3>{{4, 4, 2}}));
+  EXPECT_FALSE(used_caller);
 }
 
 TEST(work_callback_throw) {
