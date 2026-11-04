@@ -1117,7 +1117,14 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         }
       }
 
-      root_bases.push_back(this->cache_->default_base);
+      // A document retrieved from where it says it is has the base it
+      // declares and the base it came from be one and the same URI, and a
+      // resource registered once from each of them would be registered twice
+      if (std::ranges::find(root_bases, this->cache_->default_base) ==
+          root_bases.cend()) {
+        root_bases.push_back(this->cache_->default_base);
+      }
+
       base_uris.insert_or_assign(sourcemeta::core::EMPTY_WEAK_POINTER,
                                  std::move(root_bases));
     }
@@ -1277,9 +1284,20 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             // The identifier that the top of the document carries resolved
             // against the base the document was retrieved from already, so
             // registering it from that base again would register the very
-            // same resource a second time
+            // same resource a second time. Where the document goes by no
+            // other base, that earlier registration is this one rather than a
+            // second copy of it, and skipping would leave the document as no
+            // resource at all. The name the caller gave is not one of those
+            // other bases, as the check above skips it in its own right
             if (common_pointer_weak.empty() &&
-                base_string == this->cache_->default_base) {
+                base_string == this->cache_->default_base &&
+                std::ranges::any_of(bases.first,
+                                    [this, &default_id_canonical](
+                                        const auto &candidate) -> bool {
+                                      return candidate !=
+                                                 this->cache_->default_base &&
+                                             candidate != default_id_canonical;
+                                    })) {
               continue;
             }
 
