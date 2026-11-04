@@ -122,32 +122,12 @@ auto detect_scan_kernel() noexcept -> ScanKernel {
 }
 #endif
 
-SOURCEMETA_CORE_JSON_SCAN_TARGET("avx2")
-auto scan_hashes_blocks_wide(const std::uint64_t *const data,
-                             const std::size_t size,
-                             const std::uint64_t needle) noexcept
-    -> std::size_t {
-  std::size_t offset{0};
-  const auto target{_mm256_set1_epi64x(static_cast<long long>(needle))};
-  while (offset + 8 <= size) {
-    const auto lower{_mm256_cmpeq_epi64(
-        _mm256_loadu_si256(reinterpret_cast<const __m256i *>(data + offset)),
-        target)};
-    const auto upper{
-        _mm256_cmpeq_epi64(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(
-                               data + offset + 4)),
-                           target)};
-    const auto matches{_mm256_or_si256(lower, upper)};
-    if (_mm256_testz_si256(matches, matches) == 0) {
-      break;
-    }
-
-    offset += 8;
-  }
-
-  return offset;
-}
-
+// Each width skips only the blocks it proves hold no match, so the widths
+// compose: a stage that finds a block stops on it, and a stage that runs out of
+// whole blocks hands what is left to the next one down, which may still skip
+// through part of it. An answer short of the first match costs the caller
+// nothing but a few scalar steps, so the half width step that a run which does
+// not divide evenly ends on is cheaper than the scalar steps it stands in for
 SOURCEMETA_CORE_JSON_SCAN_TARGET("sse4.1")
 auto scan_hashes_blocks_narrow(const std::uint64_t *const data,
                                const std::size_t size,
@@ -171,29 +151,69 @@ auto scan_hashes_blocks_narrow(const std::uint64_t *const data,
     const auto matches{
         _mm_or_si128(_mm_or_si128(first, second), _mm_or_si128(third, fourth))};
     if (_mm_testz_si128(matches, matches) == 0) {
-      break;
+      return offset;
     }
 
     offset += 8;
   }
 
+  if (offset + 4 <= size) {
+    const auto first{_mm_cmpeq_epi64(
+        _mm_loadu_si128(reinterpret_cast<const __m128i *>(data + offset)),
+        target)};
+    const auto second{_mm_cmpeq_epi64(
+        _mm_loadu_si128(reinterpret_cast<const __m128i *>(data + offset + 2)),
+        target)};
+    const auto matches{_mm_or_si128(first, second)};
+    if (_mm_testz_si128(matches, matches) != 0) {
+      offset += 4;
+    }
+  }
+
   return offset;
+}
+
+SOURCEMETA_CORE_JSON_SCAN_TARGET("avx2")
+auto scan_hashes_blocks_wide(const std::uint64_t *const data,
+                             const std::size_t size,
+                             const std::uint64_t needle) noexcept
+    -> std::size_t {
+  std::size_t offset{0};
+  const auto target{_mm256_set1_epi64x(static_cast<long long>(needle))};
+  while (offset + 8 <= size) {
+    const auto lower{_mm256_cmpeq_epi64(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i *>(data + offset)),
+        target)};
+    const auto upper{
+        _mm256_cmpeq_epi64(_mm256_loadu_si256(reinterpret_cast<const __m256i *>(
+                               data + offset + 4)),
+                           target)};
+    const auto matches{_mm256_or_si256(lower, upper)};
+    if (_mm256_testz_si256(matches, matches) == 0) {
+      return offset;
+    }
+
+    offset += 8;
+  }
+
+  return offset +
+         scan_hashes_blocks_narrow(data + offset, size - offset, needle);
 }
 #endif
 
 // Narrow a run of hashes down to the block that may hold one equal to the given
 // value, or to the end of the whole blocks when none of them does. A run too
-// short to fill a block is left to the caller, which keeps the choice of vector
-// unit out of the way of the inputs that would never reach one
+// short for even the narrowest block is left to the caller, which keeps the
+// choice of vector unit out of the way of the inputs that would never reach one
 #if defined(SOURCEMETA_CORE_JSON_SCAN_X86) ||                                  \
     defined(SOURCEMETA_CORE_JSON_SCAN_NEON)
 auto scan_hashes_blocks(const std::uint64_t *const data, const std::size_t size,
                         const std::uint64_t needle) noexcept -> std::size_t {
-  if (size < 8) {
+#ifdef SOURCEMETA_CORE_JSON_SCAN_X86
+  if (size < 4) {
     return 0;
   }
 
-#ifdef SOURCEMETA_CORE_JSON_SCAN_X86
   static const auto kernel{detect_scan_kernel()};
   switch (kernel) {
     case ScanKernel::Wide:
