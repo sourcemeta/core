@@ -214,6 +214,28 @@ TEST(object_with_array) {
   EXPECT_EQ(stream.str(), "{\"foo\":[1,2]}");
 }
 
+TEST(stringify_short_string_boundaries) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"":["", "abcdefghijklmnopqrstuvwxyz12345"],)"
+      R"("abcdefghijklmnopqrstuvwxyz123456":"abcdefghijklmnopqrstuvwxyz1234567"})")};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(
+      stream.str(),
+      R"({"":["","abcdefghijklmnopqrstuvwxyz12345"],)"
+      R"("abcdefghijklmnopqrstuvwxyz123456":"abcdefghijklmnopqrstuvwxyz1234567"})");
+}
+
+TEST(stringify_short_strings_with_escapes_and_utf8) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"quote\"":"abcdefghijklmnopqrstuvwxyz12345\n",)"
+      R"("slash\\":"a\u0000b","café":"東京"})")};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), R"({"quote\"":"abcdefghijklmnopqrstuvwxyz12345\n",)"
+                          R"("slash\\":"a\u0000b","café":"東京"})");
+}
+
 TEST(stringify_quote) {
   const sourcemeta::core::JSON document{"\""};
   std::ostringstream stream;
