@@ -1528,13 +1528,12 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       }
     } else {
       // Every other mode goes by the subschemas that the traversal above
-      // already found, so walking each JSON Pointer of the document only to
-      // throw almost all of them away would make what framing costs follow
+      // already found here, so walking each JSON Pointer of the document only
+      // to throw almost all of them away would make what framing costs follow
       // the size of the document rather than how much of it is a schema
-      for (const auto &subschema : subschemas) {
-        if (subschema.first.starts_with(path)) {
-          pointers.push_back(subschema.first);
-        }
+      pointers.reserve(current_subschema_entries.size());
+      for (const auto &entry_index : current_subschema_entries) {
+        pointers.push_back(subschema_entries[entry_index].common.pointer);
       }
     }
 
