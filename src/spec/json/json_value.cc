@@ -199,6 +199,17 @@ auto scan_hashes_blocks_wide(const std::uint64_t *const data,
     offset += 8;
   }
 
+  // A whole block is two of these, so the half width step this unit ends on is
+  // one of them, and stays within the extension this function is compiled for
+  if (offset + 4 <= size) {
+    const auto matches{_mm256_cmpeq_epi64(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i *>(data + offset)),
+        target)};
+    if (_mm256_testz_si256(matches, matches) != 0) {
+      offset += 4;
+    }
+  }
+
   return offset;
 }
 #endif
