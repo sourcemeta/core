@@ -122,12 +122,15 @@ auto detect_scan_kernel() noexcept -> ScanKernel {
 }
 #endif
 
-// Each width skips only the blocks it proves hold no match, so the widths
-// compose: a stage that finds a block stops on it, and a stage that runs out of
-// whole blocks hands what is left to the next one down, which may still skip
-// through part of it. An answer short of the first match costs the caller
-// nothing but a few scalar steps, so the half width step that a run which does
-// not divide evenly ends on is cheaper than the scalar steps it stands in for
+// The processor does not change while the program runs, so the choice is taken
+// once, ahead of anything that could ask for it, rather than on the way through
+// a search. A read that somehow comes first still reads the scalar answer,
+// which is correct and only slower
+const auto SCAN_KERNEL{detect_scan_kernel()};
+
+// An answer that falls short of the first match costs the caller nothing but a
+// few scalar steps, so a run left with too few hashes to fill a whole block
+// ends on a half width step, which is cheaper than the steps it stands in for
 SOURCEMETA_CORE_JSON_SCAN_TARGET("sse4.1")
 auto scan_hashes_blocks_narrow(const std::uint64_t *const data,
                                const std::size_t size,
@@ -196,8 +199,7 @@ auto scan_hashes_blocks_wide(const std::uint64_t *const data,
     offset += 8;
   }
 
-  return offset +
-         scan_hashes_blocks_narrow(data + offset, size - offset, needle);
+  return offset;
 }
 #endif
 
@@ -214,10 +216,16 @@ auto scan_hashes_blocks(const std::uint64_t *const data, const std::size_t size,
     return 0;
   }
 
-  static const auto kernel{detect_scan_kernel()};
-  switch (kernel) {
+  // A run with too few hashes left to fill a block of the widest unit can
+  // still fill one of the narrower, so what answers is the widest unit the run
+  // has whole blocks for
+  switch (SCAN_KERNEL) {
     case ScanKernel::Wide:
-      return scan_hashes_blocks_wide(data, size, needle);
+      if (size >= 8) {
+        return scan_hashes_blocks_wide(data, size, needle);
+      }
+
+      return scan_hashes_blocks_narrow(data, size, needle);
     case ScanKernel::Narrow:
       return scan_hashes_blocks_narrow(data, size, needle);
     case ScanKernel::Scalar:

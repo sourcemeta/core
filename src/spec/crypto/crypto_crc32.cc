@@ -701,13 +701,14 @@ auto crc32_reduce(const Crc32Vector folded) noexcept -> std::uint32_t {
 }
 #endif
 
-#ifdef SOURCEMETA_CORE_CRYPTO_CRC32_PMULL
-// The instruction set the compiler was told to target already promises the
-// multiplication, so nothing is left to ask
-auto crc32_fold_available() noexcept -> bool { return true; }
+// A target the compiler was told to assume already promises the multiplication,
+// and a processor does not change while the program runs, so the answer is
+// taken once, ahead of anything that could ask for it, rather than on the way
+// through a checksum. A read that somehow comes first still reads the software
+// answer, which is correct and only slower
+#if defined(SOURCEMETA_CORE_CRYPTO_CRC32_PMULL) || defined(__PCLMUL__)
+constexpr auto CRC32_FOLD_AVAILABLE{true};
 #elif defined(_MSC_VER) && !defined(__clang__)
-// Reading the feature bits out of the processor serialises it, so the answer is
-// kept for every checksum that follows
 auto detect_crc32_fold() noexcept -> bool {
   constexpr auto PCLMUL_FEATURE_BIT{1 << 1};
   std::array<int, 4> registers{};
@@ -715,20 +716,9 @@ auto detect_crc32_fold() noexcept -> bool {
   return (registers[2] & PCLMUL_FEATURE_BIT) != 0;
 }
 
-auto crc32_fold_available() noexcept -> bool {
-  static const auto available{detect_crc32_fold()};
-  return available;
-}
+const auto CRC32_FOLD_AVAILABLE{detect_crc32_fold()};
 #else
-auto crc32_fold_available() noexcept -> bool {
-  // A build that already promises the multiplication cannot run anywhere it is
-  // missing, so there is nothing left to ask
-#if defined(__PCLMUL__)
-  return true;
-#else
-  return __builtin_cpu_supports("pclmul");
-#endif
-}
+const auto CRC32_FOLD_AVAILABLE{__builtin_cpu_supports("pclmul") != 0};
 #endif
 
 // Moving a 128-bit vector forward by a number of 128-bit vectors multiplies
@@ -868,7 +858,7 @@ auto crc32_update(const std::uint32_t previous, const std::string_view input)
 
 #ifdef SOURCEMETA_CORE_CRYPTO_CRC32_FOLD
   // Carry-less multiplication folds a whole vector of input at a time
-  if (remaining >= CRC32_FOLD_MINIMUM && crc32_fold_available()) {
+  if (remaining >= CRC32_FOLD_MINIMUM && CRC32_FOLD_AVAILABLE) {
     checksum = crc32_fold(checksum, data, remaining);
   }
 #endif
