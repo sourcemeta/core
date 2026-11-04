@@ -1522,20 +1522,25 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     // It is important for the loop that follows to assume a specific ordering
     // where smaller pointers (by number of tokens) are scanned first.
     std::vector<sourcemeta::core::WeakPointer> pointers;
-    for (const auto &weak_pointer : sourcemeta::core::PointerWalker{schema}) {
-      pointers.push_back(weak_pointer);
+    if (this->mode_ == SchemaFrame::Mode::Pointers) {
+      for (const auto &weak_pointer : sourcemeta::core::PointerWalker{schema}) {
+        pointers.push_back(path.concat(weak_pointer));
+      }
+    } else {
+      // Every other mode goes by the subschemas that the traversal above
+      // already found here, so walking each JSON Pointer of the document only
+      // to throw almost all of them away would make what framing costs follow
+      // the size of the document rather than how much of it is a schema
+      pointers.reserve(current_subschema_entries.size());
+      for (const auto &entry_index : current_subschema_entries) {
+        pointers.push_back(subschema_entries[entry_index].common.pointer);
+      }
     }
 
     std::ranges::sort(pointers, std::less<>());
 
     // Pre-compute every possible pointer to the schema
-    for (const auto &relative_pointer : pointers) {
-      const auto pointer_weak{path.concat(relative_pointer)};
-
-      if (this->mode_ != SchemaFrame::Mode::Pointers &&
-          !subschemas.contains(pointer_weak)) {
-        continue;
-      }
+    for (const auto &pointer_weak : pointers) {
 
       const auto combined{
           find_dialect_and_all_bases(base_dialects, base_uris, pointer_weak)};
