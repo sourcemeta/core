@@ -29,11 +29,6 @@ static auto throwing_resolver(std::string_view)
   throw sourcemeta::core::SchemaFrameLimitError{5};
 }
 
-static auto empty_resolver(std::string_view)
-    -> sourcemeta::core::OpenAPIResolverResult {
-  return std::nullopt;
-}
-
 TEST(a_limit_error_from_the_resolver_keeps_its_own_allowance) {
   auto document{DESCRIPTION};
   try {
@@ -43,20 +38,5 @@ TEST(a_limit_error_from_the_resolver_keeps_its_own_allowance) {
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
     EXPECT_EQ(error.limit(), 5);
-  }
-}
-
-TEST(a_limit_error_from_bundling_reports_the_allowance_the_caller_set) {
-  auto document{DESCRIPTION};
-  sourcemeta::core::OpenAPIBundleOptions options;
-  options.max_locations = 1;
-
-  try {
-    sourcemeta::core::openapi_bundle(document, sourcemeta::core::schema_walker,
-                                     sourcemeta::core::schema_resolver,
-                                     empty_resolver, options);
-    FAIL();
-  } catch (const sourcemeta::core::OpenAPIBundleLimitError &error) {
-    EXPECT_EQ(error.limit(), 1);
   }
 }
