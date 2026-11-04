@@ -12,14 +12,20 @@
 #include <system_error>
 #include <utility>
 
+// The bundling suite can express this as a fixture, and deliberately does
+// not. A chain long enough to overflow the call stack carries every one of its
+// documents three times over, as what the resolver hands back, as what lands
+// in the bundled result, and as what embedding reports, which runs to several
+// megabytes in the repository and adds a noticeable stretch to every run of
+// that suite for the one case that needs it. Synthesising the chain a document
+// at a time here costs a single file instead
+//
 // Longer than the chain that overflowed the call stack when bundling ran on
 // it, and no longer than that, as every document of one costs time to read
 static constexpr std::string_view CHAIN_PREFIX{
     "https://www.sourcemeta.com/chain-"};
 static constexpr std::size_t BUNDLE_CHAIN_LENGTH{9000};
 
-// Handing the chain over a document at a time is what keeps this from needing
-// a fixture of several megabytes
 static auto chain_at(const std::string_view identifier,
                      const std::size_t length)
     -> sourcemeta::core::SchemaResolverResult {
