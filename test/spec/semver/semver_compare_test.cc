@@ -488,6 +488,7 @@ TEST(compare_pre_release_right_ends_first) {
   // Right has fewer identifiers, left continues
   const sourcemeta::core::SemVer left{"1.0.0-alpha.beta"};
   const sourcemeta::core::SemVer right{"1.0.0-alpha"};
+  EXPECT_GT(left, right);
   EXPECT_FALSE(left < right);
 }
 
@@ -510,6 +511,7 @@ TEST(compare_alpha_identifier_greater_than_numeric) {
   // Alphanumeric identifier > numeric identifier
   const sourcemeta::core::SemVer left{"1.0.0-abc"};
   const sourcemeta::core::SemVer right{"1.0.0-123"};
+  EXPECT_GT(left, right);
   EXPECT_FALSE(left < right);
 }
 
@@ -524,6 +526,7 @@ TEST(compare_pre_release_multi_part_alpha_vs_numeric) {
   // Second identifier: alpha vs numeric
   const sourcemeta::core::SemVer left{"1.0.0-alpha.beta"};
   const sourcemeta::core::SemVer right{"1.0.0-alpha.123"};
+  EXPECT_GT(left, right);
   EXPECT_FALSE(left < right);
 }
 
@@ -546,7 +549,8 @@ TEST(compare_pre_release_overflow_at_digit_boundary_9) {
   // value == UINT64_MAX_DIV_10, digit = 9 (which is > 5)
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551619"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551618"};
-  EXPECT_FALSE(left < right); // String comparison, "9" > "8"
+  EXPECT_GT(left, right); // String comparison, "9" > "8"
+  EXPECT_FALSE(left < right);
 }
 
 // Test for while loop exit at line 158 - both pre-releases end at same time
@@ -559,10 +563,10 @@ TEST(compare_pre_release_same_single_identifier) {
 
 // Test overflow string comparison for line 180 branch
 TEST(compare_pre_release_overflow_shorter_length) {
-  // Left is 19 digits, right is 20 digits - both overflow, left < right by
+  // Left is 20 digits, right is 21 digits - both overflow, left < right by
   // length
-  const sourcemeta::core::SemVer left{"1.0.0-9999999999999999999"};
-  const sourcemeta::core::SemVer right{"1.0.0-99999999999999999999"};
+  const sourcemeta::core::SemVer left{"1.0.0-99999999999999999999"};
+  const sourcemeta::core::SemVer right{"1.0.0-100000000000000000000"};
   EXPECT_LT(left, right);
 }
 
@@ -571,13 +575,15 @@ TEST(compare_pre_release_at_exact_max_boundary) {
   // "18446744073709551615" is exactly UINT64_MAX - should NOT overflow
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551615"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551614"};
-  EXPECT_FALSE(left < right); // Normal numeric comparison, 18...15 > 18...14
+  EXPECT_GT(left, right); // Normal numeric comparison, 18...15 > 18...14
+  EXPECT_FALSE(left < right);
 }
 
 TEST(compare_pre_release_just_below_overflow) {
   // "18446744073709551614" is UINT64_MAX - 1
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551614"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551613"};
+  EXPECT_GT(left, right);
   EXPECT_FALSE(left < right);
 }
 
@@ -587,5 +593,6 @@ TEST(compare_pre_release_overflow_left_longer) {
   // Longer is greater
   const sourcemeta::core::SemVer left{"1.0.0-99999999999999999999"};
   const sourcemeta::core::SemVer right{"1.0.0-9999999999999999999"};
-  EXPECT_FALSE(left < right); // left > right
+  EXPECT_GT(left, right); // left > right
+  EXPECT_FALSE(left < right);
 }
