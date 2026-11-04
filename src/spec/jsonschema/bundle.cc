@@ -1330,6 +1330,40 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                                remaining, callback);
 }
 
+// A limit error that the caller's own resolver or callback raised carries an
+// allowance of theirs rather than the one set for this operation, so marking
+// it on the way out is what keeps it from being restated as this one
+struct ForeignFrameLimitError {
+  SchemaFrameLimitError error;
+};
+
+auto guard_resolver(const SchemaResolver &resolver) -> SchemaResolver {
+  return
+      [&resolver](const std::string_view identifier) -> SchemaResolverResult {
+        try {
+          return resolver(identifier);
+        } catch (const SchemaFrameLimitError &error) {
+          throw ForeignFrameLimitError{error};
+        }
+      };
+}
+
+auto guard_callback(const SchemaBundleOptions::Callback &callback)
+    -> SchemaBundleOptions::Callback {
+  if (!callback) {
+    return callback;
+  }
+
+  return [&callback](const std::string_view identifier,
+                     const sourcemeta::core::WeakPointer &location) -> void {
+    try {
+      callback(identifier, location);
+    } catch (const SchemaFrameLimitError &error) {
+      throw ForeignFrameLimitError{error};
+    }
+  };
+}
+
 } // namespace
 
 auto schema_bundle(JSON &schema, const SchemaWalker &walker,
@@ -1339,9 +1373,12 @@ auto schema_bundle(JSON &schema, const SchemaWalker &walker,
                    const SchemaBundleOptions &options) -> std::uint64_t {
   auto remaining{options.max_locations};
   try {
-    bundle_internal(schema, walker, resolver, options.mode, default_dialect,
-                    default_id, options.default_container, options.paths,
-                    options.default_base, remaining, options.callback);
+    bundle_internal(schema, walker, guard_resolver(resolver), options.mode,
+                    default_dialect, default_id, options.default_container,
+                    options.paths, options.default_base, remaining,
+                    guard_callback(options.callback));
+  } catch (const ForeignFrameLimitError &foreign) {
+    throw foreign.error;
   } catch (const SchemaFrameLimitError &) {
     // Every frame spends from what is left rather than from the whole, so the
     // one that ran out reports what it was handed. The caller set the limit
