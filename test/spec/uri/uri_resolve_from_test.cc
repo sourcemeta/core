@@ -575,3 +575,54 @@ TEST(query_only_against_an_absolute_base) {
   uri.resolve_from(sourcemeta::core::URI{"http://example.com/a"});
   EXPECT_EQ(uri.recompose(), "http://example.com/a?q=1");
 }
+
+// Section 5.2.3 excludes the whole base path where it carries no "/", so what
+// gets merged here comes out relative, and Section 5.2.4 still applies to it
+// "whether or not the path was relative"
+TEST(parent_segment_against_a_base_without_a_path_separator) {
+  sourcemeta::core::URI uri{"../target"};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:target");
+}
+
+TEST(lone_parent_segment_against_a_base_without_a_path_separator) {
+  sourcemeta::core::URI uri{".."};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:");
+}
+
+TEST(parent_segment_against_a_mailto_base) {
+  sourcemeta::core::URI uri{"../target"};
+  uri.resolve_from(sourcemeta::core::URI{"mailto:user@example.com"});
+  EXPECT_EQ(uri.recompose(), "mailto:target");
+}
+
+TEST(current_segment_against_a_base_without_a_path_separator) {
+  sourcemeta::core::URI uri{"./target"};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:target");
+}
+
+// What a relative base still needs is the block that RFC resolution would
+// drop, so the extension keeps it where the specification algorithm does not
+TEST(extension_relative_base_keeps_what_merging_produced) {
+  sourcemeta::core::URI uri{"bar"};
+  uri.resolve_from(sourcemeta::core::URI{"../foo"});
+  EXPECT_EQ(uri.recompose(), "../bar");
+}
+
+// Section 5.2.4 step C replaces the prefix with "/" and takes a segment off
+// the output, so the slash it leaves behind is moved into the result by step
+// E. Step A drops a leading block without touching the output, which is why
+// the two do not agree on a leading slash
+TEST(interior_parent_segment_against_a_base_without_a_path_separator) {
+  sourcemeta::core::URI uri{"../a/../target"};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:/target");
+}
+
+TEST(interior_parent_segment_exhausting_the_output) {
+  sourcemeta::core::URI uri{"../a/.."};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:/");
+}

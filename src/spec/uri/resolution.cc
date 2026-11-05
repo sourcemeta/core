@@ -7,9 +7,14 @@
 
 namespace {
 
-auto remove_dot_segments(const std::string &path) -> std::string {
+// Pass `resolving` where RFC 3986 Section 5.2.2 is what this is following, so
+// that the algorithm of Section 5.2.4 applies with nothing held back. The
+// relative base below is an extension of this module's own, where a leading
+// block is what the caller still needs
+auto remove_dot_segments(const std::string &path, const bool resolving = false)
+    -> std::string {
   std::string result{path};
-  sourcemeta::core::normalize_path(result);
+  sourcemeta::core::normalize_path(result, resolving);
   return result;
 }
 
@@ -50,7 +55,7 @@ auto URI::resolve_from(const URI &base) -> URI & {
   // Reference has a scheme - use as-is (already absolute)
   if (this->scheme_.has_value()) {
     if (this->path_.has_value()) {
-      this->path_ = remove_dot_segments(this->path_.value());
+      this->path_ = remove_dot_segments(this->path_.value(), true);
     }
     return *this;
   }
@@ -88,7 +93,7 @@ auto URI::resolve_from(const URI &base) -> URI & {
   if (this->host_.has_value()) {
     this->scheme_ = base.scheme_;
     if (this->path_.has_value()) {
-      this->path_ = remove_dot_segments(this->path_.value());
+      this->path_ = remove_dot_segments(this->path_.value(), true);
     }
     return *this;
   }
@@ -117,7 +122,7 @@ auto URI::resolve_from(const URI &base) -> URI & {
 
   // Reference path starts with "/" - use reference path as-is
   if (this->path_.value().starts_with('/')) {
-    this->path_ = remove_dot_segments(this->path_.value());
+    this->path_ = remove_dot_segments(this->path_.value(), true);
     return *this;
   }
 
@@ -126,7 +131,7 @@ auto URI::resolve_from(const URI &base) -> URI & {
   const bool base_has_authority = base.host_.has_value();
   auto merged_path =
       merge_paths(base_path, this->path_.value(), base_has_authority);
-  this->path_ = remove_dot_segments(merged_path);
+  this->path_ = remove_dot_segments(merged_path, true);
 
   return *this;
 }
