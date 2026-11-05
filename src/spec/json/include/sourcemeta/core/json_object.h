@@ -60,7 +60,7 @@ public:
     ///   "foo", sourcemeta::core::JSON::Object::hash("foo")));
     /// ```
     [[nodiscard]] auto key_equals(const KeyView key,
-                                  const hash_type key_hash) const -> bool {
+                                  const hash_type &key_hash) const -> bool {
       assert(JSONObject::hash(key) == key_hash);
       // A perfect hash is unique for the key it was computed from, so
       // matching it settles the comparison on its own
@@ -251,7 +251,7 @@ public:
   }
 
   /// Check if an entry with the given key exists
-  [[nodiscard]] auto defines(const Key &key, const hash_type hash) const
+  [[nodiscard]] auto defines(const Key &key, const hash_type &hash) const
       -> bool {
     assert(this->hash(key) == hash);
 
@@ -276,7 +276,7 @@ public:
   /// Check if an entry with the given key exists
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  [[nodiscard]] auto defines(T key, const hash_type hash) const -> bool {
+  [[nodiscard]] auto defines(T key, const hash_type &hash) const -> bool {
     assert(this->hash(key) == hash);
 
     // Move the perfect hash condition out of the loop for extra performance
@@ -314,7 +314,7 @@ public:
   }
 
   /// Access an object entry by its key name
-  [[nodiscard]] auto at(const Key &key, const hash_type key_hash) const
+  [[nodiscard]] auto at(const Key &key, const hash_type &key_hash) const
       -> const mapped_type & {
     assert(this->hash(key) == key_hash);
 
@@ -339,7 +339,7 @@ public:
   /// Access an object entry by its key name
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  [[nodiscard]] auto at(T key, const hash_type key_hash) const
+  [[nodiscard]] auto at(T key, const hash_type &key_hash) const
       -> const mapped_type & {
     assert(this->hash(key) == key_hash);
 
@@ -362,7 +362,7 @@ public:
   }
 
   /// Access an object entry by its key name
-  auto at(const Key &key, const hash_type key_hash) -> mapped_type & {
+  auto at(const Key &key, const hash_type &key_hash) -> mapped_type & {
     assert(this->hash(key) == key_hash);
 
     // Move the perfect hash condition out of the loop for extra performance
@@ -386,7 +386,7 @@ public:
   /// Access an object entry by its key name
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  auto at(T key, const hash_type key_hash) -> mapped_type & {
+  auto at(T key, const hash_type &key_hash) -> mapped_type & {
     assert(this->hash(key) == key_hash);
 
     // Move the perfect hash condition out of the loop for extra performance
@@ -408,7 +408,7 @@ public:
   }
 
   /// Try to access an object entry by its key name
-  [[nodiscard]] auto try_at(const Key &key, const hash_type key_hash)
+  [[nodiscard]] auto try_at(const Key &key, const hash_type &key_hash)
       -> mapped_type * {
     assert(this->hash(key) == key_hash);
 
@@ -433,7 +433,7 @@ public:
   /// Try to access an object entry by its key name
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  [[nodiscard]] auto try_at(T key, const hash_type key_hash) -> mapped_type * {
+  [[nodiscard]] auto try_at(T key, const hash_type &key_hash) -> mapped_type * {
     assert(this->hash(key) == key_hash);
 
     // Move the perfect hash condition out of the loop for extra performance
@@ -455,7 +455,7 @@ public:
   }
 
   /// Try to access an object entry by its underlying positional index
-  [[nodiscard]] auto try_at(const Key &key, const hash_type key_hash) const
+  [[nodiscard]] auto try_at(const Key &key, const hash_type &key_hash) const
       -> const mapped_type * {
     assert(this->hash(key) == key_hash);
 
@@ -481,7 +481,7 @@ public:
   /// Try to access an object entry by its underlying positional index
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  [[nodiscard]] auto try_at(T key, const hash_type key_hash) const
+  [[nodiscard]] auto try_at(T key, const hash_type &key_hash) const
       -> const mapped_type * {
     assert(this->hash(key) == key_hash);
 
@@ -506,7 +506,7 @@ public:
 
   /// Try to access an object entry, scanning from a caller-provided start
   /// offset. On hit, advances `start` past the found index
-  [[nodiscard]] auto try_at(const Key &key, const hash_type key_hash,
+  [[nodiscard]] auto try_at(const Key &key, const hash_type &key_hash,
                             size_type &start) const -> const mapped_type * {
     assert(this->hash(key) == key_hash);
     const auto object_size{this->size()};
@@ -554,7 +554,7 @@ public:
   /// offset. On hit, advances `start` past the found index
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  [[nodiscard]] auto try_at(T key, const hash_type key_hash,
+  [[nodiscard]] auto try_at(T key, const hash_type &key_hash,
                             size_type &start) const -> const mapped_type * {
     assert(this->hash(key) == key_hash);
     const auto object_size{this->size()};
@@ -729,14 +729,14 @@ public:
   /// Emplace an object property with a pre-computed hash, returning the
   /// inserted value
   auto emplace_assume_new(Key &&key, mapped_type &&value,
-                          const hash_type key_hash) -> mapped_type & {
+                          const hash_type &key_hash) -> mapped_type & {
     this->data_.push_back({std::move(key), std::move(value), key_hash});
     return this->data_.back().second;
   }
 
   /// Emplace an object property with a pre-computed hash
   auto emplace_assume_new(const Key &key, mapped_type &&value,
-                          const hash_type key_hash) -> void {
+                          const hash_type &key_hash) -> void {
     this->data_.push_back({key, std::move(value), key_hash});
   }
 
@@ -750,8 +750,8 @@ public:
   auto clear() noexcept -> void { this->data_.clear(); }
 
   /// Rename an object property in place
-  auto rename(const Key &key, const hash_type key_hash, Key &&target,
-              const hash_type target_hash) -> void {
+  auto rename(const Key &key, const hash_type &key_hash, Key &&target,
+              const hash_type &target_hash) -> void {
     this->erase(target, target_hash);
 
     if (this->HASHER.is_perfect(key_hash)) {
@@ -774,7 +774,7 @@ public:
   }
 
   /// Erase an object property
-  auto erase(const Key &key, const hash_type key_hash) -> size_type {
+  auto erase(const Key &key, const hash_type &key_hash) -> size_type {
     assert(this->hash(key) == key_hash);
     const auto current_size{this->size()};
 
@@ -802,7 +802,7 @@ public:
   /// Erase an object property
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, KeyView>
-  auto erase(T key, const hash_type key_hash) -> size_type {
+  auto erase(T key, const hash_type &key_hash) -> size_type {
     assert(this->hash(key) == key_hash);
     const auto current_size{this->size()};
 

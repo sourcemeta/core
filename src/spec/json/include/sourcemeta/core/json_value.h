@@ -1027,7 +1027,7 @@ public:
   ///  my_object.as_object().hash("bar")).to_integer() == 2);
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  at(const String &key, const Object::hash_type hash) const -> const JSON & {
+  at(const String &key, const Object::hash_type &hash) const -> const JSON & {
     assert(this->is_object());
     assert(this->defines(key));
     return this->data_object.at(key, hash);
@@ -1038,7 +1038,7 @@ public:
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  at(T key, const Object::hash_type hash) const -> const JSON & {
+  at(T key, const Object::hash_type &hash) const -> const JSON & {
     assert(this->is_object());
     assert(this->defines(key));
     return this->data_object.at(key, hash);
@@ -1088,7 +1088,7 @@ public:
   ///   my_object.as_object().hash("bar")).to_integer() == 2);
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto at(const String &key,
-                                               const Object::hash_type hash)
+                                               const Object::hash_type &hash)
       -> JSON & {
     assert(this->is_object());
     assert(this->defines(key));
@@ -1100,7 +1100,7 @@ public:
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto at(T key,
-                                               const Object::hash_type hash)
+                                               const Object::hash_type &hash)
       -> JSON & {
     assert(this->is_object());
     assert(this->defines(key));
@@ -1145,12 +1145,12 @@ public:
   ///   my_object.as_object().hash("foo"),
   ///   default_value).to_integer() == 1);
   /// ```
-  [[nodiscard]] auto at_or(const String &key, const Object::hash_type hash,
+  [[nodiscard]] auto at_or(const String &key, const Object::hash_type &hash,
                            const JSON &otherwise) const -> const JSON &;
 
   /// This overload avoids misuses of returning a const reference parameter as a
   /// constant reference.
-  [[nodiscard]] auto at_or(const String &key, const Object::hash_type hash,
+  [[nodiscard]] auto at_or(const String &key, const Object::hash_type &hash,
                            JSON &&otherwise) const -> const JSON & = delete;
 
   /// This method retrieves a reference to the first element of a JSON array.
@@ -1450,7 +1450,7 @@ public:
   /// EXPECT_EQ(result->to_integer(), 1);
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  try_at(const String &key, const Object::hash_type hash) const
+  try_at(const String &key, const Object::hash_type &hash) const
       -> const JSON * {
     assert(this->is_object());
     const auto &object{this->data_object};
@@ -1462,7 +1462,7 @@ public:
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  try_at(T key, const Object::hash_type hash) const -> const JSON * {
+  try_at(T key, const Object::hash_type &hash) const -> const JSON * {
     assert(this->is_object());
     const auto &object{this->data_object};
     return object.try_at(key, hash);
@@ -1513,9 +1513,8 @@ public:
   /// result->into(sourcemeta::core::JSON{2});
   /// assert(document.at("foo").to_integer() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto try_at(const String &key,
-                                                   const Object::hash_type hash)
-      -> JSON * {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  try_at(const String &key, const Object::hash_type &hash) -> JSON * {
     assert(this->is_object());
     return this->data_object.try_at(key, hash);
   }
@@ -1524,9 +1523,8 @@ public:
   /// given a pre-calculated property hash
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto try_at(T key,
-                                                   const Object::hash_type hash)
-      -> JSON * {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  try_at(T key, const Object::hash_type &hash) -> JSON * {
     assert(this->is_object());
     return this->data_object.try_at(key, hash);
   }
@@ -1556,7 +1554,7 @@ public:
   /// assert(bar->to_integer() == 2);
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  try_at(const String &key, const Object::hash_type hash,
+  try_at(const String &key, const Object::hash_type &hash,
          Object::size_type &start) const -> const JSON * {
     assert(this->is_object());
     const auto &object{this->data_object};
@@ -1568,7 +1566,7 @@ public:
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  try_at(T key, const Object::hash_type hash, Object::size_type &start) const
+  try_at(T key, const Object::hash_type &hash, Object::size_type &start) const
       -> const JSON * {
     assert(this->is_object());
     const auto &object{this->data_object};
@@ -1619,7 +1617,7 @@ public:
   ///   document.as_object().hash("bar")));
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  defines(const String &key, const Object::hash_type hash) const -> bool {
+  defines(const String &key, const Object::hash_type &hash) const -> bool {
     assert(this->is_object());
     return this->data_object.defines(key, hash);
   }
@@ -1629,7 +1627,7 @@ public:
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  defines(T key, const Object::hash_type hash) const -> bool {
+  defines(T key, const Object::hash_type &hash) const -> bool {
     assert(this->is_object());
     return this->data_object.defines(key, hash);
   }
@@ -1731,7 +1729,7 @@ public:
   ///   document.as_object().hash("tags"), "b"));
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE auto
-  array_member_contains(const StringView key, const Object::hash_type hash,
+  array_member_contains(const StringView key, const Object::hash_type &hash,
                         const StringView value) const -> bool {
     assert(this->is_object());
     const auto *member{this->try_at(key, hash)};
@@ -2069,8 +2067,8 @@ public:
 
   /// This method sets an object key with a pre-computed hash, returning the
   /// inserted value
-  auto assign_assume_new(String &&key, JSON &&value, Object::hash_type hash)
-      -> JSON &;
+  auto assign_assume_new(String &&key, JSON &&value,
+                         const Object::hash_type &hash) -> JSON &;
 
   /// This method assigns a string object member with a pre-computed hash unless
   /// the value is empty, in which case the member is left absent, assuming the
@@ -2086,7 +2084,7 @@ public:
   /// assert(document.at("foo").to_string() == "bar");
   /// ```
   SOURCEMETA_FORCEINLINE auto assign_if_nonempty(const StringView key,
-                                                 const Object::hash_type hash,
+                                                 const Object::hash_type &hash,
                                                  const StringView value)
       -> void {
     if (!value.empty()) {
@@ -2127,7 +2125,7 @@ public:
   ///                             values);
   /// assert(document.at("foo").size() == 2);
   /// ```
-  auto assign_if_nonempty(const StringView key, const Object::hash_type hash,
+  auto assign_if_nonempty(const StringView key, const Object::hash_type &hash,
                           const std::span<const StringView> values) -> void {
     if (values.empty()) {
       return;
@@ -2194,7 +2192,7 @@ public:
   /// assert(!document.defines("foo"));
   /// ```
   SOURCEMETA_FORCEINLINE auto erase(const String &key,
-                                    const Object::hash_type hash)
+                                    const Object::hash_type &hash)
       -> Object::size_type {
     assert(this->is_object());
     return this->data_object.erase(key, hash);
@@ -2204,7 +2202,7 @@ public:
   /// property hash
   template <typename T>
     requires std::same_as<std::remove_cvref_t<T>, StringView>
-  SOURCEMETA_FORCEINLINE auto erase(T key, const Object::hash_type hash)
+  SOURCEMETA_FORCEINLINE auto erase(T key, const Object::hash_type &hash)
       -> Object::size_type {
     assert(this->is_object());
     return this->data_object.erase(key, hash);
