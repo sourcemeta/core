@@ -537,57 +537,6 @@ namespace {
 
 using namespace std::string_view_literals;
 
-auto base_dialect_vocabularies(
-    const sourcemeta::core::SchemaBaseDialect base_dialect)
-    -> sourcemeta::core::SchemaVocabularies {
-  using sourcemeta::core::SchemaBaseDialect;
-  using sourcemeta::core::SchemaVocabularies;
-  switch (base_dialect) {
-    case SchemaBaseDialect::JSON_SCHEMA_2020_12:
-      return SchemaVocabularies{
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_APPLICATOR, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_UNEVALUATED, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_VALIDATION, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_META_DATA, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_FORMAT_ANNOTATION,
-           true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CONTENT, true}};
-    // Both hyper-schema dialects name the one hyper-schema vocabulary
-    case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
-      return SchemaVocabularies{
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_APPLICATOR, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_UNEVALUATED, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_VALIDATION, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_META_DATA, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_FORMAT_ANNOTATION,
-           true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CONTENT, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_HYPER_SCHEMA, true}};
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09:
-      return SchemaVocabularies{
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_APPLICATOR, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_VALIDATION, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_META_DATA, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_FORMAT, false},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CONTENT, true}};
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
-      return SchemaVocabularies{
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_APPLICATOR, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_VALIDATION, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_META_DATA, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_FORMAT, false},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CONTENT, true},
-          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_HYPER_SCHEMA, true}};
-    // Only the dialects that carry vocabularies reach here
-    default:
-      std::unreachable();
-  }
-}
-
 auto core_vocabulary_known(
     const sourcemeta::core::SchemaBaseDialect base_dialect)
     -> sourcemeta::core::SchemaVocabularies::Known {
@@ -757,9 +706,25 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
   // As a performance optimization shortcut
   if (base_dialect_string == dialect ||
       to_base_dialect(dialect) == base_dialect) {
-    if (base_dialect == SchemaBaseDialect::JSON_SCHEMA_2020_12 ||
-        base_dialect == SchemaBaseDialect::JSON_SCHEMA_2019_09) {
-      return base_dialect_vocabularies(base_dialect);
+    if (base_dialect == SchemaBaseDialect::JSON_SCHEMA_2020_12) {
+      return SchemaVocabularies{
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_APPLICATOR, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_UNEVALUATED, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_VALIDATION, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_META_DATA, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_FORMAT_ANNOTATION,
+           true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CONTENT, true}};
+    }
+    if (base_dialect == SchemaBaseDialect::JSON_SCHEMA_2019_09) {
+      return SchemaVocabularies{
+          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_APPLICATOR, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_VALIDATION, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_META_DATA, true},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_FORMAT, false},
+          {SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CONTENT, true}};
     }
   }
 
@@ -803,16 +768,29 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
    */
 
   const auto core{core_vocabulary_known(base_dialect)};
-  auto declared{parse_vocabularies(schema_dialect, base_dialect, dialect)};
-  // Section 8.1.2.1 leaves a metaschema that declares nothing to the
-  // implementation, short of requiring the core vocabulary, and asks one built
-  // for a purpose to assume every vocabulary relevant to it. Reading what a
-  // document reaches takes the keywords that carry references, so everything
-  // the base dialect brings is the answer here rather than core on its own.
-  // One that does declare is taken at its word, so that declaring none of them
-  // is caught below rather than read as declaring nothing at all
-  auto result{declared.has_value() ? std::move(declared).value()
-                                   : base_dialect_vocabularies(base_dialect)};
+  const auto declared{
+      parse_vocabularies(schema_dialect, base_dialect, dialect)};
+
+  // A metaschema that declares nothing gets the core vocabulary and no more.
+  // Section 8 of both 2019-09, draft-handrews-json-schema-02, and 2020-12,
+  // draft-bhutton-json-schema-01, requires that much of one: "Meta-schemas
+  // that do not use "$vocabulary" MUST be considered to require the Core
+  // vocabulary as if its URI were present with a value of true". Each of the
+  // other vocabularies asks for the same treatment in its own section, though
+  // only as a SHOULD, and section 8.1.2.1 would have an implementation built
+  // for a purpose assume every vocabulary relevant to it. Neither applies
+  // here. That allowance is for a metaschema that is "not recognized, or is
+  // missing", and one that answers is neither, so what it declares is taken
+  // as what it means rather than filled out on its behalf. Reading keywords
+  // into a document against a metaschema that never claimed them is the
+  // greater risk
+  //
+  // Declaring none of them is a different matter from declaring nothing, so
+  // the two are told apart here rather than being folded together. Section 8
+  // leaves the first undefined and asks for an error, which the checks below
+  // raise once this stops standing in for it
+  auto result{declared.has_value() ? declared.value()
+                                   : SchemaVocabularies{{core, true}}};
 
   // The specification recommends these checks
   if (!result.contains(core)) {

@@ -66,13 +66,7 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true,
-            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-            "https://json-schema.org/draft/2020-12/vocab/content": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true
           }
         },
         "https://example.com/foo#/$id": {
@@ -89,13 +83,7 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true,
-            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-            "https://json-schema.org/draft/2020-12/vocab/content": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true
           }
         },
         "https://example.com/foo#/$schema": {
@@ -112,13 +100,7 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true,
-            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-            "https://json-schema.org/draft/2020-12/vocab/content": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true
           }
         },
         "https://example.com/meta": {
@@ -434,13 +416,7 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true,
-            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-            "https://json-schema.org/draft/2020-12/vocab/content": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true
           }
         },
         "https://example.com/schema#/properties/foo/$id": {
@@ -457,13 +433,7 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true,
-            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-            "https://json-schema.org/draft/2020-12/vocab/content": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true
           }
         },
         "https://example.com/schema#/properties/foo/$schema": {
@@ -480,13 +450,7 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true,
-            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
-            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
-            "https://json-schema.org/draft/2020-12/vocab/validation": true,
-            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
-            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
-            "https://json-schema.org/draft/2020-12/vocab/content": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true
           }
         }
       },
