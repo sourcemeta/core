@@ -14,7 +14,11 @@ namespace sourcemeta::core {
 // extension because the spec algorithm assumes a path that has already been
 // merged with an absolute base; applied to a stand-alone relative path it
 // would discard semantic intent that is needed at later resolution time.
-[[nodiscard]] inline auto normalize_path(std::string_view input)
+// Pass `merged` for a path that resolution has already merged with a base,
+// where steps A and D of that section apply whatever the path looks like, so
+// that a leading block goes rather than being kept.
+[[nodiscard]] inline auto normalize_path(std::string_view input,
+                                         const bool merged = false)
     -> std::string {
   std::string output;
   output.reserve(input.size());
@@ -22,7 +26,9 @@ namespace sourcemeta::core {
 
   while (!input.empty()) {
     if (input.starts_with("../")) {
-      output.append("../");
+      if (!merged) {
+        output.append("../");
+      }
       input.remove_prefix(3);
     } else if (input.starts_with("./") || input.starts_with("/./")) {
       input.remove_prefix(2);
@@ -57,7 +63,9 @@ namespace sourcemeta::core {
       break;
     } else if (input == "..") {
       assert(!is_absolute);
-      output.append("../");
+      if (!merged) {
+        output.append("../");
+      }
       break;
     } else {
       const std::size_t next_slash{input.starts_with('/') ? input.find('/', 1)
@@ -75,8 +83,9 @@ namespace sourcemeta::core {
 }
 
 // Remove "." and ".." segments from a URI path in place
-inline auto normalize_path(std::string &path) -> void {
-  path = normalize_path(std::string_view{path});
+inline auto normalize_path(std::string &path, const bool merged = false)
+    -> void {
+  path = normalize_path(std::string_view{path}, merged);
 }
 
 } // namespace sourcemeta::core
