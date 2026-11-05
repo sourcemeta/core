@@ -1,0 +1,40 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/dir/fetched.json"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/dir/fetched.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "sub/declared.json",
+      "$ref": "leaf.json"
+    },
+    "https://www.sourcemeta.com/dir/sub/leaf.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/dir/sub/leaf.json",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/dir/leaf.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/dir/leaf.json",
+      "type": "integer"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/dir/fetched.json"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/dir/fetched.json",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/dir/sub/leaf.json"
+    }
+  ],
+  "locations": 5,
+  "fetched": [
+    "https://www.sourcemeta.com/dir/fetched.json",
+    "https://www.sourcemeta.com/dir/sub/leaf.json"
+  ]
+}

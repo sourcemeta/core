@@ -1,0 +1,35 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/a~b"
+      },
+      {
+        "$ref": "https://WWW.SOURCEMETA.COM/a~b"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/a%7Eb#"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/a~b": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/a~b",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/a~b"
+    }
+  ],
+  "locations": 5,
+  "fetched": [
+    "https://www.sourcemeta.com/a~b"
+  ]
+}

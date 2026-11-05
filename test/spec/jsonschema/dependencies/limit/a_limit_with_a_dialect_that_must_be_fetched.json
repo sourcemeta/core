@@ -1,0 +1,43 @@
+{
+  "schema": {
+    "$schema": "https://www.sourcemeta.com/custom-meta",
+    "$id": "https://www.sourcemeta.com/entry",
+    "items": {
+      "$ref": "https://www.sourcemeta.com/leaf"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/custom-meta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/custom-meta",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      }
+    },
+    "https://www.sourcemeta.com/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/leaf",
+      "type": "string"
+    }
+  },
+  "maxLocations": 4,
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/custom-meta"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/items/$ref",
+      "destination": "https://www.sourcemeta.com/leaf"
+    }
+  ],
+  "locations": 4,
+  "fetched": [
+    "https://www.sourcemeta.com/custom-meta",
+    "https://www.sourcemeta.com/leaf"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schema": {
+    "zebra": {
+      "$ref": "https://www.sourcemeta.com/one"
+    },
+    "apple": {
+      "$ref": "https://www.sourcemeta.com/two"
+    },
+    "mango": {
+      "$ref": "https://www.sourcemeta.com/three"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/one": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/one",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/two": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/two",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/three": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/three",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/zebra",
+    "/apple",
+    "/mango"
+  ],
+  "maxLocations": 6,
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/apple/$ref",
+      "destination": "https://www.sourcemeta.com/two"
+    },
+    {
+      "origin": "",
+      "pointer": "/mango/$ref",
+      "destination": "https://www.sourcemeta.com/three"
+    },
+    {
+      "origin": "",
+      "pointer": "/zebra/$ref",
+      "destination": "https://www.sourcemeta.com/one"
+    }
+  ],
+  "locations": 6,
+  "fetched": [
+    "https://www.sourcemeta.com/two",
+    "https://www.sourcemeta.com/three",
+    "https://www.sourcemeta.com/one"
+  ]
+}

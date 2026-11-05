@@ -1,0 +1,34 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/remote",
+      "$ref": "https://www.sourcemeta.com/openapi.json"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultBase": "https://www.sourcemeta.com/openapi.json",
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/remote"
+    }
+  ],
+  "locations": 2,
+  "fetched": [
+    "https://www.sourcemeta.com/remote"
+  ]
+}

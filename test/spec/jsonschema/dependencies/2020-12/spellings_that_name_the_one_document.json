@@ -1,0 +1,30 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "allOf": [
+      { "$ref": "https://www.sourcemeta.com:443/t" },
+      { "$ref": "HTTPS://www.sourcemeta.com/t" },
+      { "$ref": "https://WWW.Sourcemeta.COM/t" },
+      { "$ref": "https://www.sourcemeta.com/t" }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/t": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/t",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/t"
+    }
+  ],
+  "locations": 6,
+  "fetched": [
+    "https://www.sourcemeta.com/t"
+  ]
+}

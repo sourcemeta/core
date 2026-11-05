@@ -1,0 +1,18 @@
+{
+  "schema": {
+    "$schema": "https://www.sourcemeta.com/boolean-dialect",
+    "$id": "https://www.sourcemeta.com/entry",
+    "type": "string"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/boolean-dialect": true
+  },
+  "dependencies": [],
+  "fetched": [
+    "https://www.sourcemeta.com/boolean-dialect"
+  ],
+  "error": {
+    "type": "SchemaUnknownBaseDialectError",
+    "message": "Could not determine the base dialect of the schema"
+  }
+}

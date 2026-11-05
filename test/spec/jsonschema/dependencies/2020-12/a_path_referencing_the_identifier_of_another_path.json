@@ -1,0 +1,24 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Consumer": {
+          "$ref": "https://www.sourcemeta.com/produced"
+        },
+        "Producer": {
+          "$id": "https://www.sourcemeta.com/produced",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/components/schemas/Consumer",
+    "/components/schemas/Producer"
+  ],
+  "dependencies": [],
+  "locations": 3,
+  "fetched": []
+}

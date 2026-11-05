@@ -1,0 +1,41 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$id": "sub/thing",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$ref": "leaf"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/sub/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/sub/leaf",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/leaf",
+      "type": "integer"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultBase": "https://www.sourcemeta.com/openapi.json",
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/sub/leaf"
+    }
+  ],
+  "locations": 3,
+  "fetched": [
+    "https://www.sourcemeta.com/sub/leaf"
+  ]
+}

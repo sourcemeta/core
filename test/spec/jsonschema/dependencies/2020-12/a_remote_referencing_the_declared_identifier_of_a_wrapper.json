@@ -1,0 +1,38 @@
+{
+  "schema": {
+    "$id": "https://www.sourcemeta.com/wrapper",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "Pet": {
+        "$ref": "https://www.sourcemeta.com/remote"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/remote",
+      "$ref": "https://www.sourcemeta.com/wrapper"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/$defs/Pet"
+  ],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/$defs/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/remote"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/remote",
+    "https://www.sourcemeta.com/wrapper"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "https://www.sourcemeta.com/wrapper"
+  }
+}

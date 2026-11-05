@@ -1,0 +1,75 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "allOf": [
+      { "$ref": "https://www.sourcemeta.com/A" },
+      { "$ref": "https://www.sourcemeta.com/a" },
+      { "$ref": "https://www.sourcemeta.com/t?" },
+      { "$ref": "https://user@www.sourcemeta.com/t" },
+      { "$ref": "https://www.sourcemeta.com/t" }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/A": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/A",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/a": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/a",
+      "type": "integer"
+    },
+    "https://www.sourcemeta.com/t?": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/t?",
+      "type": "boolean"
+    },
+    "https://user@www.sourcemeta.com/t": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://user@www.sourcemeta.com/t",
+      "type": "null"
+    },
+    "https://www.sourcemeta.com/t": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/t",
+      "type": "number"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/A"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/a"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/2/$ref",
+      "destination": "https://www.sourcemeta.com/t?"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/3/$ref",
+      "destination": "https://user@www.sourcemeta.com/t"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/4/$ref",
+      "destination": "https://www.sourcemeta.com/t"
+    }
+  ],
+  "locations": 11,
+  "fetched": [
+    "https://www.sourcemeta.com/A",
+    "https://www.sourcemeta.com/a",
+    "https://www.sourcemeta.com/t?",
+    "https://user@www.sourcemeta.com/t",
+    "https://www.sourcemeta.com/t"
+  ]
+}

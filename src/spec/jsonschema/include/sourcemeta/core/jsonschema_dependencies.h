@@ -58,7 +58,10 @@ struct SchemaDependenciesOptions {
   std::string_view default_id{};
   /// The paths to analyse within a schema wrapper. Every one of them must
   /// name a schema of the document, and passing paths that repeat or that sit
-  /// inside one another is undefined behaviour
+  /// inside one another is undefined behaviour. Naming a path puts everything
+  /// outside it out of scope, so an identifier or a dialect that a schema
+  /// enclosing it declares counts for nothing, and each path is read as a
+  /// schema in its own right against the base and the dialect given here
   SchemaFrame::Paths paths{sourcemeta::core::EMPTY_WEAK_POINTER};
   /// The base URI that the document was retrieved from, which a relative
   /// reference within any of the given paths resolves against. As with
