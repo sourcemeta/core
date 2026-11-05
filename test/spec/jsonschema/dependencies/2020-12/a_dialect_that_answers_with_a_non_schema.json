@@ -1,0 +1,17 @@
+{
+  "schema": {
+    "$schema": "https://www.sourcemeta.com/custom",
+    "type": "string"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/custom": 42
+  },
+  "dependencies": [],
+  "fetched": [
+    "https://www.sourcemeta.com/custom"
+  ],
+  "error": {
+    "type": "SchemaUnknownBaseDialectError",
+    "message": "Could not determine the base dialect of the schema"
+  }
+}

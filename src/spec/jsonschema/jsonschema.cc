@@ -490,6 +490,13 @@ base_dialect_with_visited(const sourcemeta::core::JSON &schema,
         "Could not resolve the metaschema of the schema", effective_dialect);
   }
 
+  // An answer has to be a schema before it can say which dialect it is written
+  // against, so one that is neither an object nor a boolean leaves the base
+  // dialect as undeterminable as no answer at all
+  if (!metaschema.value().is_object() && !metaschema.value().is_boolean()) {
+    throw sourcemeta::core::SchemaUnknownBaseDialectError();
+  }
+
   // If the metaschema declares the same dialect (self-descriptive), and it's
   // not an official dialect, we cannot determine the base dialect
   const std::string_view metaschema_dialect{sourcemeta::core::dialect(
