@@ -60,16 +60,6 @@ auto schema_is_known(const std::string_view identifier) noexcept -> bool;
 /// JSON Schema organisation
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto schema_is_official(const std::string_view identifier) noexcept -> bool;
-/// @ingroup jsonschema
-///
-/// How many meta-schemas deep a chain of them may go before determining a base
-/// dialect gives up. A document declares the dialect it is written against,
-/// which may itself declare another, and following that is what settles which
-/// revision of the specification applies. Every revision needs a handful of
-/// links at most, so a chain longer than this is one no document means, and
-/// following it without end costs stack rather than the allowance a caller
-/// sets
-constexpr std::size_t SCHEMA_BASE_DIALECT_CHAIN_LIMIT{64};
 
 /// @ingroup jsonschema
 /// A default schema walker with support for a wide range of drafts

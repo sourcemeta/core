@@ -8,6 +8,18 @@
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move, std::to_underlying, std::unreachable
 
+namespace {
+
+// How many meta-schemas deep a chain of them may go before determining a base
+// dialect gives up. A document declares the dialect it is written against,
+// which may itself declare another, and following that is what settles which
+// revision of the specification applies. Every revision needs a handful of
+// links at most, so a chain longer than this is one no document means, and
+// following it is recursion, so the stack is what an unbounded one costs
+constexpr std::size_t BASE_DIALECT_CHAIN_LIMIT{64};
+
+} // namespace
+
 // TODO: Make this function detect schemas only using identifier/comment
 // keywords, etc
 auto sourcemeta::core::base_dialect_uri(const SchemaBaseDialect base_dialect)
@@ -445,10 +457,8 @@ base_dialect_with_visited(const sourcemeta::core::JSON &schema,
   }
 
   // Detect cycles in the metaschema chain, and refuse one that goes deeper
-  // than any document means. Following it is recursion rather than iteration,
-  // so the stack is what an unbounded one costs, and no allowance a caller
-  // sets can reach it
-  if (visited.size() >= sourcemeta::core::SCHEMA_BASE_DIALECT_CHAIN_LIMIT ||
+  // than any document means, which no allowance a caller sets can reach
+  if (visited.size() >= BASE_DIALECT_CHAIN_LIMIT ||
       !visited.emplace(effective_dialect).second) {
     throw sourcemeta::core::SchemaUnknownBaseDialectError();
   }
