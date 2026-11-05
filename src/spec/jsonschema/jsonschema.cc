@@ -768,11 +768,29 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
    */
 
   const auto core{core_vocabulary_known(base_dialect)};
-  auto result{parse_vocabularies(schema_dialect, base_dialect, dialect)
-                  .value_or(SchemaVocabularies{})};
-  if (result.empty()) {
-    result.insert(core, true);
-  }
+  const auto declared{
+      parse_vocabularies(schema_dialect, base_dialect, dialect)};
+
+  // A metaschema that declares nothing gets the core vocabulary and no more.
+  // Section 8 of both 2019-09, draft-handrews-json-schema-02, and 2020-12,
+  // draft-bhutton-json-schema-01, requires that much of one: "Meta-schemas
+  // that do not use "$vocabulary" MUST be considered to require the Core
+  // vocabulary as if its URI were present with a value of true". Each of the
+  // other vocabularies asks for the same treatment in its own section, though
+  // only as a SHOULD, and section 8.1.2.1 would have an implementation built
+  // for a purpose assume every vocabulary relevant to it. Neither applies
+  // here. That allowance is for a metaschema that is "not recognized, or is
+  // missing", and one that answers is neither, so what it declares is taken
+  // as what it means rather than filled out on its behalf. Reading keywords
+  // into a document against a metaschema that never claimed them is the
+  // greater risk
+  //
+  // Declaring none of them is a different matter from declaring nothing, so
+  // the two are told apart here rather than being folded together. Section 8
+  // leaves the first undefined and asks for an error, which the checks below
+  // raise once this stops standing in for it
+  auto result{declared.has_value() ? declared.value()
+                                   : SchemaVocabularies{{core, true}}};
 
   // The specification recommends these checks
   if (!result.contains(core)) {

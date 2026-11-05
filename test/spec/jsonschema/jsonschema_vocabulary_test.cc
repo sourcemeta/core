@@ -32,6 +32,13 @@ static auto test_resolver(std::string_view identifier)
       }
     })JSON");
   }
+  if (identifier == "https://sourcemeta.com/empty-vocabularies") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://sourcemeta.com/empty-vocabularies",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {}
+    })JSON");
+  }
   if (identifier == "https://sourcemeta.com/array-vocabularies") {
     return sourcemeta::core::parse_json(R"JSON({
       "$id": "https://sourcemeta.com/array-vocabularies",
@@ -845,6 +852,19 @@ TEST(core_cannot_be_optional) {
 TEST(core_must_be_declared) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/no-core"
+  })JSON");
+
+  try {
+    vocabularies(document, test_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaError &error) {
+    EXPECT_STREQ(error.what(), "The core vocabulary must always be present");
+  }
+}
+
+TEST(core_must_be_declared_even_where_nothing_is) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/empty-vocabularies"
   })JSON");
 
   try {
