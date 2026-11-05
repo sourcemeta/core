@@ -115,10 +115,16 @@ auto URI::canonicalize() -> URI & {
     sourcemeta::core::to_lowercase(this->scheme_.value());
   }
 
-  // Canonicalize path by removing "." and ".." segments
+  // Canonicalize path by removing "." and ".." segments. RFC 3986 Section
+  // 6.2.2.3 holds that "URI normalizers should remove dot-segments by applying
+  // the remove_dot_segments algorithm to the path", and for a URI that carries
+  // a scheme there is no later resolution for a leading block to matter to, so
+  // the algorithm applies as written. Section 5.2.2 settles a reference that
+  // declares a scheme the same way. Only a relative reference keeps the block,
+  // which is what this module's extension is for
   if (this->path_.has_value() && !this->path_.value().empty()) {
     auto &current_path{this->path_.value()};
-    sourcemeta::core::normalize_path(current_path);
+    sourcemeta::core::normalize_path(current_path, this->scheme_.has_value());
     if (current_path.empty()) {
       this->path_ = std::nullopt;
     }

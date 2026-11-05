@@ -648,3 +648,26 @@ TEST(empty_path_gains_a_root_for_http) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "http://www.example.com/");
 }
+
+// RFC 3986 Section 6.2.2.3 has a normalizer remove dot segments, and a URI
+// that carries a scheme has no later resolution for a leading block to matter
+// to, so resolution and canonicalisation agree on one spelling for it
+TEST(a_rootless_path_leading_with_a_parent_segment) {
+  sourcemeta::core::URI uri{"urn:../entry"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "urn:entry");
+}
+
+TEST(a_relative_reference_keeps_its_leading_parent_segment) {
+  sourcemeta::core::URI uri{"../entry"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "../entry");
+}
+
+TEST(canonicalising_agrees_with_resolving_for_an_absolute_uri) {
+  sourcemeta::core::URI canonicalised{"urn:../entry"};
+  canonicalised.canonicalize();
+  sourcemeta::core::URI resolved{"urn:../entry"};
+  resolved.resolve_from(sourcemeta::core::URI{"urn:example:base"});
+  EXPECT_EQ(canonicalised.recompose(), resolved.recompose());
+}
