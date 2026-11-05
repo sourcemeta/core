@@ -1,0 +1,105 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+              "a": "https://example.com/a.json#Cat",
+              "z": "z.json#/components/schemas/Holder"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/a.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1"
+      },
+      "paths": {},
+      "components": {
+        "schemas": {}
+      }
+    },
+    "https://example.com/z.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Example",
+        "version": "1"
+      },
+      "paths": {},
+      "components": {
+        "schemas": {
+          "Holder": {
+            "$id": "https://example.com/a.json",
+            "$defs": {
+              "Cat": {
+                "$anchor": "Cat",
+                "type": "string",
+                "title": "Cat target"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+              "a": "https://example.com/a.json#Cat",
+              "z": "#/components/schemas/Holder"
+            }
+          }
+        },
+        "Holder": {
+          "$id": "https://example.com/a.json",
+          "$defs": {
+            "Cat": {
+              "$anchor": "Cat",
+              "type": "string",
+              "title": "Cat target"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/z.json#/components/schemas/Holder",
+      "at": "/components/schemas/Holder"
+    }
+  ],
+  "reads": {
+    "https://example.com/a.json": 1,
+    "https://example.com/z.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}
