@@ -174,12 +174,14 @@ auto URI::canonicalize() -> URI & {
 
   // RFC 3986 Section 6.2.3 holds that "a URI that uses the generic syntax for
   // authority with an empty path should be normalized to a path of "/"", and
-  // names that form the normal one. Eliding a default port above is the other
-  // half of the same paragraph, so leaving this out would hand back a spelling
-  // that the paragraph itself calls equivalent and that no longer matches
+  // names that spelling the normal form for the scheme. Eliding a default
+  // port above is the other half of that same paragraph, so doing only the
+  // one would answer a URI written with the port elided with a spelling the
+  // paragraph calls equivalent to the normal form but different from it, and
+  // two names for the one place would stop meeting
   //
   // An authority that names no host is not the generic syntax the rule speaks
-  // of, and nothing matches better for giving one a path, while resolving a
+  // of, and giving one a path matches nothing better, while resolving a
   // network-path reference leans on it staying as it is
   if (this->host_.has_value() && !this->host_.value().empty() &&
       (!this->path_.has_value() || this->path_.value().empty())) {
