@@ -1,0 +1,49 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/pet.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/pet.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "a": {
+          "$ref": "#/$defs/x"
+        }
+      },
+      "$defs": {
+        "x": {
+          "type": "string"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "maxLocations": 6,
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIFrameLimitError",
+    "message": "The OpenAPI Description exceeds the maximum number of locations that framing may register",
+    "limit": 6
+  }
+}

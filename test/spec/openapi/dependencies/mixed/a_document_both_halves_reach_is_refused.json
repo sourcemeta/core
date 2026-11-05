@@ -1,0 +1,67 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/thing": {
+        "$ref": "https://www.sourcemeta.com/shared.json#/paths/~1thing"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/shared.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/thing": {
+          "description": "Shared"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/thing": {
+          "description": "Shared"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1thing/$ref",
+      "destination": "https://www.sourcemeta.com/shared.json",
+      "kind": "path-item"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/shared.json"
+  ],
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "A Schema Object may only reference a JSON Schema document",
+    "identifier": "https://www.sourcemeta.com/shared.json",
+    "base": "",
+    "location": "/components/schemas/Pet/$ref"
+  }
+}

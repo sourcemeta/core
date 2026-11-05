@@ -1,0 +1,26 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/entry.json"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/entry.json",
+  "expected": [],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "A Schema Object may only reference a JSON Schema document",
+    "identifier": "https://www.sourcemeta.com/entry.json",
+    "base": "https://www.sourcemeta.com/entry.json",
+    "location": "/components/schemas/Pet/$ref"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/old.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "MyKey": {
+          "type": "apiKey",
+          "name": "X-Key",
+          "in": "header"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/old.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Old",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "get": {
+            "security": [
+              {
+                "MyKey": [
+                  "read"
+                ]
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/old.json",
+      "kind": "path-item"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/old.json"
+  ],
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The Security Requirement Object entry must be empty for a security scheme of this type"
+  }
+}

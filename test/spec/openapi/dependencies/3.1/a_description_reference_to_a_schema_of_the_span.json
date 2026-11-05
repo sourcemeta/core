@@ -1,0 +1,77 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/b.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/shared.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/b.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "B",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "$ref": "https://www.sourcemeta.com/shared.json#/paths/~1q"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/q": {
+          "description": "Shared"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "$id": "https://www.sourcemeta.com/shared.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/b.json",
+      "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/shared.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/b.json"
+  ],
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "A reference of this specification may only reach a document of it",
+    "identifier": "https://www.sourcemeta.com/shared.json",
+    "base": "https://www.sourcemeta.com/b.json",
+    "location": "/paths/~1p/$ref"
+  }
+}

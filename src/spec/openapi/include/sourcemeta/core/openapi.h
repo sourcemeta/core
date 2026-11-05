@@ -10,6 +10,7 @@
 #include <sourcemeta/core/jsonschema.h>
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/openapi_dependencies.h>
 #include <sourcemeta/core/openapi_error.h>
 #include <sourcemeta/core/openapi_types.h>
 // NOLINTEND(misc-include-cleaner)

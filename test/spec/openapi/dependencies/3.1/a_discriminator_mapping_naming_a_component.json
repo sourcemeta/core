@@ -1,0 +1,71 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/other.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Dog": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/entry.json",
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "O",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "Ok",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "oneOf": [
+                        {
+                          "type": "object"
+                        }
+                      ],
+                      "discriminator": {
+                        "propertyName": "kind",
+                        "mapping": {
+                          "dog": "Dog"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "https://www.sourcemeta.com/entry.json",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 18,
+  "fetched": [
+    "https://www.sourcemeta.com/other.json"
+  ]
+}

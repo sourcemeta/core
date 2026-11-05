@@ -1,0 +1,61 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "listOwners",
+          "responses": {
+            "200": {
+              "description": "Ok"
+            }
+          }
+        }
+      },
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/other.json#/paths/~1p"
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "Ok",
+                "links": {
+                  "owners": {
+                    "operationId": "listOwners"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 16,
+  "fetched": [
+    "https://www.sourcemeta.com/other.json"
+  ]
+}
