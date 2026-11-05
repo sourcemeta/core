@@ -282,18 +282,6 @@ auto sourcemeta::core::dialect(const sourcemeta::core::JSON &schema,
   return dialect_value->to_string();
 }
 
-// Settling a URI costs a parse, and the only spellings that settle into
-// something else are the ones carrying an upper case letter in a part that is
-// compared without regard to case, or an empty fragment. Reading the string
-// first is what keeps every dialect that has to be resolved from paying for a
-// parse that was never going to change it
-static auto may_settle_differently(const std::string_view uri) -> bool {
-  return uri.ends_with('#') ||
-         std::ranges::any_of(uri, [](const auto character) {
-           return character >= 'A' && character <= 'Z';
-         });
-}
-
 // A URI that differs only in the case of its scheme or its host names the same
 // meta-schema, so a dialect the library knows is still one it knows however
 // the document happens to spell it. Settling a URI also drops an empty
@@ -301,10 +289,6 @@ static auto may_settle_differently(const std::string_view uri) -> bool {
 // the document spells is held up against both forms
 static auto base_dialect_of_settled(const std::string_view dialect)
     -> std::optional<sourcemeta::core::SchemaBaseDialect> {
-  if (!may_settle_differently(dialect)) {
-    return std::nullopt;
-  }
-
   const auto settled{sourcemeta::core::maybe_canonicalize(dialect)};
   if (!settled.has_value() || settled.value() == dialect) {
     return std::nullopt;
@@ -423,10 +407,6 @@ auto sourcemeta::core::metaschema_try_embedded(
 static auto resolve_settled(const sourcemeta::core::SchemaResolver &resolver,
                             const std::string_view identifier)
     -> sourcemeta::core::SchemaResolverResult {
-  if (!may_settle_differently(identifier)) {
-    return std::nullopt;
-  }
-
   const auto settled{sourcemeta::core::maybe_canonicalize(identifier)};
   if (!settled.has_value() || settled.value() == identifier) {
     return std::nullopt;
