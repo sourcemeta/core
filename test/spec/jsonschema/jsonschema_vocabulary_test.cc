@@ -1204,3 +1204,352 @@ TEST(embedded_metaschema_chain_reaching_something_that_is_no_schema) {
                  "Could not determine the base dialect of the schema");
   }
 }
+
+// An embedded meta-schema may declare its identifier relatively, in which case
+// it resolves against the base of the document that embeds it, exactly as a
+// reference to that same resource would. These cover the relative form, the
+// absolute form it must keep agreeing with, and a nested resource whose base is
+// its own identifier rather than the root's
+
+TEST(embedded_metaschema_relative_identifier_draft7) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "type": "string",
+    "definitions": {
+      "m": {
+        "$id": "meta",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7));
+}
+
+TEST(embedded_metaschema_absolute_identifier_draft7) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "type": "string",
+    "definitions": {
+      "m": {
+        "$id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7));
+}
+
+TEST(embedded_metaschema_relative_identifier_draft6) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "type": "string",
+    "definitions": {
+      "m": {
+        "$id": "meta",
+        "$schema": "http://json-schema.org/draft-06/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6));
+}
+
+TEST(embedded_metaschema_relative_identifier_draft4) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "id": "https://example.com/schema",
+    "type": "string",
+    "definitions": {
+      "m": {
+        "id": "meta",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(embedded_metaschema_relative_identifier_nested_base) {
+  // The resource that asks for the meta-schema is nested, and the identifier
+  // resolves against that resource's own base rather than the root's
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/root",
+    "definitions": {
+      "inner": {
+        "$id": "https://example.com/nested/",
+        "$schema": "https://example.com/nested/meta",
+        "definitions": {
+          "m": {
+            "$id": "meta",
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object"
+          }
+        }
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/nested/meta").has_value());
+}
+
+TEST(embedded_metaschema_relative_identifier_does_not_match_wrong_base) {
+  // The same relative identifier under a different base names a different
+  // resource, so it must not be mistaken for the one the document asks for
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://elsewhere.com/schema",
+    "type": "string",
+    "definitions": {
+      "m": {
+        "$id": "meta",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+TEST(embedded_metaschema_relative_identifier_frames) {
+  // The same document, through framing rather than through vocabularies, as
+  // that is the path a consumer reaches this on
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/schema",
+    "type": "string",
+    "definitions": {
+      "m": {
+        "$id": "meta",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/meta").has_value());
+}
+
+TEST(embedded_metaschema_relative_identifier_still_works_as_a_reference) {
+  // The same relative identifier used as a reference target rather than as a
+  // meta-schema, which already worked and must keep working
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schema",
+    "allOf": [ { "$ref": "https://example.com/meta" } ],
+    "definitions": { "m": { "$id": "meta", "type": "object" } }
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/meta").has_value());
+}
+
+TEST(embedded_metaschema_relative_identifier_ignores_foreign_keyword_base) {
+  // Draft 4 reads `id`, and the `$id` here is an extension it ignores, so the
+  // relative identifier must resolve against the former
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "id": "https://example.com/schema",
+    "$id": "https://elsewhere.com/schema",
+    "definitions": {
+      "m": {
+        "id": "meta",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(embedded_metaschema_empty_identifier_declares_no_resource) {
+  // An empty identifier declares no resource, so it must not be taken to name
+  // the meta-schema merely because it resolves to the base it sits under
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/meta",
+    "definitions": {
+      "m": {
+        "$id": "",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+TEST(embedded_metaschema_fragment_identifier_declares_no_resource) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "https://example.com/meta",
+    "definitions": {
+      "m": {
+        "$id": "#",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+TEST(embedded_metaschema_relative_base_is_not_resolved) {
+  // The base here is itself relative, and this layer is handed a single
+  // document rather than the chain of bases above it, so there is nothing to
+  // anchor against. Refusing is what keeps a half resolved reference from
+  // being mistaken for a match
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/nested/meta",
+    "$id": "nested/",
+    "definitions": {
+      "m": {
+        "$id": "meta",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+TEST(
+    embedded_metaschema_relative_identifier_is_not_shadowed_by_foreign_keyword) {
+  // The first entry declares its identifier with a keyword Draft 4 does not
+  // read, so it answers to the identifier without being a valid link. The
+  // search must carry on to the entry that declares it the way the dialect
+  // reads, rather than stopping at the one it has to reject
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "id": "https://example.com/schema",
+    "$id": "https://example.com/schema",
+    "definitions": {
+      "a_decoy": {
+        "$id": "meta",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "object"
+      },
+      "b_real": {
+        "id": "meta",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(embedded_metaschema_candidate_without_dialect_does_not_end_the_search) {
+  // The first entry answers to the identifier with a keyword Draft 4 does not
+  // read, and declares no dialect of its own, so walking it cannot settle a
+  // base dialect. That must not be the answer while another entry still
+  // declares the identifier the way the dialect reads
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "id": "https://example.com/schema",
+    "$id": "https://example.com/schema",
+    "definitions": {
+      "a_decoy": { "$id": "meta", "type": "object" },
+      "b_real": {
+        "id": "meta",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "object"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(embedded_metaschema_chain_link_is_not_shadowed_by_foreign_keyword) {
+  // The shadowing can happen at any link of the chain, not only at the first,
+  // so the keyword a search is scoped to has to hold for the whole of it
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta-a",
+    "id": "https://example.com/schema",
+    "$id": "https://example.com/schema",
+    "definitions": {
+      "a": {
+        "id": "https://example.com/meta-a",
+        "$schema": "https://example.com/meta-b"
+      },
+      "b_decoy": {
+        "$id": "meta-b",
+        "$schema": "http://json-schema.org/draft-04/schema#"
+      },
+      "b_real": {
+        "id": "https://example.com/meta-b",
+        "$schema": "http://json-schema.org/draft-04/schema#"
+      }
+    }
+  })JSON")};
+
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
