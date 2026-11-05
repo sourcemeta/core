@@ -610,3 +610,19 @@ TEST(extension_relative_base_keeps_what_merging_produced) {
   uri.resolve_from(sourcemeta::core::URI{"../foo"});
   EXPECT_EQ(uri.recompose(), "../bar");
 }
+
+// Section 5.2.4 step C replaces the prefix with "/" and takes a segment off
+// the output, so the slash it leaves behind is moved into the result by step
+// E. Step A drops a leading block without touching the output, which is why
+// the two do not agree on a leading slash
+TEST(interior_parent_segment_against_a_base_without_a_path_separator) {
+  sourcemeta::core::URI uri{"../a/../target"};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:/target");
+}
+
+TEST(interior_parent_segment_exhausting_the_output) {
+  sourcemeta::core::URI uri{"../a/.."};
+  uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
+  EXPECT_EQ(uri.recompose(), "urn:/");
+}

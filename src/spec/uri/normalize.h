@@ -14,11 +14,12 @@ namespace sourcemeta::core {
 // extension because the spec algorithm assumes a path that has already been
 // merged with an absolute base; applied to a stand-alone relative path it
 // would discard semantic intent that is needed at later resolution time.
-// Pass `merged` for a path that resolution has already merged with a base,
-// where steps A and D of that section apply whatever the path looks like, so
-// that a leading block goes rather than being kept.
+// Pass `resolving` for any path that reference resolution runs through that
+// section, where the algorithm applies exactly as written and the extension
+// above is not wanted. A leading block then goes rather than being kept, and
+// the slash that step C leaves behind stays where the algorithm puts it.
 [[nodiscard]] inline auto normalize_path(std::string_view input,
-                                         const bool merged = false)
+                                         const bool resolving = false)
     -> std::string {
   std::string output;
   output.reserve(input.size());
@@ -26,7 +27,7 @@ namespace sourcemeta::core {
 
   while (!input.empty()) {
     if (input.starts_with("../")) {
-      if (!merged) {
+      if (!resolving) {
         output.append("../");
       }
       input.remove_prefix(3);
@@ -41,7 +42,9 @@ namespace sourcemeta::core {
       if (last_slash == std::string::npos) {
         output.clear();
         assert(!input.empty() && input.front() == '/');
-        if (!is_absolute) {
+        // Step C leaves this slash in the input for step E to move into the
+        // result, so only the extension above has reason to drop it
+        if (!is_absolute && !resolving) {
           input.remove_prefix(1);
         }
       } else {
@@ -51,7 +54,7 @@ namespace sourcemeta::core {
       const auto last_slash{output.rfind('/')};
       if (last_slash == std::string::npos) {
         output.clear();
-        if (is_absolute) {
+        if (is_absolute || resolving) {
           output.push_back('/');
         }
       } else {
@@ -63,7 +66,7 @@ namespace sourcemeta::core {
       break;
     } else if (input == "..") {
       assert(!is_absolute);
-      if (!merged) {
+      if (!resolving) {
         output.append("../");
       }
       break;
@@ -83,9 +86,9 @@ namespace sourcemeta::core {
 }
 
 // Remove "." and ".." segments from a URI path in place
-inline auto normalize_path(std::string &path, const bool merged = false)
+inline auto normalize_path(std::string &path, const bool resolving = false)
     -> void {
-  path = normalize_path(std::string_view{path}, merged);
+  path = normalize_path(std::string_view{path}, resolving);
 }
 
 } // namespace sourcemeta::core

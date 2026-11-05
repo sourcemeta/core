@@ -7,14 +7,14 @@
 
 namespace {
 
-// Pass `merged` where RFC 3986 Section 5.2.2 is what resolution is following,
-// so that the algorithm of Section 5.2.4 applies with nothing held back. The
+// Pass `resolving` where RFC 3986 Section 5.2.2 is what this is following, so
+// that the algorithm of Section 5.2.4 applies with nothing held back. The
 // relative base below is an extension of this module's own, where a leading
 // block is what the caller still needs
-auto remove_dot_segments(const std::string &path, const bool merged = false)
+auto remove_dot_segments(const std::string &path, const bool resolving = false)
     -> std::string {
   std::string result{path};
-  sourcemeta::core::normalize_path(result, merged);
+  sourcemeta::core::normalize_path(result, resolving);
   return result;
 }
 
