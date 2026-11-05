@@ -444,8 +444,12 @@ base_dialect_with_visited(const sourcemeta::core::JSON &schema,
     return settled_result;
   }
 
-  // Detect cycles in the metaschema chain
-  if (!visited.emplace(effective_dialect).second) {
+  // Detect cycles in the metaschema chain, and refuse one that goes deeper
+  // than any document means. Following it is recursion rather than iteration,
+  // so the stack is what an unbounded one costs, and no allowance a caller
+  // sets can reach it
+  if (visited.size() >= sourcemeta::core::SCHEMA_BASE_DIALECT_CHAIN_LIMIT ||
+      !visited.emplace(effective_dialect).second) {
     throw sourcemeta::core::SchemaUnknownBaseDialectError();
   }
 

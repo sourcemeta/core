@@ -1,0 +1,359 @@
+{
+  "schema": {
+    "$schema": "https://www.sourcemeta.com/m-1",
+    "type": "string"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/m-1": {
+      "$id": "https://www.sourcemeta.com/m-1",
+      "$schema": "https://www.sourcemeta.com/m-2"
+    },
+    "https://www.sourcemeta.com/m-2": {
+      "$id": "https://www.sourcemeta.com/m-2",
+      "$schema": "https://www.sourcemeta.com/m-3"
+    },
+    "https://www.sourcemeta.com/m-3": {
+      "$id": "https://www.sourcemeta.com/m-3",
+      "$schema": "https://www.sourcemeta.com/m-4"
+    },
+    "https://www.sourcemeta.com/m-4": {
+      "$id": "https://www.sourcemeta.com/m-4",
+      "$schema": "https://www.sourcemeta.com/m-5"
+    },
+    "https://www.sourcemeta.com/m-5": {
+      "$id": "https://www.sourcemeta.com/m-5",
+      "$schema": "https://www.sourcemeta.com/m-6"
+    },
+    "https://www.sourcemeta.com/m-6": {
+      "$id": "https://www.sourcemeta.com/m-6",
+      "$schema": "https://www.sourcemeta.com/m-7"
+    },
+    "https://www.sourcemeta.com/m-7": {
+      "$id": "https://www.sourcemeta.com/m-7",
+      "$schema": "https://www.sourcemeta.com/m-8"
+    },
+    "https://www.sourcemeta.com/m-8": {
+      "$id": "https://www.sourcemeta.com/m-8",
+      "$schema": "https://www.sourcemeta.com/m-9"
+    },
+    "https://www.sourcemeta.com/m-9": {
+      "$id": "https://www.sourcemeta.com/m-9",
+      "$schema": "https://www.sourcemeta.com/m-10"
+    },
+    "https://www.sourcemeta.com/m-10": {
+      "$id": "https://www.sourcemeta.com/m-10",
+      "$schema": "https://www.sourcemeta.com/m-11"
+    },
+    "https://www.sourcemeta.com/m-11": {
+      "$id": "https://www.sourcemeta.com/m-11",
+      "$schema": "https://www.sourcemeta.com/m-12"
+    },
+    "https://www.sourcemeta.com/m-12": {
+      "$id": "https://www.sourcemeta.com/m-12",
+      "$schema": "https://www.sourcemeta.com/m-13"
+    },
+    "https://www.sourcemeta.com/m-13": {
+      "$id": "https://www.sourcemeta.com/m-13",
+      "$schema": "https://www.sourcemeta.com/m-14"
+    },
+    "https://www.sourcemeta.com/m-14": {
+      "$id": "https://www.sourcemeta.com/m-14",
+      "$schema": "https://www.sourcemeta.com/m-15"
+    },
+    "https://www.sourcemeta.com/m-15": {
+      "$id": "https://www.sourcemeta.com/m-15",
+      "$schema": "https://www.sourcemeta.com/m-16"
+    },
+    "https://www.sourcemeta.com/m-16": {
+      "$id": "https://www.sourcemeta.com/m-16",
+      "$schema": "https://www.sourcemeta.com/m-17"
+    },
+    "https://www.sourcemeta.com/m-17": {
+      "$id": "https://www.sourcemeta.com/m-17",
+      "$schema": "https://www.sourcemeta.com/m-18"
+    },
+    "https://www.sourcemeta.com/m-18": {
+      "$id": "https://www.sourcemeta.com/m-18",
+      "$schema": "https://www.sourcemeta.com/m-19"
+    },
+    "https://www.sourcemeta.com/m-19": {
+      "$id": "https://www.sourcemeta.com/m-19",
+      "$schema": "https://www.sourcemeta.com/m-20"
+    },
+    "https://www.sourcemeta.com/m-20": {
+      "$id": "https://www.sourcemeta.com/m-20",
+      "$schema": "https://www.sourcemeta.com/m-21"
+    },
+    "https://www.sourcemeta.com/m-21": {
+      "$id": "https://www.sourcemeta.com/m-21",
+      "$schema": "https://www.sourcemeta.com/m-22"
+    },
+    "https://www.sourcemeta.com/m-22": {
+      "$id": "https://www.sourcemeta.com/m-22",
+      "$schema": "https://www.sourcemeta.com/m-23"
+    },
+    "https://www.sourcemeta.com/m-23": {
+      "$id": "https://www.sourcemeta.com/m-23",
+      "$schema": "https://www.sourcemeta.com/m-24"
+    },
+    "https://www.sourcemeta.com/m-24": {
+      "$id": "https://www.sourcemeta.com/m-24",
+      "$schema": "https://www.sourcemeta.com/m-25"
+    },
+    "https://www.sourcemeta.com/m-25": {
+      "$id": "https://www.sourcemeta.com/m-25",
+      "$schema": "https://www.sourcemeta.com/m-26"
+    },
+    "https://www.sourcemeta.com/m-26": {
+      "$id": "https://www.sourcemeta.com/m-26",
+      "$schema": "https://www.sourcemeta.com/m-27"
+    },
+    "https://www.sourcemeta.com/m-27": {
+      "$id": "https://www.sourcemeta.com/m-27",
+      "$schema": "https://www.sourcemeta.com/m-28"
+    },
+    "https://www.sourcemeta.com/m-28": {
+      "$id": "https://www.sourcemeta.com/m-28",
+      "$schema": "https://www.sourcemeta.com/m-29"
+    },
+    "https://www.sourcemeta.com/m-29": {
+      "$id": "https://www.sourcemeta.com/m-29",
+      "$schema": "https://www.sourcemeta.com/m-30"
+    },
+    "https://www.sourcemeta.com/m-30": {
+      "$id": "https://www.sourcemeta.com/m-30",
+      "$schema": "https://www.sourcemeta.com/m-31"
+    },
+    "https://www.sourcemeta.com/m-31": {
+      "$id": "https://www.sourcemeta.com/m-31",
+      "$schema": "https://www.sourcemeta.com/m-32"
+    },
+    "https://www.sourcemeta.com/m-32": {
+      "$id": "https://www.sourcemeta.com/m-32",
+      "$schema": "https://www.sourcemeta.com/m-33"
+    },
+    "https://www.sourcemeta.com/m-33": {
+      "$id": "https://www.sourcemeta.com/m-33",
+      "$schema": "https://www.sourcemeta.com/m-34"
+    },
+    "https://www.sourcemeta.com/m-34": {
+      "$id": "https://www.sourcemeta.com/m-34",
+      "$schema": "https://www.sourcemeta.com/m-35"
+    },
+    "https://www.sourcemeta.com/m-35": {
+      "$id": "https://www.sourcemeta.com/m-35",
+      "$schema": "https://www.sourcemeta.com/m-36"
+    },
+    "https://www.sourcemeta.com/m-36": {
+      "$id": "https://www.sourcemeta.com/m-36",
+      "$schema": "https://www.sourcemeta.com/m-37"
+    },
+    "https://www.sourcemeta.com/m-37": {
+      "$id": "https://www.sourcemeta.com/m-37",
+      "$schema": "https://www.sourcemeta.com/m-38"
+    },
+    "https://www.sourcemeta.com/m-38": {
+      "$id": "https://www.sourcemeta.com/m-38",
+      "$schema": "https://www.sourcemeta.com/m-39"
+    },
+    "https://www.sourcemeta.com/m-39": {
+      "$id": "https://www.sourcemeta.com/m-39",
+      "$schema": "https://www.sourcemeta.com/m-40"
+    },
+    "https://www.sourcemeta.com/m-40": {
+      "$id": "https://www.sourcemeta.com/m-40",
+      "$schema": "https://www.sourcemeta.com/m-41"
+    },
+    "https://www.sourcemeta.com/m-41": {
+      "$id": "https://www.sourcemeta.com/m-41",
+      "$schema": "https://www.sourcemeta.com/m-42"
+    },
+    "https://www.sourcemeta.com/m-42": {
+      "$id": "https://www.sourcemeta.com/m-42",
+      "$schema": "https://www.sourcemeta.com/m-43"
+    },
+    "https://www.sourcemeta.com/m-43": {
+      "$id": "https://www.sourcemeta.com/m-43",
+      "$schema": "https://www.sourcemeta.com/m-44"
+    },
+    "https://www.sourcemeta.com/m-44": {
+      "$id": "https://www.sourcemeta.com/m-44",
+      "$schema": "https://www.sourcemeta.com/m-45"
+    },
+    "https://www.sourcemeta.com/m-45": {
+      "$id": "https://www.sourcemeta.com/m-45",
+      "$schema": "https://www.sourcemeta.com/m-46"
+    },
+    "https://www.sourcemeta.com/m-46": {
+      "$id": "https://www.sourcemeta.com/m-46",
+      "$schema": "https://www.sourcemeta.com/m-47"
+    },
+    "https://www.sourcemeta.com/m-47": {
+      "$id": "https://www.sourcemeta.com/m-47",
+      "$schema": "https://www.sourcemeta.com/m-48"
+    },
+    "https://www.sourcemeta.com/m-48": {
+      "$id": "https://www.sourcemeta.com/m-48",
+      "$schema": "https://www.sourcemeta.com/m-49"
+    },
+    "https://www.sourcemeta.com/m-49": {
+      "$id": "https://www.sourcemeta.com/m-49",
+      "$schema": "https://www.sourcemeta.com/m-50"
+    },
+    "https://www.sourcemeta.com/m-50": {
+      "$id": "https://www.sourcemeta.com/m-50",
+      "$schema": "https://www.sourcemeta.com/m-51"
+    },
+    "https://www.sourcemeta.com/m-51": {
+      "$id": "https://www.sourcemeta.com/m-51",
+      "$schema": "https://www.sourcemeta.com/m-52"
+    },
+    "https://www.sourcemeta.com/m-52": {
+      "$id": "https://www.sourcemeta.com/m-52",
+      "$schema": "https://www.sourcemeta.com/m-53"
+    },
+    "https://www.sourcemeta.com/m-53": {
+      "$id": "https://www.sourcemeta.com/m-53",
+      "$schema": "https://www.sourcemeta.com/m-54"
+    },
+    "https://www.sourcemeta.com/m-54": {
+      "$id": "https://www.sourcemeta.com/m-54",
+      "$schema": "https://www.sourcemeta.com/m-55"
+    },
+    "https://www.sourcemeta.com/m-55": {
+      "$id": "https://www.sourcemeta.com/m-55",
+      "$schema": "https://www.sourcemeta.com/m-56"
+    },
+    "https://www.sourcemeta.com/m-56": {
+      "$id": "https://www.sourcemeta.com/m-56",
+      "$schema": "https://www.sourcemeta.com/m-57"
+    },
+    "https://www.sourcemeta.com/m-57": {
+      "$id": "https://www.sourcemeta.com/m-57",
+      "$schema": "https://www.sourcemeta.com/m-58"
+    },
+    "https://www.sourcemeta.com/m-58": {
+      "$id": "https://www.sourcemeta.com/m-58",
+      "$schema": "https://www.sourcemeta.com/m-59"
+    },
+    "https://www.sourcemeta.com/m-59": {
+      "$id": "https://www.sourcemeta.com/m-59",
+      "$schema": "https://www.sourcemeta.com/m-60"
+    },
+    "https://www.sourcemeta.com/m-60": {
+      "$id": "https://www.sourcemeta.com/m-60",
+      "$schema": "https://www.sourcemeta.com/m-61"
+    },
+    "https://www.sourcemeta.com/m-61": {
+      "$id": "https://www.sourcemeta.com/m-61",
+      "$schema": "https://www.sourcemeta.com/m-62"
+    },
+    "https://www.sourcemeta.com/m-62": {
+      "$id": "https://www.sourcemeta.com/m-62",
+      "$schema": "https://www.sourcemeta.com/m-63"
+    },
+    "https://www.sourcemeta.com/m-63": {
+      "$id": "https://www.sourcemeta.com/m-63",
+      "$schema": "https://www.sourcemeta.com/m-64"
+    },
+    "https://www.sourcemeta.com/m-64": {
+      "$id": "https://www.sourcemeta.com/m-64",
+      "$schema": "https://www.sourcemeta.com/m-65"
+    },
+    "https://www.sourcemeta.com/m-65": {
+      "$id": "https://www.sourcemeta.com/m-65",
+      "$schema": "https://www.sourcemeta.com/m-66"
+    },
+    "https://www.sourcemeta.com/m-66": {
+      "$id": "https://www.sourcemeta.com/m-66",
+      "$schema": "https://www.sourcemeta.com/m-67"
+    },
+    "https://www.sourcemeta.com/m-67": {
+      "$id": "https://www.sourcemeta.com/m-67",
+      "$schema": "https://www.sourcemeta.com/m-68"
+    },
+    "https://www.sourcemeta.com/m-68": {
+      "$id": "https://www.sourcemeta.com/m-68",
+      "$schema": "https://www.sourcemeta.com/m-69"
+    },
+    "https://www.sourcemeta.com/m-69": {
+      "$id": "https://www.sourcemeta.com/m-69",
+      "$schema": "https://www.sourcemeta.com/m-70"
+    },
+    "https://www.sourcemeta.com/m-70": {
+      "$id": "https://www.sourcemeta.com/m-70",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    }
+  },
+  "dependencies": [],
+  "fetched": [
+    "https://www.sourcemeta.com/m-1",
+    "https://www.sourcemeta.com/m-2",
+    "https://www.sourcemeta.com/m-3",
+    "https://www.sourcemeta.com/m-4",
+    "https://www.sourcemeta.com/m-5",
+    "https://www.sourcemeta.com/m-6",
+    "https://www.sourcemeta.com/m-7",
+    "https://www.sourcemeta.com/m-8",
+    "https://www.sourcemeta.com/m-9",
+    "https://www.sourcemeta.com/m-10",
+    "https://www.sourcemeta.com/m-11",
+    "https://www.sourcemeta.com/m-12",
+    "https://www.sourcemeta.com/m-13",
+    "https://www.sourcemeta.com/m-14",
+    "https://www.sourcemeta.com/m-15",
+    "https://www.sourcemeta.com/m-16",
+    "https://www.sourcemeta.com/m-17",
+    "https://www.sourcemeta.com/m-18",
+    "https://www.sourcemeta.com/m-19",
+    "https://www.sourcemeta.com/m-20",
+    "https://www.sourcemeta.com/m-21",
+    "https://www.sourcemeta.com/m-22",
+    "https://www.sourcemeta.com/m-23",
+    "https://www.sourcemeta.com/m-24",
+    "https://www.sourcemeta.com/m-25",
+    "https://www.sourcemeta.com/m-26",
+    "https://www.sourcemeta.com/m-27",
+    "https://www.sourcemeta.com/m-28",
+    "https://www.sourcemeta.com/m-29",
+    "https://www.sourcemeta.com/m-30",
+    "https://www.sourcemeta.com/m-31",
+    "https://www.sourcemeta.com/m-32",
+    "https://www.sourcemeta.com/m-33",
+    "https://www.sourcemeta.com/m-34",
+    "https://www.sourcemeta.com/m-35",
+    "https://www.sourcemeta.com/m-36",
+    "https://www.sourcemeta.com/m-37",
+    "https://www.sourcemeta.com/m-38",
+    "https://www.sourcemeta.com/m-39",
+    "https://www.sourcemeta.com/m-40",
+    "https://www.sourcemeta.com/m-41",
+    "https://www.sourcemeta.com/m-42",
+    "https://www.sourcemeta.com/m-43",
+    "https://www.sourcemeta.com/m-44",
+    "https://www.sourcemeta.com/m-45",
+    "https://www.sourcemeta.com/m-46",
+    "https://www.sourcemeta.com/m-47",
+    "https://www.sourcemeta.com/m-48",
+    "https://www.sourcemeta.com/m-49",
+    "https://www.sourcemeta.com/m-50",
+    "https://www.sourcemeta.com/m-51",
+    "https://www.sourcemeta.com/m-52",
+    "https://www.sourcemeta.com/m-53",
+    "https://www.sourcemeta.com/m-54",
+    "https://www.sourcemeta.com/m-55",
+    "https://www.sourcemeta.com/m-56",
+    "https://www.sourcemeta.com/m-57",
+    "https://www.sourcemeta.com/m-58",
+    "https://www.sourcemeta.com/m-59",
+    "https://www.sourcemeta.com/m-60",
+    "https://www.sourcemeta.com/m-61",
+    "https://www.sourcemeta.com/m-62",
+    "https://www.sourcemeta.com/m-63",
+    "https://www.sourcemeta.com/m-64"
+  ],
+  "error": {
+    "type": "SchemaUnknownBaseDialectError",
+    "message": "Could not determine the base dialect of the schema"
+  }
+}
