@@ -61,7 +61,7 @@ public:
   /// Check whether the set contains a property name whose hash is already
   /// known, avoiding the cost of hashing it again
   [[nodiscard]] auto contains(const string_type &value,
-                              const hash_type &hash) const -> bool {
+                              const hash_type hash) const -> bool {
     assert(HASHER(value) == hash);
     if (HASHER.is_perfect(hash)) {
       // A perfect hash is unique for the property name it was computed from,
