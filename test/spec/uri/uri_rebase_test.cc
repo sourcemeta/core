@@ -254,3 +254,38 @@ TEST(new_base_naming_an_authority_without_a_path_rvalue) {
              sourcemeta::core::URI{"https://other.example.com"});
   EXPECT_EQ(uri.recompose(), "https://other.example.com/bar");
 }
+
+// The suffix keeps the empty segment it opens with, whether or not the new
+// base states a path of its own, as that slash is the suffix's and not the
+// separator the authority needs
+TEST(new_base_without_a_path_keeps_an_empty_segment) {
+  sourcemeta::core::URI uri{"https://a/foo//bar"};
+  uri.rebase(sourcemeta::core::URI{"https://a/foo"},
+             sourcemeta::core::URI{"https://b"});
+  EXPECT_EQ(uri.recompose(), "https://b//bar");
+}
+
+TEST(new_base_with_a_path_keeps_an_empty_segment) {
+  sourcemeta::core::URI uri{"https://a/foo//bar"};
+  uri.rebase(sourcemeta::core::URI{"https://a/foo"},
+             sourcemeta::core::URI{"https://b/base"});
+  EXPECT_EQ(uri.recompose(), "https://b/base//bar");
+}
+
+// RFC 3986 Section 3.2 makes userinfo part of an authority on its own, so a
+// new base carrying one still needs the separator even with no host to show
+TEST(new_base_naming_a_userinfo_without_a_host_or_a_path) {
+  sourcemeta::core::URI new_base{""};
+  new_base.userinfo("user");
+  sourcemeta::core::URI uri{"https://a/foo/bar"};
+  uri.rebase(sourcemeta::core::URI{"https://a/foo"}, new_base);
+  EXPECT_EQ(uri.recompose(), "//user@/bar");
+}
+
+TEST(new_base_naming_a_userinfo_without_a_host) {
+  sourcemeta::core::URI new_base{"/base"};
+  new_base.userinfo("user");
+  sourcemeta::core::URI uri{"https://a/foo/bar"};
+  uri.rebase(sourcemeta::core::URI{"https://a/foo"}, new_base);
+  EXPECT_EQ(uri.recompose(), "//user@/base/bar");
+}
