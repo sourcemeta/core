@@ -57,6 +57,75 @@
     "mode": "pointers",
     "locations": {
       "static": {
+        "https://example.com/bar": {
+          "parent": "/properties/foo",
+          "type": "resource",
+          "root": "https://example.com/schema",
+          "base": "https://example.com/bar",
+          "pointer": "/properties/foo/properties/bar",
+          "relativePointer": "",
+          "dialect": "https://example.com/unknown",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
+          }
+        },
+        "https://example.com/bar#/$id": {
+          "parent": "/properties/foo/properties/bar",
+          "type": "pointer",
+          "root": "https://example.com/schema",
+          "base": "https://example.com/bar",
+          "pointer": "/properties/foo/properties/bar/$id",
+          "relativePointer": "/$id",
+          "dialect": "https://example.com/unknown",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
+          }
+        },
+        "https://example.com/bar#/$schema": {
+          "parent": "/properties/foo/properties/bar",
+          "type": "pointer",
+          "root": "https://example.com/schema",
+          "base": "https://example.com/bar",
+          "pointer": "/properties/foo/properties/bar/$schema",
+          "relativePointer": "/$schema",
+          "dialect": "https://example.com/unknown",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+          "propertyName": false,
+          "orphan": false,
+          "hasReferencesTo": false,
+          "hasReferencesThrough": false,
+          "vocabularies": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
+          }
+        },
         "https://example.com/foo": {
           "parent": "",
           "type": "resource",
@@ -71,7 +140,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": true,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/$defs": {
@@ -88,7 +163,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": true,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/$defs/https:~1~1example.com~1meta": {
@@ -174,7 +255,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/$schema": {
@@ -191,7 +278,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/properties": {
@@ -208,58 +301,82 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/properties/bar": {
           "parent": "/properties/foo",
-          "type": "pointer",
+          "type": "subschema",
           "root": "https://example.com/schema",
-          "base": "https://example.com/foo",
+          "base": "https://example.com/bar",
           "pointer": "/properties/foo/properties/bar",
-          "relativePointer": "/properties/bar",
-          "dialect": "https://example.com/meta",
+          "relativePointer": "",
+          "dialect": "https://example.com/unknown",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema",
           "propertyName": false,
           "orphan": false,
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/properties/bar/$id": {
-          "parent": "/properties/foo",
+          "parent": "/properties/foo/properties/bar",
           "type": "pointer",
           "root": "https://example.com/schema",
-          "base": "https://example.com/foo",
+          "base": "https://example.com/bar",
           "pointer": "/properties/foo/properties/bar/$id",
-          "relativePointer": "/properties/bar/$id",
-          "dialect": "https://example.com/meta",
+          "relativePointer": "/$id",
+          "dialect": "https://example.com/unknown",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema",
           "propertyName": false,
           "orphan": false,
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/foo#/properties/bar/$schema": {
-          "parent": "/properties/foo",
+          "parent": "/properties/foo/properties/bar",
           "type": "pointer",
           "root": "https://example.com/schema",
-          "base": "https://example.com/foo",
+          "base": "https://example.com/bar",
           "pointer": "/properties/foo/properties/bar/$schema",
-          "relativePointer": "/properties/bar/$schema",
-          "dialect": "https://example.com/meta",
+          "relativePointer": "/$schema",
+          "dialect": "https://example.com/unknown",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema",
           "propertyName": false,
           "orphan": false,
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/meta": {
@@ -437,7 +554,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": true,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/$defs": {
@@ -454,7 +577,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": true,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/$defs/https:~1~1example.com~1meta": {
@@ -540,7 +669,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/$schema": {
@@ -557,7 +692,13 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/properties": {
@@ -574,58 +715,82 @@
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/properties/bar": {
           "parent": "/properties/foo",
-          "type": "pointer",
+          "type": "subschema",
           "root": "https://example.com/schema",
-          "base": "https://example.com/foo",
+          "base": "https://example.com/bar",
           "pointer": "/properties/foo/properties/bar",
-          "relativePointer": "/properties/bar",
-          "dialect": "https://example.com/meta",
+          "relativePointer": "",
+          "dialect": "https://example.com/unknown",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema",
           "propertyName": false,
           "orphan": false,
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/properties/bar/$id": {
-          "parent": "/properties/foo",
+          "parent": "/properties/foo/properties/bar",
           "type": "pointer",
           "root": "https://example.com/schema",
-          "base": "https://example.com/foo",
+          "base": "https://example.com/bar",
           "pointer": "/properties/foo/properties/bar/$id",
-          "relativePointer": "/properties/bar/$id",
-          "dialect": "https://example.com/meta",
+          "relativePointer": "/$id",
+          "dialect": "https://example.com/unknown",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema",
           "propertyName": false,
           "orphan": false,
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
         "https://example.com/schema#/properties/foo/properties/bar/$schema": {
-          "parent": "/properties/foo",
+          "parent": "/properties/foo/properties/bar",
           "type": "pointer",
           "root": "https://example.com/schema",
-          "base": "https://example.com/foo",
+          "base": "https://example.com/bar",
           "pointer": "/properties/foo/properties/bar/$schema",
-          "relativePointer": "/properties/bar/$schema",
-          "dialect": "https://example.com/meta",
+          "relativePointer": "/$schema",
+          "dialect": "https://example.com/unknown",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema",
           "propertyName": false,
           "orphan": false,
           "hasReferencesTo": false,
           "hasReferencesThrough": false,
           "vocabularies": {
-            "https://json-schema.org/draft/2020-12/vocab/core": true
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+            "https://json-schema.org/draft/2020-12/vocab/validation": true,
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+            "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         }
       },
@@ -655,10 +820,18 @@
         "destination": "https://example.com/meta",
         "base": "https://example.com/meta",
         "fragment": null
+      },
+      {
+        "type": "static",
+        "origin": "/properties/foo/properties/bar/$schema",
+        "original": "https://example.com/unknown",
+        "destination": "https://example.com/unknown",
+        "base": "https://example.com/unknown",
+        "fragment": null
       }
     ]
   },
-  "standalone": true,
+  "standalone": false,
   "standaloneIgnoringMetaschemas": true,
   "reachability": [
     {
@@ -686,5 +859,11 @@
       "to": "https://example.com/schema",
       "reachable": false
     }
-  ]
+  ],
+  "resolver": {
+    "https://example.com/unknown": {
+      "$id": "https://example.com/unknown",
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    }
+  }
 }
