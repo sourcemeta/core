@@ -634,3 +634,17 @@ TEST(an_authority_naming_no_host_is_left_alone) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "file://");
 }
+
+// Whether an empty path means a root is the scheme's to say, and a scheme
+// that reads one as a name of its own would be answered for wrongly
+TEST(empty_path_is_left_alone_for_a_scheme_that_defines_no_equivalence) {
+  sourcemeta::core::URI uri{"amqp://broker"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "amqp://broker");
+}
+
+TEST(empty_path_gains_a_root_for_http) {
+  sourcemeta::core::URI uri{"http://www.example.com"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://www.example.com/");
+}
