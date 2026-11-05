@@ -267,10 +267,24 @@ ref_overrides_adjacent_keywords(const SchemaBaseDialect base_dialect) -> bool {
   }
 }
 
+// The identifier of an embedded resource is a URI reference, so a relative one
+// means nothing on its own. It resolves against the base of the document that
+// embeds it, exactly as a reference to the same resource would, which is what
+// lets a document name an embedded meta-schema it declares relatively.
+//
+// The base is read with the same keyword the candidate declared, as a resource
+// spelled with a keyword the dialect in force does not read is never a link
+// that validation accepts, and letting it answer here only lets it hide the
+// resource that would have been accepted
 inline auto embedded_metaschema_identifier_matches(
     const sourcemeta::core::JSON &candidate, const SchemaKeyword keyword,
     const std::string_view identifier,
-    const std::optional<sourcemeta::core::JSON::String> &canonical) -> bool {
+    const std::optional<sourcemeta::core::JSON::String> &canonical,
+    const sourcemeta::core::JSON &base_document) -> bool {
+  if (!candidate.is_object()) {
+    return false;
+  }
+
   const auto *value{candidate.try_at(keyword.name, keyword.hash)};
   if ((value == nullptr) || !value->is_string()) {
     return false;
@@ -288,35 +302,68 @@ inline auto embedded_metaschema_identifier_matches(
   }
 
   const auto settled{sourcemeta::core::URI::try_canonicalize(current)};
-  return settled.has_value() && settled.value() == canonical.value();
-}
-
-inline auto embedded_metaschema_matches(
-    const sourcemeta::core::JSON &candidate, const std::string_view identifier,
-    const std::optional<sourcemeta::core::JSON::String> &canonical) -> bool {
-  if (!candidate.is_object()) {
+  if (!settled.has_value()) {
     return false;
   }
 
-  constexpr std::array<SchemaKeyword, 2> KEYWORDS{
-      {{.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID},
-       {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID}}};
-  for (const auto keyword : KEYWORDS) {
-    if (embedded_metaschema_identifier_matches(candidate, keyword, identifier,
-                                               canonical)) {
-      return true;
-    }
+  if (settled.value() == canonical.value()) {
+    return true;
   }
 
-  return false;
+  // An empty identifier, and one that is nothing but an empty fragment,
+  // declare no resource at all, so they never name one. Without this they
+  // would resolve to the base itself and match whatever it is
+  if (current.empty() || current == "#") {
+    return false;
+  }
+
+  const auto *base_value{base_document.try_at(keyword.name, keyword.hash)};
+  if ((base_value == nullptr) || !base_value->is_string()) {
+    return false;
+  }
+
+  try {
+    const sourcemeta::core::URI base{base_value->to_string()};
+    // A base that is itself relative cannot anchor anything, as resolving
+    // against it would only produce another relative reference
+    if (base.is_relative()) {
+      return false;
+    }
+
+    sourcemeta::core::URI relative{sourcemeta::core::JSON::String{current}};
+    if (!relative.is_relative()) {
+      return false;
+    }
+
+    return relative.resolve_from(base).canonicalize().recompose() ==
+           canonical.value();
+  } catch (const sourcemeta::core::URIParseError &) {
+    return false;
+  }
 }
 
-inline auto
-embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
-                              const std::string_view identifier)
-    -> std::pair<const sourcemeta::core::JSON *, std::string_view> {
+// The identifier keywords a search may be scoped to, in the order the base
+// dialects that reserve them came about
+constexpr std::array<SchemaKeyword, 2> EMBEDDED_METASCHEMA_KEYWORDS{
+    {{.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID},
+     {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID}}};
+
+struct EmbeddedMetaschemaLink {
+  const sourcemeta::core::JSON *schema;
+  sourcemeta::core::JSON::StringView identifier;
+  std::string_view container;
+};
+
+// More than one entry can answer to the same identifier, as a document may
+// spell identifiers with a keyword the dialect in force does not read. Every
+// match is collected, in the order the containers and their entries come, so
+// that a candidate the chain later rejects cannot hide a valid one behind it
+inline auto embedded_metaschema_candidates(
+    const sourcemeta::core::JSON &document, const std::string_view identifier,
+    const SchemaKeyword keyword) -> std::vector<EmbeddedMetaschemaLink> {
+  std::vector<EmbeddedMetaschemaLink> result;
   if (!document.is_object()) {
-    return {nullptr, ""};
+    return result;
   }
 
   const auto canonical{sourcemeta::core::URI::try_canonicalize(identifier)};
@@ -330,28 +377,23 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
       continue;
     }
 
-    const auto *direct{
-        entries->try_at(sourcemeta::core::JSON::StringView{identifier})};
-    if ((direct != nullptr) &&
-        embedded_metaschema_matches(*direct, identifier, canonical)) {
-      return {direct, container.name};
-    }
-
     for (const auto &entry : entries->as_object()) {
-      if (embedded_metaschema_matches(entry.second, identifier, canonical)) {
-        return {&entry.second, container.name};
+      if (embedded_metaschema_identifier_matches(
+              entry.second, keyword, identifier, canonical, document)) {
+        result.push_back({.schema = &entry.second,
+                          .identifier = identifier,
+                          .container = container.name});
       }
     }
   }
 
-  return {nullptr, ""};
+  return result;
 }
 
-inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
-                                           const std::string_view identifier,
-                                           const std::string_view container,
-                                           const SchemaBaseDialect base_dialect)
-    -> bool {
+inline auto embedded_metaschema_link_valid(
+    const sourcemeta::core::JSON &link, const std::string_view identifier,
+    const std::string_view container, const SchemaBaseDialect base_dialect,
+    const sourcemeta::core::JSON &base_document) -> bool {
   // In 2019-09 and 2020-12, `definitions` is still supported for backwards
   // compatibility, so the older name answers for a dialect that reserves the
   // newer one as well as for the ones that reserve it in their own right
@@ -363,15 +405,9 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
 
   const auto canonical{sourcemeta::core::URI::try_canonicalize(identifier)};
 
-  return embedded_metaschema_identifier_matches(link, id_keyword(base_dialect),
-                                                identifier, canonical);
+  return embedded_metaschema_identifier_matches(
+      link, id_keyword(base_dialect), identifier, canonical, base_document);
 }
-
-struct EmbeddedMetaschemaLink {
-  const sourcemeta::core::JSON *schema;
-  sourcemeta::core::JSON::StringView identifier;
-  std::string_view container;
-};
 
 // A caller-supplied resolver, walker, or callback may throw anything of its
 // own, including a type that spells the same as one an operation raises and
