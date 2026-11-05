@@ -191,7 +191,6 @@ TEST(valid_at_uint64_max) {
   EXPECT_EQ(result->patch(), 18446744073709551615ULL);
 }
 
-// Tests to hit position >= input.size() branch after parsing
 TEST(from_major_ends_at_hyphen) {
   EXPECT_FALSE(sourcemeta::core::SemVer::from("1-").has_value());
 }

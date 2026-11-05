@@ -271,7 +271,6 @@ TEST(from_loose_trailing_garbage_returns_nullopt) {
                    .has_value());
 }
 
-// Tests to hit position < input.size() branches in parse_semver loose mode
 TEST(from_loose_major_no_dot_ends_at_input_end) {
   const auto result = sourcemeta::core::SemVer::from(
       "42", sourcemeta::core::SemVer::Mode::Loose);
@@ -305,7 +304,6 @@ TEST(from_loose_V_prefix_major_minor_ends_at_input_end) {
   EXPECT_EQ(result->minor(), 4);
 }
 
-// Test position >= input.size() after scanning pre-release
 TEST(from_loose_ends_exactly_after_pre_release) {
   const auto result = sourcemeta::core::SemVer::from(
       "1.0-rc1", sourcemeta::core::SemVer::Mode::Loose);
@@ -314,7 +312,6 @@ TEST(from_loose_ends_exactly_after_pre_release) {
   EXPECT_TRUE(result->build().empty());
 }
 
-// Tests to ensure all parse branches are hit in loose mode
 TEST(from_loose_major_with_pre_release_no_dots) {
   const auto result = sourcemeta::core::SemVer::from(
       "9-beta", sourcemeta::core::SemVer::Mode::Loose);
@@ -351,7 +348,6 @@ TEST(from_loose_major_minor_with_build_no_patch_dot) {
   EXPECT_EQ(result->build(), "dev");
 }
 
-// Tests using constructor (ShouldThrow=true) to hit parse branches
 TEST(constructor_loose_major_only_with_pre_release) {
   const sourcemeta::core::SemVer version{"4-rc",
                                          sourcemeta::core::SemVer::Mode::Loose};
@@ -359,7 +355,6 @@ TEST(constructor_loose_major_only_with_pre_release) {
   EXPECT_EQ(version.pre_release(), "rc");
 }
 
-// Test empty string in loose mode via constructor (hits line 254)
 TEST(from_loose_empty_string_fails) {
   EXPECT_FALSE(
       sourcemeta::core::SemVer::from("", sourcemeta::core::SemVer::Mode::Loose)
