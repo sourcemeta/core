@@ -2616,7 +2616,7 @@ TEST(root_mode_identifier_with_non_empty_fragment) {
   } catch (const sourcemeta::core::SchemaFrameError &error) {
     EXPECT_STREQ(error.what(),
                  "Identifiers must not contain non-empty fragments");
-    EXPECT_EQ(error.identifier(), "https://example.com#foo");
+    EXPECT_EQ(error.identifier(), "https://example.com/#foo");
   }
 }
 

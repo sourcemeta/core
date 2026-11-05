@@ -12,13 +12,13 @@
     "nonOfficialMetaschemas": {
       "type": "SchemaReferenceError",
       "message": "Could not resolve schema reference",
-      "identifier": "https://example.com#/$defs/nope",
+      "identifier": "https://example.com/#/$defs/nope",
       "location": "/properties/foo/$ref"
     },
     "references": {
       "type": "SchemaReferenceError",
       "message": "Could not resolve schema reference",
-      "identifier": "https://example.com#/$defs/nope",
+      "identifier": "https://example.com/#/$defs/nope",
       "location": "/properties/foo/$ref"
     }
   },

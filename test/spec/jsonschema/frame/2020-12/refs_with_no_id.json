@@ -337,7 +337,7 @@
           "parent": "",
           "type": "subschema",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -360,7 +360,7 @@
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -383,7 +383,7 @@
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$ref",
           "relativePointer": "/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -425,11 +425,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": "",
           "type": "resource",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -448,11 +448,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$id": {
+        "https://www.example.com/#/$id": {
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -471,11 +471,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$ref": {
+        "https://www.example.com/#/$ref": {
           "parent": "/properties/qux",
           "type": "pointer",
           "root": null,
-          "base": "https://www.example.com",
+          "base": "https://www.example.com/",
           "pointer": "/properties/qux/$ref",
           "relativePointer": "/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -534,8 +534,8 @@
         "type": "static",
         "origin": "/properties/qux/$ref",
         "original": "#",
-        "destination": "https://www.example.com",
-        "base": "https://www.example.com",
+        "destination": "https://www.example.com/",
+        "base": "https://www.example.com/",
         "fragment": null
       }
     ]

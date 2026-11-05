@@ -14,11 +14,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": null,
           "type": "resource",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -46,11 +46,11 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://www.example.com": {
+        "https://www.example.com/": {
           "parent": null,
           "type": "resource",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -69,11 +69,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$defs": {
+        "https://www.example.com/#/$defs": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/$defs",
           "relativePointer": "/$defs",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -92,11 +92,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$defs/helper": {
+        "https://www.example.com/#/$defs/helper": {
           "parent": "",
           "type": "subschema",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/$defs/helper",
           "relativePointer": "/$defs/helper",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -115,11 +115,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$id": {
+        "https://www.example.com/#/$id": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -138,11 +138,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/$schema": {
+        "https://www.example.com/#/$schema": {
           "parent": "",
           "type": "pointer",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/$schema",
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -161,11 +161,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/items": {
+        "https://www.example.com/#/items": {
           "parent": "",
           "type": "subschema",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/items",
           "relativePointer": "/items",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -184,11 +184,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/items/$anchor": {
+        "https://www.example.com/#/items/$anchor": {
           "parent": "/items",
           "type": "pointer",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/items/$anchor",
           "relativePointer": "/items/$anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -207,11 +207,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#/items/$ref": {
+        "https://www.example.com/#/items/$ref": {
           "parent": "/items",
           "type": "pointer",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/items/$ref",
           "relativePointer": "/items/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -230,11 +230,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://www.example.com#helper": {
+        "https://www.example.com/#helper": {
           "parent": "",
           "type": "anchor",
-          "root": "https://www.example.com",
-          "base": "https://www.example.com",
+          "root": "https://www.example.com/",
+          "base": "https://www.example.com/",
           "pointer": "/items",
           "relativePointer": "/items",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -269,8 +269,8 @@
         "type": "static",
         "origin": "/items/$ref",
         "original": "#/$defs/helper",
-        "destination": "https://www.example.com#/$defs/helper",
-        "base": "https://www.example.com",
+        "destination": "https://www.example.com/#/$defs/helper",
+        "base": "https://www.example.com/",
         "fragment": "/$defs/helper"
       }
     ]

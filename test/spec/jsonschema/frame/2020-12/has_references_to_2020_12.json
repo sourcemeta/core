@@ -35,11 +35,11 @@
     "mode": "root",
     "locations": {
       "static": {
-        "https://example.com": {
+        "https://example.com/": {
           "parent": null,
           "type": "resource",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -67,11 +67,11 @@
     "mode": "pointers",
     "locations": {
       "static": {
-        "https://example.com": {
+        "https://example.com/": {
           "parent": null,
           "type": "resource",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "",
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -90,11 +90,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs": {
+        "https://example.com/#/$defs": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs",
           "relativePointer": "/$defs",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -113,11 +113,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/bookending": {
+        "https://example.com/#/$defs/bookending": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/bookending",
           "relativePointer": "/$defs/bookending",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -136,11 +136,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/bookending/$dynamicAnchor": {
+        "https://example.com/#/$defs/bookending/$dynamicAnchor": {
           "parent": "/$defs/bookending",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/bookending/$dynamicAnchor",
           "relativePointer": "/$defs/bookending/$dynamicAnchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -159,11 +159,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/dynamic": {
+        "https://example.com/#/$defs/dynamic": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/dynamic",
           "relativePointer": "/$defs/dynamic",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -182,11 +182,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/dynamic-non-anchor": {
+        "https://example.com/#/$defs/dynamic-non-anchor": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/dynamic-non-anchor",
           "relativePointer": "/$defs/dynamic-non-anchor",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -205,11 +205,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/dynamic-non-anchor/$dynamicRef": {
+        "https://example.com/#/$defs/dynamic-non-anchor/$dynamicRef": {
           "parent": "/$defs/dynamic-non-anchor",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/dynamic-non-anchor/$dynamicRef",
           "relativePointer": "/$defs/dynamic-non-anchor/$dynamicRef",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -228,11 +228,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/dynamic/$dynamicRef": {
+        "https://example.com/#/$defs/dynamic/$dynamicRef": {
           "parent": "/$defs/dynamic",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/dynamic/$dynamicRef",
           "relativePointer": "/$defs/dynamic/$dynamicRef",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -251,11 +251,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/static": {
+        "https://example.com/#/$defs/static": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/static",
           "relativePointer": "/$defs/static",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -274,11 +274,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$defs/static/$ref": {
+        "https://example.com/#/$defs/static/$ref": {
           "parent": "/$defs/static",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/static/$ref",
           "relativePointer": "/$defs/static/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -297,11 +297,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$id": {
+        "https://example.com/#/$id": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$id",
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -320,11 +320,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/$schema": {
+        "https://example.com/#/$schema": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$schema",
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -343,11 +343,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties": {
+        "https://example.com/#/properties": {
           "parent": "",
           "type": "pointer",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/properties",
           "relativePointer": "/properties",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -366,10 +366,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/bar": {
+        "https://example.com/#/properties/bar": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar",
           "relativePointer": "",
@@ -389,10 +389,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/bar/$dynamicAnchor": {
+        "https://example.com/#/properties/bar/$dynamicAnchor": {
           "parent": "/properties/bar",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
@@ -412,10 +412,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/bar/$id": {
+        "https://example.com/#/properties/bar/$id": {
           "parent": "/properties/bar",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar/$id",
           "relativePointer": "/$id",
@@ -435,10 +435,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/baz": {
+        "https://example.com/#/properties/baz": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz",
           "relativePointer": "",
@@ -458,10 +458,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/baz/$anchor": {
+        "https://example.com/#/properties/baz/$anchor": {
           "parent": "/properties/baz",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz/$anchor",
           "relativePointer": "/$anchor",
@@ -481,10 +481,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/baz/$id": {
+        "https://example.com/#/properties/baz/$id": {
           "parent": "/properties/baz",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz/$id",
           "relativePointer": "/$id",
@@ -504,10 +504,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/foo": {
+        "https://example.com/#/properties/foo": {
           "parent": "",
           "type": "subschema",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -527,10 +527,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/foo/$dynamicAnchor": {
+        "https://example.com/#/properties/foo/$dynamicAnchor": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
@@ -550,10 +550,10 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#/properties/foo/$id": {
+        "https://example.com/#/properties/foo/$id": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo/$id",
           "relativePointer": "/$id",
@@ -573,11 +573,11 @@
             "https://json-schema.org/draft/2020-12/vocab/content": true
           }
         },
-        "https://example.com#test": {
+        "https://example.com/#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/bookending",
           "relativePointer": "/$defs/bookending",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -599,7 +599,7 @@
         "https://example.com/bar": {
           "parent": "",
           "type": "resource",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar",
           "relativePointer": "",
@@ -622,7 +622,7 @@
         "https://example.com/bar#/$dynamicAnchor": {
           "parent": "/properties/bar",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
@@ -645,7 +645,7 @@
         "https://example.com/bar#/$id": {
           "parent": "/properties/bar",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar/$id",
           "relativePointer": "/$id",
@@ -668,7 +668,7 @@
         "https://example.com/bar#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar",
           "relativePointer": "",
@@ -691,7 +691,7 @@
         "https://example.com/baz": {
           "parent": "",
           "type": "resource",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz",
           "relativePointer": "",
@@ -714,7 +714,7 @@
         "https://example.com/baz#/$anchor": {
           "parent": "/properties/baz",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz/$anchor",
           "relativePointer": "/$anchor",
@@ -737,7 +737,7 @@
         "https://example.com/baz#/$id": {
           "parent": "/properties/baz",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz/$id",
           "relativePointer": "/$id",
@@ -760,7 +760,7 @@
         "https://example.com/baz#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/baz",
           "pointer": "/properties/baz",
           "relativePointer": "",
@@ -783,7 +783,7 @@
         "https://example.com/foo": {
           "parent": "",
           "type": "resource",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -806,7 +806,7 @@
         "https://example.com/foo#/$dynamicAnchor": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo/$dynamicAnchor",
           "relativePointer": "/$dynamicAnchor",
@@ -829,7 +829,7 @@
         "https://example.com/foo#/$id": {
           "parent": "/properties/foo",
           "type": "pointer",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo/$id",
           "relativePointer": "/$id",
@@ -852,7 +852,7 @@
         "https://example.com/foo#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -874,11 +874,11 @@
         }
       },
       "dynamic": {
-        "https://example.com#test": {
+        "https://example.com/#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
-          "base": "https://example.com",
+          "root": "https://example.com/",
+          "base": "https://example.com/",
           "pointer": "/$defs/bookending",
           "relativePointer": "/$defs/bookending",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
@@ -900,7 +900,7 @@
         "https://example.com/bar#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/bar",
           "pointer": "/properties/bar",
           "relativePointer": "",
@@ -923,7 +923,7 @@
         "https://example.com/foo#test": {
           "parent": "",
           "type": "anchor",
-          "root": "https://example.com",
+          "root": "https://example.com/",
           "base": "https://example.com/foo",
           "pointer": "/properties/foo",
           "relativePointer": "",
@@ -958,8 +958,8 @@
         "type": "static",
         "origin": "/$defs/static/$ref",
         "original": "#test",
-        "destination": "https://example.com#test",
-        "base": "https://example.com",
+        "destination": "https://example.com/#test",
+        "base": "https://example.com/",
         "fragment": "test"
       },
       {
@@ -974,8 +974,8 @@
         "type": "dynamic",
         "origin": "/$defs/dynamic/$dynamicRef",
         "original": "#test",
-        "destination": "https://example.com#test",
-        "base": "https://example.com",
+        "destination": "https://example.com/#test",
+        "base": "https://example.com/",
         "fragment": "test"
       }
     ]
