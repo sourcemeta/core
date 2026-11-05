@@ -1,0 +1,61 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/aaa-consumer"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/zzz-host"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/aaa-consumer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/aaa-consumer",
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/present"
+        },
+        {
+          "$ref": "https://www.sourcemeta.com/ghost"
+        }
+      ]
+    },
+    "https://www.sourcemeta.com/zzz-host": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/zzz-host",
+      "$defs": {
+        "inner": {
+          "$id": "https://www.sourcemeta.com/present",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/aaa-consumer"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/zzz-host"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/aaa-consumer",
+    "https://www.sourcemeta.com/zzz-host",
+    "https://www.sourcemeta.com/present",
+    "https://www.sourcemeta.com/ghost"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "https://www.sourcemeta.com/ghost"
+  }
+}

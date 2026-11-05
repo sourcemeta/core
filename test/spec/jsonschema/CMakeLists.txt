@@ -20,7 +20,9 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_frame_limit_test.cc
     jsonschema_identifier_keyword_test.cc
     jsonschema_bundle_limit_test.cc
-    jsonschema_bundle_depth_test.cc)
+    jsonschema_bundle_depth_test.cc
+    jsonschema_dependencies_depth_test.cc
+    jsonschema_dependencies_limit_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonschema_unit
   PRIVATE sourcemeta::core::json)
@@ -65,3 +67,14 @@ target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourc
 target_link_libraries(sourcemeta_core_jsonschema_bundle_suite_unit PRIVATE sourcemeta::core::jsonschema)
 
 set_tests_properties(core.jsonschema_bundle_suite PROPERTIES TIMEOUT 60)
+
+# Complete dependency analysis tests, expressed as JSON fixtures
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema_dependencies_suite
+  SOURCES dependenciessuite.cc)
+target_compile_definitions(sourcemeta_core_jsonschema_dependencies_suite_unit
+  PRIVATE DEPENDENCIES_SUITE_PATH="${PROJECT_SOURCE_DIR}/test/spec/jsonschema/dependencies")
+target_link_libraries(sourcemeta_core_jsonschema_dependencies_suite_unit PRIVATE sourcemeta::core::json)
+target_link_libraries(sourcemeta_core_jsonschema_dependencies_suite_unit PRIVATE sourcemeta::core::jsonpointer)
+target_link_libraries(sourcemeta_core_jsonschema_dependencies_suite_unit PRIVATE sourcemeta::core::jsonschema)
+
+set_tests_properties(core.jsonschema_dependencies_suite PROPERTIES TIMEOUT 60)

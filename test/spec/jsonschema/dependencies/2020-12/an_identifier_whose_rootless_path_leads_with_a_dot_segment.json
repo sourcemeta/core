@@ -1,0 +1,32 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:../entry",
+    "allOf": [
+      {
+        "$ref": "urn:../entry"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/remote"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/remote",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "urn:entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/remote"
+    }
+  ],
+  "locations": 4,
+  "fetched": [
+    "https://www.sourcemeta.com/remote"
+  ]
+}

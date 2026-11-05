@@ -1,0 +1,38 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "$ref": "https://www.sourcemeta.com/consumer"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/consumer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/consumer",
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/gate"
+        },
+        {
+          "$ref": "https://www.sourcemeta.com/needed"
+        }
+      ]
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/consumer"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/consumer",
+    "https://www.sourcemeta.com/gate",
+    "https://www.sourcemeta.com/needed"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "https://www.sourcemeta.com/gate"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema": {
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "anyOf": [
+      {
+        "properties": {
+          "foo": {
+            "$ref": "https://www.sourcemeta.com/test-1"
+          }
+        }
+      },
+      {
+        "properties": {
+          "bar": {
+            "$ref": "https://www.sourcemeta.com/test-1"
+          }
+        }
+      },
+      {
+        "properties": {
+          "baz": {
+            "$ref": "https://www.sourcemeta.com/test-1"
+          }
+        }
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/anyOf/0/properties/foo/$ref",
+      "destination": "https://www.sourcemeta.com/test-1"
+    }
+  ],
+  "locations": 8,
+  "fetched": [
+    "https://www.sourcemeta.com/test-1"
+  ]
+}

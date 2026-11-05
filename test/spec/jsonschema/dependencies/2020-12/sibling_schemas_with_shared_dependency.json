@@ -1,0 +1,65 @@
+{
+  "schema": {
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "a": {
+        "$ref": "https://www.sourcemeta.com/sibling-a"
+      },
+      "b": {
+        "$ref": "https://www.sourcemeta.com/sibling-b"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/sibling-a": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/sibling-a",
+      "$ref": "shared"
+    },
+    "https://www.sourcemeta.com/sibling-b": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/sibling-b",
+      "$ref": "shared"
+    },
+    "https://www.sourcemeta.com/shared": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/shared",
+      "$ref": "deep"
+    },
+    "https://www.sourcemeta.com/deep": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/deep",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/properties/a/$ref",
+      "destination": "https://www.sourcemeta.com/sibling-a"
+    },
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/properties/b/$ref",
+      "destination": "https://www.sourcemeta.com/sibling-b"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/sibling-a",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/shared"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/shared",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/deep"
+    }
+  ],
+  "locations": 7,
+  "fetched": [
+    "https://www.sourcemeta.com/sibling-a",
+    "https://www.sourcemeta.com/sibling-b",
+    "https://www.sourcemeta.com/shared",
+    "https://www.sourcemeta.com/deep"
+  ]
+}

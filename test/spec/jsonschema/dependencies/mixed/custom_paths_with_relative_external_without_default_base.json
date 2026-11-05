@@ -1,0 +1,31 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "test-1"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "dependencies": [],
+  "fetched": [
+    "test-1"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "test-1"
+  }
+}

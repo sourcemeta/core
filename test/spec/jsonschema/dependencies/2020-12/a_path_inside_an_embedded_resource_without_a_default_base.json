@@ -1,0 +1,37 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Outer": {
+          "$id": "https://www.sourcemeta.com/nested/outer",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Inner": {
+              "$ref": "leaf"
+            }
+          }
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/nested/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/nested/leaf",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/components/schemas/Outer/$defs/Inner"
+  ],
+  "dependencies": [],
+  "fetched": [
+    "leaf"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "leaf"
+  }
+}

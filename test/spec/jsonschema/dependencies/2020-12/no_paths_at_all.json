@@ -1,0 +1,24 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$ref": "https://www.sourcemeta.com/leaf"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/leaf",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [],
+  "dependencies": [],
+  "locations": 0,
+  "fetched": []
+}

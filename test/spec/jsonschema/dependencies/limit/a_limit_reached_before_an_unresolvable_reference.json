@@ -1,0 +1,51 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/aaa-ghost"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/zzz-wide"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/zzz-wide": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/zzz-wide",
+      "$defs": {
+        "one": {
+          "$id": "https://www.sourcemeta.com/zzz-wide-one",
+          "type": "string"
+        },
+        "two": {
+          "$id": "https://www.sourcemeta.com/zzz-wide-two",
+          "type": "string"
+        },
+        "three": {
+          "$id": "https://www.sourcemeta.com/zzz-wide-three",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "maxLocations": 4,
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/zzz-wide"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/aaa-ghost",
+    "https://www.sourcemeta.com/zzz-wide"
+  ],
+  "error": {
+    "type": "SchemaFrameLimitError",
+    "message": "The schema exceeds the maximum number of frame locations",
+    "limit": 4
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/properties/foo/$ref",
+      "destination": "https://www.sourcemeta.com/test-1"
+    }
+  ],
+  "locations": 3,
+  "fetched": [
+    "https://www.sourcemeta.com/test-1"
+  ]
+}

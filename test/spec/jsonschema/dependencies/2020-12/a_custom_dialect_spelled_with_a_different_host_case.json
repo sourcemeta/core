@@ -1,0 +1,30 @@
+{
+  "schema": {
+    "$schema": "HTTPS://WWW.Sourcemeta.COM/custom-metaschema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "type": "string"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/custom-metaschema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/custom-metaschema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      },
+      "type": "object"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/custom-metaschema"
+    }
+  ],
+  "locations": 2,
+  "fetched": [
+    "HTTPS://WWW.Sourcemeta.COM/custom-metaschema",
+    "https://www.sourcemeta.com/custom-metaschema"
+  ]
+}

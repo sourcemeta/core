@@ -1,0 +1,14 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  },
+  "maxLocations": 0,
+  "dependencies": [],
+  "fetched": [],
+  "error": {
+    "type": "SchemaFrameLimitError",
+    "message": "The schema exceeds the maximum number of frame locations",
+    "limit": 0
+  }
+}

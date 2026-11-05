@@ -1,0 +1,43 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:example:entry",
+    "$ref": "urn:example:middle"
+  },
+  "resolver": {
+    "urn:example:middle": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:example:middle",
+      "allOf": [
+        {
+          "$ref": "urn:example:leaf"
+        },
+        {
+          "$ref": "urn:example:entry"
+        }
+      ]
+    },
+    "urn:example:leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:example:leaf",
+      "type": "string"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "urn:example:entry",
+      "pointer": "/$ref",
+      "destination": "urn:example:middle"
+    },
+    {
+      "origin": "urn:example:middle",
+      "pointer": "/allOf/0/$ref",
+      "destination": "urn:example:leaf"
+    }
+  ],
+  "locations": 5,
+  "fetched": [
+    "urn:example:middle",
+    "urn:example:leaf"
+  ]
+}

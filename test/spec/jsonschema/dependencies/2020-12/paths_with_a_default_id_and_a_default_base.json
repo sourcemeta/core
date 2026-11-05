@@ -1,0 +1,40 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "test-1"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/retrieved/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/retrieved/test-1",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/declared/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/declared/test-1",
+      "type": "integer"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultId": "https://www.sourcemeta.com/declared/me.json",
+  "defaultBase": "https://www.sourcemeta.com/retrieved/doc.json",
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/retrieved/test-1"
+    }
+  ],
+  "locations": 2,
+  "fetched": [
+    "https://www.sourcemeta.com/retrieved/test-1"
+  ]
+}

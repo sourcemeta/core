@@ -1,0 +1,18 @@
+{
+  "schema": {
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "$ref": "https://json-schema.org:443/draft/2020-12/schema"
+    }
+  },
+  "dependencies": [
+    {
+      "origin": "https://www.example.com/",
+      "pointer": "/items/$ref",
+      "destination": "https://json-schema.org/draft/2020-12/schema"
+    }
+  ],
+  "locations": 2,
+  "fetched": []
+}
