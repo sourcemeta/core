@@ -344,10 +344,13 @@ namespace {
 
 auto merge_new_base_path(std::optional<std::string> &target_path,
                          std::optional<std::string> &&new_base_path,
-                         std::optional<std::string> &&saved_path) -> void {
-  if (new_base_path.has_value() && saved_path.has_value()) {
+                         std::optional<std::string> &&saved_path,
+                         const bool has_authority) -> void {
+  if (!new_base_path.has_value() || !saved_path.has_value()) {
+    target_path = new_base_path.has_value() ? std::move(new_base_path)
+                                            : std::move(saved_path);
+  } else {
     auto merged{std::move(new_base_path.value())};
-    const auto &relative_path = saved_path.value();
     // The suffix is what lies below the old base with the separating slash
     // already removed, so a slash it does start with opens an empty segment
     // and must not be mistaken for that separator
@@ -355,12 +358,18 @@ auto merge_new_base_path(std::optional<std::string> &target_path,
       merged += '/';
     }
 
-    merged += relative_path;
+    merged += saved_path.value();
     target_path = std::move(merged);
-  } else if (new_base_path.has_value()) {
-    target_path = std::move(new_base_path);
-  } else {
-    target_path = std::move(saved_path);
+  }
+
+  // RFC 3986 Section 3.3 holds that "if a URI contains an authority
+  // component, then the path component must either be empty or begin with a
+  // slash ("/") character", which Section 5.2.3 settles the same way for a
+  // base that names an authority and states no path. Without this the suffix
+  // reads as part of the host and the result names somewhere else entirely
+  if (has_authority && target_path.has_value() &&
+      !target_path.value().empty() && !target_path.value().starts_with('/')) {
+    target_path.value().insert(target_path.value().begin(), '/');
   }
 }
 
@@ -400,7 +409,7 @@ auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
 
   std::optional<std::string> new_base_path_copy{new_base.path_};
   merge_new_base_path(this->path_, std::move(new_base_path_copy),
-                      std::move(relative_path));
+                      std::move(relative_path), this->host_.has_value());
 
   return *this;
 }
@@ -426,7 +435,7 @@ auto URI::rebase(const URI &base, URI &&new_base) -> URI & {
   this->iri_ = this->iri_ || new_base.iri_;
 
   merge_new_base_path(this->path_, std::move(new_base.path_),
-                      std::move(relative_path));
+                      std::move(relative_path), this->host_.has_value());
 
   return *this;
 }
