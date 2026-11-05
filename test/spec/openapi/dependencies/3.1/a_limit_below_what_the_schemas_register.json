@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object",
+          "properties": {
+            "a": {
+              "type": "string"
+            },
+            "b": {
+              "type": "number"
+            },
+            "c": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "maxLocations": 5,
+  "expected": [],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIFrameLimitError",
+    "message": "The OpenAPI Description exceeds the maximum number of locations that framing may register",
+    "limit": 5
+  }
+}

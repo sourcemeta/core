@@ -1,0 +1,55 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/mid.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/mid.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/mid.json",
+      "properties": {
+        "owner": {
+          "$ref": "https://www.sourcemeta.com/api.json#/components/schemas/Owner"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/api.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Api",
+        "version": "1.0.0"
+      },
+      "components": {
+        "schemas": {
+          "Owner": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/mid.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "A Schema Object may only reference a JSON Schema document",
+    "identifier": "https://www.sourcemeta.com/api.json"
+  }
+}

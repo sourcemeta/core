@@ -1,0 +1,40 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/old.json#/paths/~1one"
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/old.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Old",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/one": {
+          "description": "Older"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1one/$ref",
+      "destination": "https://www.sourcemeta.com/old.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 8,
+  "fetched": [
+    "https://www.sourcemeta.com/old.json"
+  ]
+}

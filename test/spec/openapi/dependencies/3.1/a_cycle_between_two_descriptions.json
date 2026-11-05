@@ -1,0 +1,41 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/a.json#/paths/~1one"
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/entry.json",
+  "openapiResolver": {
+    "https://www.sourcemeta.com/a.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "A",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/back": {
+          "$ref": "https://www.sourcemeta.com/entry.json#/paths/~1one"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "https://www.sourcemeta.com/entry.json",
+      "pointer": "/paths/~1one/$ref",
+      "destination": "https://www.sourcemeta.com/a.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 8,
+  "fetched": [
+    "https://www.sourcemeta.com/a.json"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/a.json#/paths/~1one"
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/a.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "A",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/one": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "Ok"
+              }
+            }
+          }
+        },
+        "/two": {
+          "get": {
+            "responses": {
+              "200": {
+                "description": "Ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "maxLocations": 8,
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1one/$ref",
+      "destination": "https://www.sourcemeta.com/a.json",
+      "kind": "path-item"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/a.json"
+  ],
+  "error": {
+    "type": "OpenAPIFrameLimitError",
+    "message": "The OpenAPI Description exceeds the maximum number of locations that framing may register",
+    "limit": 8
+  }
+}

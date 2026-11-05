@@ -1,0 +1,48 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/missing.json#/paths/~1here"
+      },
+      "/two": {
+        "$ref": "https://www.sourcemeta.com/present.json#/paths/~1there"
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/present.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "P",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/there": {
+          "description": "There"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1two/$ref",
+      "destination": "https://www.sourcemeta.com/present.json",
+      "kind": "path-item"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/missing.json",
+    "https://www.sourcemeta.com/present.json"
+  ],
+  "error": {
+    "type": "OpenAPIResolutionError",
+    "message": "Could not resolve the reference to an external document",
+    "identifier": "https://www.sourcemeta.com/missing.json"
+  }
+}

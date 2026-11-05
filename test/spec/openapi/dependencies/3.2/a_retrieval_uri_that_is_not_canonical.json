@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "$self": "https://www.sourcemeta.com/self.json",
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/entry.json#/paths/~1two"
+      },
+      "/two": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com:443/entry.json",
+  "expected": [],
+  "locations": 8,
+  "fetched": []
+}

@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "shared.json#/paths/~1one"
+      }
+    }
+  },
+  "expected": [],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "The reference does not resolve to an absolute URI",
+    "identifier": "shared.json"
+  }
+}
