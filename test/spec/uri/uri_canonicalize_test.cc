@@ -311,7 +311,7 @@ TEST(dot_segments_percent_encoded) {
 TEST(case_normalization) {
   sourcemeta::core::URI uri{"http://user:pass@SOMEHOST.COM:123"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "http://user:pass@somehost.com:123");
+  EXPECT_EQ(uri.recompose(), "http://user:pass@somehost.com:123/");
 }
 
 TEST(complex_case) {
@@ -333,7 +333,7 @@ TEST(fragment_encoded_colon) {
   uri.canonicalize();
   EXPECT_EQ(
       uri.recompose(),
-      "https://www.example.com#/$defs/https%3A~1~1example.com~1schema/type");
+      "https://www.example.com/#/$defs/https%3A~1~1example.com~1schema/type");
 }
 
 TEST(relative_path_no_canonicalize) {
@@ -452,7 +452,7 @@ TEST(ipv6_mixed_case_to_lowercase) {
 TEST(ipv6_hex_uppercase_to_lowercase) {
   sourcemeta::core::URI uri{"http://[2010:836B:4179::836B:4179]"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "http://[2010:836b:4179::836b:4179]");
+  EXPECT_EQ(uri.recompose(), "http://[2010:836b:4179::836b:4179]/");
 }
 
 TEST(iri_preserves_literal_ucschar) {
@@ -608,4 +608,29 @@ TEST(iri_leaves_a_lead_byte_followed_by_an_encoded_reserved_character) {
   auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3%3A")};
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "https://example.com/%C3%3A");
+}
+
+// RFC 3986 Section 6.2.3 names "http://example.com/" the normal form for the
+// scheme, so eliding a default port has to arrive at that same spelling
+TEST(empty_path_with_an_authority_gains_a_root) {
+  sourcemeta::core::URI uri{"https://www.example.com"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://www.example.com/");
+}
+
+TEST(default_port_and_empty_path_agree_on_one_spelling) {
+  sourcemeta::core::URI with_port{"https://www.example.com:443"};
+  with_port.canonicalize();
+  sourcemeta::core::URI with_root{"https://www.example.com/"};
+  with_root.canonicalize();
+  EXPECT_EQ(with_port.recompose(), with_root.recompose());
+}
+
+// An authority that names no host has nothing to tell apart from anything
+// else, so giving it a path would buy none of what that section is for, and
+// resolving a network-path reference leans on it staying as it is
+TEST(an_authority_naming_no_host_is_left_alone) {
+  sourcemeta::core::URI uri{"file://"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "file://");
 }

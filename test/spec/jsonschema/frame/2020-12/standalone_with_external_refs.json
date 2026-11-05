@@ -231,8 +231,8 @@
         "type": "static",
         "origin": "/properties/foo/$ref",
         "original": "https://www.example.com",
-        "destination": "https://www.example.com",
-        "base": "https://www.example.com",
+        "destination": "https://www.example.com/",
+        "base": "https://www.example.com/",
         "fragment": null
       }
     ]
