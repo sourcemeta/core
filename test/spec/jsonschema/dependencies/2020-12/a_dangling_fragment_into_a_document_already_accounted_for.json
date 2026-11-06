@@ -23,6 +23,12 @@
       "$ref": "https://www.sourcemeta.com/aaa-target#/$defs/missing"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/aaa-target",
+    "https://www.sourcemeta.com/bbb-other"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

@@ -13,6 +13,8 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [],
   "error": {

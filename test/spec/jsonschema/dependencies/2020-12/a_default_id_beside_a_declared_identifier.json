@@ -19,6 +19,12 @@
     }
   },
   "defaultId": "https://www.sourcemeta.com/given",
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/declared",
+    "https://www.sourcemeta.com/given",
+    "https://www.sourcemeta.com/remote"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/declared",

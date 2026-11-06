@@ -26,6 +26,14 @@
       ]
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.example.com/",
+    "https://www.sourcemeta.com/custom-metaschema",
+    "https://json-schema.org/draft/2020-12/meta/core",
+    "https://json-schema.org/draft/2020-12/meta/applicator",
+    "https://json-schema.org/draft/2020-12/meta/validation"
+  ],
   "dependencies": [
     {
       "origin": "https://www.example.com/",

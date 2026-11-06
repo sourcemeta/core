@@ -6,6 +6,11 @@
       "$ref": "https://json-schema.org:443/draft/2020-12/schema"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.example.com/",
+    "https://json-schema.org/draft/2020-12/schema"
+  ],
   "dependencies": [
     {
       "origin": "https://www.example.com/",

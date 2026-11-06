@@ -27,6 +27,12 @@
   "paths": [
     "/components/schemas/Pet"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/openapi.json",
+    "https://www.sourcemeta.com/sub/thing",
+    "https://www.sourcemeta.com/sub/leaf"
+  ],
   "dependencies": [
     {
       "origin": "",

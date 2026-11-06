@@ -11,6 +11,11 @@
       "$ref": "https://www.sourcemeta.com/a"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/a",
+    "https://www.sourcemeta.com/b"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/a",

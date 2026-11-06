@@ -10,6 +10,10 @@
     }
   },
   "defaultDialect": "http://json-schema.org/draft-07/schema#",
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/test-4"
+  ],
   "dependencies": [
     {
       "origin": "",

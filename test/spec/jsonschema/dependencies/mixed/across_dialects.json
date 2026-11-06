@@ -27,6 +27,13 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.example.com/",
+    "https://www.sourcemeta.com/test-2",
+    "https://www.sourcemeta.com/test-3",
+    "https://www.sourcemeta.com/test-4"
+  ],
   "dependencies": [
     {
       "origin": "https://www.example.com/",

@@ -27,6 +27,13 @@
     }
   },
   "defaultId": "https://www.sourcemeta.com/default",
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/default",
+    "https://www.sourcemeta.com/test-2",
+    "https://www.sourcemeta.com/test-3",
+    "https://www.sourcemeta.com/test-4"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/default",

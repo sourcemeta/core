@@ -23,9 +23,11 @@ namespace {
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
 const std::vector<std::string> KNOWN_KEYS{
-    "schema",      "resolver", "defaultDialect", "defaultId",
-    "defaultBase", "paths",    "maxLocations",   "dependencies",
-    "locations",   "fetched",  "error"};
+    "schema",       "resolver",    "defaultDialect",
+    "defaultId",    "defaultBase", "paths",
+    "maxLocations", "accounted",   "accountedReported",
+    "dependencies", "locations",   "fetched",
+    "error"};
 
 // Every exception that analysis throws, named after the class itself so that
 // a fixture states which one it means rather than leaving the runner to guess
@@ -82,6 +84,7 @@ struct Inputs {
   std::vector<sourcemeta::core::Pointer> path_storage;
   sourcemeta::core::SchemaFrame::Paths paths;
   std::uint64_t max_locations{std::numeric_limits<std::uint64_t>::max()};
+  std::vector<sourcemeta::core::JSON::String> accounted;
 };
 
 auto make_inputs(const sourcemeta::core::JSON &test) -> Inputs {
@@ -104,6 +107,10 @@ auto make_inputs(const sourcemeta::core::JSON &test) -> Inputs {
   const auto *raw_limit{test.try_at("maxLocations")};
   if (raw_limit != nullptr) {
     inputs.max_locations = static_cast<std::uint64_t>(raw_limit->to_integer());
+  }
+
+  for (const auto &identifier : test.at("accounted").as_array()) {
+    inputs.accounted.push_back(identifier.to_string());
   }
 
   const auto *raw_paths{test.try_at("paths")};
@@ -137,6 +144,10 @@ auto make_options(const Inputs &inputs)
   options.paths = inputs.paths;
   options.default_base = inputs.default_base;
   options.max_locations = inputs.max_locations;
+  options.accounted = [&inputs](const std::string_view identifier) -> bool {
+    return std::ranges::find(inputs.accounted, identifier) !=
+           inputs.accounted.cend();
+  };
   return options;
 }
 
@@ -145,8 +156,14 @@ auto make_options(const Inputs &inputs)
 auto collect(const sourcemeta::core::JSON &schema,
              const sourcemeta::core::SchemaResolver &resolver,
              const sourcemeta::core::SchemaResolver &unlogged,
-             const Inputs &inputs, sourcemeta::core::JSON &result)
-    -> std::uint64_t {
+             const Inputs &inputs, sourcemeta::core::JSON &result,
+             sourcemeta::core::JSON &accounted) -> std::uint64_t {
+  auto options{make_options(inputs)};
+  options.accounted_callback =
+      [&accounted](const std::string_view identifier) -> void {
+    accounted.push_back(sourcemeta::core::JSON{identifier});
+  };
+
   return sourcemeta::core::schema_dependencies(
       schema, sourcemeta::core::schema_walker, resolver,
       [&unlogged, &result](const auto &dependency) -> void {
@@ -165,7 +182,7 @@ auto collect(const sourcemeta::core::JSON &schema,
                      sourcemeta::core::JSON{dependency.destination});
         result.push_back(std::move(entry));
       },
-      make_options(inputs));
+      options);
 }
 
 // Every key a fixture declares has to be one the runner reads, a fixture has
@@ -196,6 +213,10 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
 
   EXPECT_TRUE(test.defines("fetched"));
   EXPECT_TRUE(test.at("fetched").is_array());
+  EXPECT_TRUE(test.defines("accounted"));
+  EXPECT_TRUE(test.at("accounted").is_array());
+  EXPECT_TRUE(test.defines("accountedReported"));
+  EXPECT_TRUE(test.at("accountedReported").is_array());
   for (const auto &identifier : test.at("fetched").as_array()) {
     EXPECT_TRUE(identifier.is_string());
   }
@@ -241,14 +262,15 @@ auto check_error(const sourcemeta::core::JSON &schema,
                  const sourcemeta::core::SchemaResolver &resolver,
                  const sourcemeta::core::SchemaResolver &unlogged,
                  const Inputs &inputs, const sourcemeta::core::JSON &expected,
-                 sourcemeta::core::JSON &reported) -> void {
+                 sourcemeta::core::JSON &reported,
+                 sourcemeta::core::JSON &accounted) -> void {
   const auto &type{expected.at("type").to_string()};
   const auto &message{expected.at("message").to_string()};
 
   if (type == "SchemaRelativeMetaschemaResolutionError") {
     try {
       [[maybe_unused]] const auto locations{
-          collect(schema, resolver, unlogged, inputs, reported)};
+          collect(schema, resolver, unlogged, inputs, reported, accounted)};
       FAIL();
     } catch (const sourcemeta::core::SchemaRelativeMetaschemaResolutionError
                  &error) {
@@ -258,7 +280,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
   } else if (type == "SchemaResolutionError") {
     try {
       [[maybe_unused]] const auto locations{
-          collect(schema, resolver, unlogged, inputs, reported)};
+          collect(schema, resolver, unlogged, inputs, reported, accounted)};
       FAIL();
     } catch (
         const sourcemeta::core::SchemaRelativeMetaschemaResolutionError &) {
@@ -271,7 +293,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
   } else if (type == "SchemaReferenceError") {
     try {
       [[maybe_unused]] const auto locations{
-          collect(schema, resolver, unlogged, inputs, reported)};
+          collect(schema, resolver, unlogged, inputs, reported, accounted)};
       FAIL();
     } catch (const sourcemeta::core::SchemaReferenceError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
@@ -282,7 +304,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
   } else if (type == "SchemaUnknownBaseDialectError") {
     try {
       [[maybe_unused]] const auto locations{
-          collect(schema, resolver, unlogged, inputs, reported)};
+          collect(schema, resolver, unlogged, inputs, reported, accounted)};
       FAIL();
     } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
@@ -290,7 +312,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
   } else {
     try {
       [[maybe_unused]] const auto locations{
-          collect(schema, resolver, unlogged, inputs, reported)};
+          collect(schema, resolver, unlogged, inputs, reported, accounted)};
       FAIL();
     } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
@@ -309,14 +331,15 @@ auto run_dependencies_test(const sourcemeta::core::JSON &test) -> void {
   const auto inputs{make_inputs(test)};
 
   auto reported{sourcemeta::core::JSON::make_array()};
+  auto accounted{sourcemeta::core::JSON::make_array()};
 
   if (test.defines("error")) {
     check_error(test.at("schema"), resolver, unlogged, inputs, test.at("error"),
-                reported);
+                reported, accounted);
     EXPECT_EQ(reported, test.at("dependencies"));
   } else {
-    const auto locations{
-        collect(test.at("schema"), resolver, unlogged, inputs, reported)};
+    const auto locations{collect(test.at("schema"), resolver, unlogged, inputs,
+                                 reported, accounted)};
     EXPECT_EQ(reported, test.at("dependencies"));
     EXPECT_EQ(locations,
               static_cast<std::uint64_t>(test.at("locations").to_integer()));
@@ -331,6 +354,11 @@ auto run_dependencies_test(const sourcemeta::core::JSON &test) -> void {
   }
 
   EXPECT_EQ(actual, test.at("fetched"));
+
+  // Whatever analysis came to account for is what a caller stitching several
+  // documents into one span answers the predicate above from, so every
+  // fixture pins it alongside what the walk asked for
+  EXPECT_EQ(accounted, test.at("accountedReported"));
 }
 
 auto register_tests(const std::filesystem::path &directory) -> std::size_t {

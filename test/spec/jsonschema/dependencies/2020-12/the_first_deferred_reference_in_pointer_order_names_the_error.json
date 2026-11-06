@@ -18,6 +18,11 @@
       ]
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/consumer"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

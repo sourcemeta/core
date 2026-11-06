@@ -38,6 +38,12 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/meta",
+    "https://json-schema.org/draft/2020-12/schema"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

@@ -1,0 +1,22 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "$ref": "https://www.sourcemeta.com/leaf"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/leaf": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/leaf",
+      "type": "string"
+    }
+  },
+  "accounted": [
+    "https://www.sourcemeta.com/leaf"
+  ],
+  "accountedReported": [],
+  "dependencies": [],
+  "locations": 2,
+  "fetched": []
+}

@@ -18,6 +18,12 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.example.com/",
+    "https://www.sourcemeta.com/test-3-top-level-ref",
+    "https://www.sourcemeta.com/test-4"
+  ],
   "dependencies": [
     {
       "origin": "https://www.example.com/",

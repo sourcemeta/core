@@ -33,6 +33,14 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.example.com/",
+    "https://www.sourcemeta.com/sibling-a",
+    "https://www.sourcemeta.com/sibling-b",
+    "https://www.sourcemeta.com/shared",
+    "https://www.sourcemeta.com/deep"
+  ],
   "dependencies": [
     {
       "origin": "https://www.example.com/",

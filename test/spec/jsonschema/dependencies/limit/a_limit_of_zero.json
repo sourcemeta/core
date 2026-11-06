@@ -4,6 +4,8 @@
     "type": "string"
   },
   "maxLocations": 0,
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [],
   "error": {

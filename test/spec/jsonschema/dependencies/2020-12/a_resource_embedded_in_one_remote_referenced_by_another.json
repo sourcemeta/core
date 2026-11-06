@@ -28,6 +28,13 @@
       "$ref": "https://www.sourcemeta.com/r"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/b",
+    "https://www.sourcemeta.com/c",
+    "https://www.sourcemeta.com/r"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

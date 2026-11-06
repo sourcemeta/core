@@ -11,6 +11,8 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "test-4"

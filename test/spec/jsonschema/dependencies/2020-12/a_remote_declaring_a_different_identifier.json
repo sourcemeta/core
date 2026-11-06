@@ -16,6 +16,13 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/fetched-as",
+    "https://www.sourcemeta.com/declares-as",
+    "https://www.sourcemeta.com/leaf"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

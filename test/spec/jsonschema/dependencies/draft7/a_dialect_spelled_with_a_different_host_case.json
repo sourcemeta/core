@@ -13,6 +13,11 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/test-1"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

@@ -25,6 +25,8 @@
   "paths": [
     "/components/schemas/Outer/$defs/Inner"
   ],
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "leaf"

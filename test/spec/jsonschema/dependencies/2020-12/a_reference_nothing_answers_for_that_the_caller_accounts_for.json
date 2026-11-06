@@ -1,0 +1,15 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "$ref": "https://www.sourcemeta.com/elsewhere"
+    }
+  },
+  "accounted": [
+    "https://www.sourcemeta.com/elsewhere"
+  ],
+  "accountedReported": [],
+  "dependencies": [],
+  "locations": 2,
+  "fetched": []
+}

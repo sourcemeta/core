@@ -32,6 +32,12 @@
   "paths": [
     "/components/schemas/Outer/$defs/Inner"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/openapi.json",
+    "https://www.sourcemeta.com/inner",
+    "https://www.sourcemeta.com/leaf"
+  ],
   "dependencies": [
     {
       "origin": "",

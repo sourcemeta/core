@@ -6,6 +6,8 @@
   "resolver": {
     "https://www.sourcemeta.com/custom": 42
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "https://www.sourcemeta.com/custom"

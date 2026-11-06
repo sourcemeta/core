@@ -23,6 +23,12 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "urn:example:entry",
+    "urn:example:middle",
+    "urn:example:leaf"
+  ],
   "dependencies": [
     {
       "origin": "urn:example:entry",

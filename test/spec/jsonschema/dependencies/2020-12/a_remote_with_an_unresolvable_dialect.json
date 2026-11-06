@@ -11,6 +11,8 @@
       "$id": "https://www.sourcemeta.com/a"
     }
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "https://www.sourcemeta.com/a",

@@ -15,6 +15,11 @@
       "type": "object"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/custom-metaschema"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

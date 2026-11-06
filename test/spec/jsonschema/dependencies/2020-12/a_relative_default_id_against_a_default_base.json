@@ -12,6 +12,12 @@
   },
   "defaultId": "me.json",
   "defaultBase": "https://www.sourcemeta.com/dir/doc.json",
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/dir/doc.json",
+    "https://www.sourcemeta.com/dir/me.json",
+    "https://www.sourcemeta.com/remote"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/dir/me.json",

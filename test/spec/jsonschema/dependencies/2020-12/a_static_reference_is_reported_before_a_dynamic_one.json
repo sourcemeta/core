@@ -24,6 +24,12 @@
       "type": "integer"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/static",
+    "https://www.sourcemeta.com/dynamic"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

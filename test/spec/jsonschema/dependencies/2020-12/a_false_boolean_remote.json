@@ -8,6 +8,10 @@
   "resolver": {
     "https://www.sourcemeta.com/no": false
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/no"
+  ],
   "dependencies": [
     {
       "origin": "",

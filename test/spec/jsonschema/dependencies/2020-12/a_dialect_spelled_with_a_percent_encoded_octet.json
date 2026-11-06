@@ -3,6 +3,8 @@
     "$schema": "https://json-schema.org/draft/2020-12/sche%6Da",
     "type": "string"
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "locations": 1,
   "fetched": [

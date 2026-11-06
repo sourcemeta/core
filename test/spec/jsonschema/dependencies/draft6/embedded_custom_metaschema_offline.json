@@ -11,6 +11,11 @@
       }
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://example.com/meta",
+    "https://example.com/schema"
+  ],
   "dependencies": [],
   "locations": 3,
   "fetched": []

@@ -26,6 +26,11 @@
   "paths": [
     "/components/schemas/Pet"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/retrieved/doc.json",
+    "https://www.sourcemeta.com/retrieved/test-1"
+  ],
   "dependencies": [
     {
       "origin": "",
