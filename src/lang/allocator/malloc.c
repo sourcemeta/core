@@ -14,29 +14,39 @@
 
 #if defined(__APPLE__)
 #include <AvailabilityMacros.h> // MAC_OS_X_VERSION_10_7, MAC_OS_X_VERSION_MAX_ALLOWED
-#include <malloc/malloc.h>      // malloc_size, malloc_good_size
+#include <malloc/malloc.h> // malloc_size, malloc_good_size
 #else
 #include <malloc.h> // memalign, pvalloc, malloc_usable_size
 #endif
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc)(size_t size) { return mi_malloc(size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc)(size_t size) {
+  return mi_malloc(size);
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(calloc)(size_t count, size_t size) { return mi_calloc(count, size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(calloc)(size_t count, size_t size) {
+  return mi_calloc(count, size);
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(realloc)(void *pointer, size_t size) { return mi_realloc(pointer, size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(realloc)(void *pointer, size_t size) {
+  return mi_realloc(pointer, size);
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void SOURCEMETA_CORE_ALLOCATOR_REPLACES(free)(void *pointer) { mi_free(pointer); }
+void SOURCEMETA_CORE_ALLOCATOR_REPLACES(free)(void *pointer) {
+  mi_free(pointer);
+}
 
 // Neither of the two below has to go through this allocator, but on some
 // platforms they reach for something more primitive than the general entry
 // point, and on others the platform makes them macros that cannot be replaced
 #if !defined(strdup)
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strdup)(const char *string) { return mi_strdup(string); }
+char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strdup)(const char *string) {
+  return mi_strdup(string);
+}
 #endif
 
 #if !defined(strndup) &&                                                       \
@@ -44,7 +54,8 @@ char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strdup)(const char *string) { return mi
      (defined(MAC_OS_X_VERSION_10_7) &&                                        \
       MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7))
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strndup)(const char *string, size_t length) {
+char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strndup)(const char *string,
+                                                  size_t length) {
   return mi_strndup(string, length);
 }
 #endif
@@ -55,7 +66,9 @@ void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(reallocf)(void *pointer, size_t size) {
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-size_t SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc_size)(const void *pointer) { return mi_malloc_size(pointer); }
+size_t SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc_size)(const void *pointer) {
+  return mi_malloc_size(pointer);
+}
 
 #if !defined(__ANDROID__)
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
@@ -70,16 +83,24 @@ size_t malloc_usable_size(const void *pointer) {
 #endif
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(valloc)(size_t size) { return mi_valloc(size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(valloc)(size_t size) {
+  return mi_valloc(size);
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void SOURCEMETA_CORE_ALLOCATOR_REPLACES(vfree)(void *pointer) { mi_free(pointer); }
+void SOURCEMETA_CORE_ALLOCATOR_REPLACES(vfree)(void *pointer) {
+  mi_free(pointer);
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-size_t SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc_good_size)(size_t size) { return mi_malloc_good_size(size); }
+size_t SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc_good_size)(size_t size) {
+  return mi_malloc_good_size(size);
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-int SOURCEMETA_CORE_ALLOCATOR_REPLACES(posix_memalign)(void **pointer, size_t alignment, size_t size) {
+int SOURCEMETA_CORE_ALLOCATOR_REPLACES(posix_memalign)(void **pointer,
+                                                       size_t alignment,
+                                                       size_t size) {
   return mi_posix_memalign(pointer, alignment, size);
 }
 
@@ -88,7 +109,8 @@ int SOURCEMETA_CORE_ALLOCATOR_REPLACES(posix_memalign)(void **pointer, size_t al
 // the entry points above, so it ends up here anyway
 #if !defined(__GLIBC__) || __USE_ISOC11
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(aligned_alloc)(size_t alignment, size_t size) {
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(aligned_alloc)(size_t alignment,
+                                                        size_t size) {
   return mi_aligned_alloc(alignment, size);
 }
 #endif
