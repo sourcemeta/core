@@ -1,8 +1,12 @@
 #include <sourcemeta/core/openapi.h>
 
-#include <cassert>       // assert
-#include <cstdint>       // std::uint64_t
-#include <deque>         // std::deque
+#include "document.h"
+
+#include <cassert> // assert
+#include <cstdint> // std::uint64_t
+#include <deque>   // std::deque
+#include <exception> // std::current_exception, std::exception_ptr, std::rethrow_exception
+#include <functional>    // std::equal_to, std::hash
 #include <memory>        // std::make_unique, std::unique_ptr
 #include <optional>      // std::optional
 #include <string_view>   // std::string_view
@@ -39,19 +43,41 @@ auto is_description(const JSON &document) -> bool {
   return version != nullptr && version->is_string();
 }
 
+// A caller's resolver may run an allowance of its own, and running out of
+// that one is its business rather than this walk's, so such an error travels
+// wrapped to pass through the conversions below untouched
+struct ForeignLimitError {
+  std::exception_ptr error;
+};
+
 // A document that the walk has read and not yet examined, which owns whatever
 // the resolver handed over for as long as the edges that name it are reported
 struct Fetched {
   JSON::String identifier;
   JSON document;
   Reached reached;
+  // OpenAPI 3.1.1 Section 4.8.24.5: "For standalone JSON Schema documents
+  // that do not set `$schema` [...] the dialect SHOULD be assumed to be the
+  // OAS dialect", which is the one the description making the reference is
+  // written against
+  JSON::StringView dialect;
 };
 
 // Every URI the walk has either reported or holds of its own, so that a
 // reference naming one of them is no edge and no second fetch. The schema
 // walk answers from this one and reports back into it, so what either half
 // comes to know is known to the other
-using Accounted = std::unordered_set<JSON::String>;
+struct AccountedHash {
+  using is_transparent = void;
+
+  [[nodiscard]] auto operator()(const JSON::StringView value) const noexcept
+      -> std::size_t {
+    return std::hash<JSON::StringView>{}(value);
+  }
+};
+
+using Accounted =
+    std::unordered_set<JSON::String, AccountedHash, std::equal_to<>>;
 
 // A reference that nothing answers for yet, which owns what reporting it takes
 // for as long as the walk may still settle it
@@ -67,11 +93,32 @@ struct Walk {
   const OpenAPIResolver &resolver;
   const OpenAPIDependencyCallback &callback;
   Accounted accounted;
-  std::deque<Fetched> pending;
+  // Reading a description can reach both kinds, while what a Schema Object
+  // names reaches only schemas, so every description of the span is read
+  // before the first schema. That leaves the whole of what this walk holds
+  // known to the schema walk rather than only the part read so far
+  std::deque<Fetched> descriptions;
+  std::deque<Fetched> schemas;
   std::vector<Deferred> deferred;
   std::uint64_t remaining;
   const std::uint64_t limit;
 };
+
+// Whatever the caller's resolver makes of its own allowance is not this
+// walk's to restate, so it is marked as theirs before anything here sees it
+auto resolver_within_allowance(const SchemaResolver &resolver)
+    -> SchemaResolver {
+  return
+      [&resolver](const JSON::StringView identifier) -> SchemaResolverResult {
+        try {
+          return resolver(identifier);
+        } catch (const SchemaFrameLimitError &) {
+          throw ForeignLimitError{std::current_exception()};
+        } catch (const OpenAPIFrameLimitError &) {
+          throw ForeignLimitError{std::current_exception()};
+        }
+      };
+}
 
 // The document a destination names, which is whatever precedes the fragment it
 // carries. OpenAPIFrame resolves and canonicalises a destination already, so
@@ -133,7 +180,8 @@ auto frame_within(const Walk &walk, const JSON &document,
 
 auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
             const JSON::StringView destination,
-            const OpenAPIObjectKind expected, const Reached reached) -> void {
+            const OpenAPIObjectKind expected, const Reached reached,
+            const JSON::StringView dialect = {}) -> void {
   const JSON::String key{destination};
   if (walk.accounted.contains(key)) {
     return;
@@ -168,7 +216,9 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
   // bears on the reference, which OpenAPI 3.1.1 Section 4.3.1 warns resolves
   // references to unintended URIs, so what a Schema Object names has to be a
   // schema document rather than a description holding one
-  if (reached == Reached::Schema && is_description(remote.value())) {
+  if (reached == Reached::Schema &&
+      ((!remote.value().is_object() && !remote.value().is_boolean()) ||
+       is_description(remote.value()))) {
     throw OpenAPIReferenceError{
         "A Schema Object may only reference a JSON Schema document",
         JSON::String{origin}, pointer, key};
@@ -181,10 +231,14 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
                  .expected = expected});
   walk.accounted.emplace(key);
 
-  if (is_traversable(destination) && !remote.value().is_boolean()) {
-    walk.pending.emplace_back(Fetched{.identifier = key,
-                                      .document = std::move(remote).to_owned(),
-                                      .reached = reached});
+  if (is_traversable(destination) &&
+      (reached == Reached::Description || !remote.value().is_boolean())) {
+    auto &queue{reached == Reached::Description ? walk.descriptions
+                                                : walk.schemas};
+    queue.emplace_back(Fetched{.identifier = key,
+                               .document = std::move(remote).to_owned(),
+                               .reached = reached,
+                               .dialect = dialect});
   }
 }
 
@@ -209,6 +263,10 @@ auto schema_resolver_within(const Walk &walk, const JSON::StringView origin)
 // this specification gives meaning to and the ones its schemas make
 auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
              const JSON::StringView origin) -> void {
+  const auto base{frame.base().empty() ? origin : frame.base()};
+  const auto version{sourcemeta::core::openapi_version(document)};
+  assert(version.has_value());
+  const auto oas_dialect{sourcemeta::core::openapi_dialect(version.value())};
   // Every URI this document answers to is one the caller never has to fetch,
   // whether the document declares it or carries the Object within itself
   for (const auto &location : frame.locations()) {
@@ -229,16 +287,16 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
     // OpenAPI 3.1.1 Section 4.4 has every field that is a URI take a relative
     // reference, which resolves against the base of the document naming it
     auto settled{sourcemeta::core::URI{dialect->to_string()}};
-    if (!origin.empty()) {
-      settled.resolve_from(sourcemeta::core::URI{JSON::String{origin}});
+    if (!base.empty()) {
+      settled.resolve_from(sourcemeta::core::URI{JSON::String{base}});
     }
 
     settled.canonicalize();
     const auto identifier{settled.recompose()};
     if (!schema_is_official(identifier)) {
       static const Pointer POINTER{"jsonSchemaDialect"};
-      report(walk, origin, POINTER, identifier, OpenAPIObjectKind::Schema,
-             Reached::Schema);
+      report(walk, origin, POINTER, document_of(identifier),
+             OpenAPIObjectKind::Schema, Reached::Schema, oas_dialect);
     }
   }
 
@@ -262,18 +320,19 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
     if (discriminator.dangling) {
       report(walk, origin, discriminator.origin,
              document_of(discriminator.destination), OpenAPIObjectKind::Schema,
-             Reached::Schema);
+             Reached::Schema, oas_dialect);
     }
   }
 
   // What a Schema Object reaches is JSON Schema's to give meaning to, so the
   // kind a position expects has nothing to say about it
   frame.schemas().for_each_unresolved_reference(
-      [&walk, &origin](const auto &pointer, const auto &reference) -> void {
+      [&walk, &origin, &oas_dialect](const auto &pointer,
+                                     const auto &reference) -> void {
         if (!reference.base.empty() &&
             !is_skippable_metaschema_reference(pointer, reference.base)) {
           report(walk, origin, to_pointer(pointer), reference.base,
-                 OpenAPIObjectKind::Schema, Reached::Schema);
+                 OpenAPIObjectKind::Schema, Reached::Schema, oas_dialect);
         }
       });
 }
@@ -288,92 +347,90 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
     -> std::uint64_t {
   assert(callback);
 
+  const SchemaResolver guarded{resolver_within_allowance(schema_resolver)};
   Walk walk{.walker = walker,
-            .schema_resolver = schema_resolver,
+            .schema_resolver = guarded,
             .resolver = resolver,
             .callback = callback,
             .accounted = {},
-            .pending = {},
+            .descriptions = {},
+            .schemas = {},
             .deferred = {},
             .remaining = options.max_locations,
             .limit = options.max_locations};
 
-  {
-    const auto frame{frame_within(walk, document, options.default_base)};
-    charge(walk, registered(*frame));
-    if (!options.default_base.empty()) {
-      walk.accounted.emplace(
-          sourcemeta::core::URI::canonicalize(options.default_base));
+  try {
+    {
+      const auto frame{frame_within(walk, document, options.default_base)};
+      charge(walk, registered(*frame));
+      if (!options.default_base.empty()) {
+        walk.accounted.emplace(
+            sourcemeta::core::URI::canonicalize(options.default_base));
+      }
+
+      examine(walk, document, *frame, options.default_base);
     }
 
-    examine(walk, document, *frame, options.default_base);
-  }
-
-  // Reading a document can only ever add to what the walk accounts for, so a
-  // document reached from one already read is reported from where it was
-  // reached rather than from the top
-  while (!walk.pending.empty()) {
-    const auto entry{std::move(walk.pending.front())};
-    walk.pending.pop_front();
-
-    if (entry.reached == Reached::Description) {
+    // Reading a document can only ever add to what the walk accounts for, so a
+    // document reached from one already read is reported from where it was
+    // reached rather than from the top
+    while (!walk.descriptions.empty()) {
+      const auto entry{std::move(walk.descriptions.front())};
+      walk.descriptions.pop_front();
       const auto frame{frame_within(walk, entry.document, entry.identifier)};
       charge(walk, registered(*frame));
       examine(walk, entry.document, *frame, entry.identifier);
-      continue;
     }
 
-    // What a Schema Object names is a schema rather than a description, so
-    // what it reaches in turn is for the schema walk to follow. That walk
-    // reports the whole closure below this document, so what comes back is
-    // passed straight on, and the one allowance covers both
-    SchemaDependenciesOptions schemas;
-    schemas.default_id = entry.identifier;
-    schemas.default_base = entry.identifier;
-    schemas.max_locations = walk.remaining;
-    schemas.accounted = [&walk](const std::string_view identifier) -> bool {
-      return walk.accounted.contains(JSON::String{identifier});
-    };
-    schemas.accounted_callback =
-        [&walk](const std::string_view identifier) -> void {
-      walk.accounted.emplace(identifier);
-    };
-    // The schema walk spends from the same allowance and reports running out
-    // in its own terms, which the caller was promised in these
-    try {
-      charge(walk,
-             schema_dependencies(
-                 entry.document, walk.walker,
-                 schema_resolver_within(walk, entry.identifier),
-                 [&walk](const SchemaDependency &dependency) -> void {
-                   walk.callback({.origin = dependency.origin,
-                                  .pointer = to_pointer(dependency.pointer),
-                                  .destination = dependency.destination,
-                                  .document = dependency.document,
-                                  .expected = OpenAPIObjectKind::Schema});
-                 },
-                 schemas));
-    } catch (const SchemaFrameLimitError &) {
-      throw OpenAPIFrameLimitError{walk.limit};
-    } catch (const SchemaResolutionError &error) {
-      // The schema walk settles what it could not resolve against the
-      // documents it read of its own, which are not every document of the
-      // span, so this one is settled against the rest once there is nothing
-      // left to read. Its own walk has run to the end by now, so nothing it
-      // reaches goes unreported for this
-      walk.deferred.emplace_back(
-          Deferred{.origin = entry.identifier,
-                   .pointer = EMPTY_POINTER,
-                   .destination = JSON::String{error.identifier()}});
-    }
-  }
+    while (!walk.schemas.empty()) {
+      const auto entry{std::move(walk.schemas.front())};
+      walk.schemas.pop_front();
 
-  for (const auto &entry : walk.deferred) {
-    if (!walk.accounted.contains(entry.destination)) {
-      throw OpenAPIResolutionError{
-          "Could not resolve the reference to an external document",
-          entry.origin, entry.pointer, entry.destination};
+      // What a Schema Object names is a schema rather than a description, so
+      // what it reaches in turn is for the schema walk to follow. That walk
+      // reports the whole closure below this document, so what comes back is
+      // passed straight on, and the one allowance covers both
+      SchemaDependenciesOptions schemas;
+      schemas.default_dialect = entry.dialect;
+      schemas.default_id = entry.identifier;
+      schemas.default_base = entry.identifier;
+      schemas.max_locations = walk.remaining;
+      schemas.accounted = [&walk](const std::string_view identifier) -> bool {
+        return walk.accounted.contains(JSON::String{identifier});
+      };
+      schemas.accounted_callback =
+          [&walk](const std::string_view identifier) -> void {
+        walk.accounted.emplace(identifier);
+      };
+      // The schema walk spends from the same allowance and reports running out
+      // in its own terms, which the caller was promised in these
+      try {
+        charge(walk,
+               schema_dependencies(
+                   entry.document, walk.walker,
+                   schema_resolver_within(walk, entry.identifier),
+                   [&walk](const SchemaDependency &dependency) -> void {
+                     walk.callback({.origin = dependency.origin,
+                                    .pointer = to_pointer(dependency.pointer),
+                                    .destination = dependency.destination,
+                                    .document = dependency.document,
+                                    .expected = OpenAPIObjectKind::Schema});
+                   },
+                   schemas));
+      } catch (const SchemaFrameLimitError &) {
+        throw OpenAPIFrameLimitError{walk.limit};
+      }
     }
+
+    for (const auto &entry : walk.deferred) {
+      if (!walk.accounted.contains(entry.destination)) {
+        throw OpenAPIResolutionError{
+            "Could not resolve the reference to an external document",
+            entry.origin, entry.pointer, entry.destination};
+      }
+    }
+  } catch (const ForeignLimitError &foreign) {
+    std::rethrow_exception(foreign.error);
   }
 
   return options.max_locations - walk.remaining;

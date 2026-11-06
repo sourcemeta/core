@@ -50,6 +50,8 @@
   "error": {
     "type": "OpenAPIReferenceError",
     "message": "A Schema Object may only reference a JSON Schema document",
-    "identifier": "https://www.sourcemeta.com/api.json"
+    "identifier": "https://www.sourcemeta.com/api.json",
+    "base": "https://www.sourcemeta.com/mid.json",
+    "location": ""
   }
 }

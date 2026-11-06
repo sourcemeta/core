@@ -18,6 +18,8 @@
   "error": {
     "type": "OpenAPIResolutionError",
     "message": "Could not resolve the reference to an external document",
-    "identifier": "https://www.sourcemeta.com/nowhere.json"
+    "identifier": "https://www.sourcemeta.com/nowhere.json",
+    "base": "",
+    "location": "/paths/~1thing/$ref"
   }
 }

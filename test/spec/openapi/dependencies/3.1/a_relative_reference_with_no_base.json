@@ -16,6 +16,8 @@
   "error": {
     "type": "OpenAPIReferenceError",
     "message": "The reference does not resolve to an absolute URI",
-    "identifier": "shared.json"
+    "identifier": "shared.json",
+    "base": "",
+    "location": "/paths/~1one/$ref"
   }
 }

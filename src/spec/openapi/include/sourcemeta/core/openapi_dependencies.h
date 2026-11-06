@@ -56,7 +56,9 @@ using OpenAPIDependencyCallback =
 /// it
 struct OpenAPIDependencyOptions {
   /// The URI the document was retrieved from, which every relative reference
-  /// it makes resolves against
+  /// it makes resolves against. From 3.2 onwards a document may declare
+  /// `$self`, which takes precedence once it is read, so a relative reference
+  /// resolves against that instead wherever one is declared
   std::string_view default_base{};
   /// The maximum number of locations that analysis may register. Every frame
   /// it constructs spends from this one allowance, throwing
@@ -100,15 +102,23 @@ struct OpenAPIDependencyOptions {
 /// that spends from the same allowance elsewhere takes off its own count.
 ///
 /// What a Schema Object names has to be a document that is a schema and
-/// nothing else. A description holding the schema it names is refused with
+/// nothing else, and one that declares no dialect of its own is read against
+/// the dialect of the revision the description naming it is written against.
+/// What such a document reaches is read as JSON Schema alone, so a
+/// Discriminator Object within one names a document that goes unreported,
+/// unlike one a description carries itself. A
+/// description holding the schema it names is refused with
 /// sourcemeta::core::OpenAPIReferenceError rather than followed, as reading
 /// part of a description without the rest of it would miss whatever bears on
 /// the reference.
 ///
 /// Analysis throws where it cannot go on. A reference that nothing answers for
 /// ends it, though only once every document reached has been read, since one
-/// of them may still answer to the name an earlier reference made. A document
-/// that cannot be read as a description at all ends it too. Whether a
+/// of them may still answer to the name an earlier reference made. Every
+/// description of a span is read before the first schema of it, so what the
+/// schema walk below one cannot resolve is missing from the span rather than
+/// merely unread, and it says so in its own terms rather than in these. A
+/// document that cannot be read as a description at all ends it too. Whether a
 /// destination holds the kind of Object that the position naming it expects is
 /// not checked, and neither is whether the documents of a span agree on a
 /// revision, as reporting leaves both judgements to the caller.
