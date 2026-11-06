@@ -1339,9 +1339,14 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                   entry.id.value());
             }
 
-            maybe_relative.resolve_from(base).canonicalize();
-            const sourcemeta::core::JSON::String new_id{
-                maybe_relative.recompose()};
+            sourcemeta::core::JSON::String new_id;
+            if (common_pointer_weak.empty() && root_id.has_value() &&
+                base_string == root_id.value()) {
+              new_id = root_id.value();
+            } else {
+              maybe_relative.resolve_from(base).canonicalize();
+              new_id = maybe_relative.recompose();
+            }
 
             const auto maybe_match{
                 this->locations_.find({SchemaReferenceType::Static, new_id})};

@@ -85,11 +85,13 @@ struct SchemaDependenciesOptions {
   /// caller's to do
   std::uint64_t max_locations{std::numeric_limits<std::uint64_t>::max()};
   /// Whether the caller already accounts for a URI, which analysis asks
-  /// before reading the document it names and again before deciding that a
-  /// reference making it leads nowhere. Answering yes for one keeps the
-  /// document it names from being either reported or read, so a caller
-  /// answers for what it holds rather than for what it would rather not hear
-  /// about
+  /// before reading the document a reference names and again before deciding
+  /// that a reference leads nowhere. Answering yes for one keeps the document
+  /// it names from being either reported or read, so a caller answers for
+  /// what it holds rather than for what it would rather not hear about. A
+  /// dialect that a document declares is asked of the resolver by the framing
+  /// that reading takes, which happens before any of this, so answering yes
+  /// for one does not keep it from being resolved
   AccountedPredicate accounted{};
   /// Reports every URI that analysis comes to account for, whether it is one
   /// a dependency was reported for or one a document it read answers to of

@@ -23,7 +23,7 @@
   "accounted": [],
   "accountedReported": [
     "https://www.sourcemeta.com/dir/fetched.json",
-    "https://www.sourcemeta.com/dir/sub/sub/declared.json",
+    "https://www.sourcemeta.com/dir/sub/declared.json",
     "https://www.sourcemeta.com/dir/sub/leaf.json"
   ],
   "dependencies": [
@@ -38,7 +38,7 @@
       "destination": "https://www.sourcemeta.com/dir/sub/leaf.json"
     }
   ],
-  "locations": 5,
+  "locations": 4,
   "fetched": [
     "https://www.sourcemeta.com/dir/fetched.json",
     "https://www.sourcemeta.com/dir/sub/leaf.json"

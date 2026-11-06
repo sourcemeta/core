@@ -213,6 +213,10 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
 
   EXPECT_TRUE(test.defines("fetched"));
   EXPECT_TRUE(test.at("fetched").is_array());
+  EXPECT_TRUE(test.defines("accounted"));
+  EXPECT_TRUE(test.at("accounted").is_array());
+  EXPECT_TRUE(test.defines("accountedReported"));
+  EXPECT_TRUE(test.at("accountedReported").is_array());
   for (const auto &identifier : test.at("fetched").as_array()) {
     EXPECT_TRUE(identifier.is_string());
   }
