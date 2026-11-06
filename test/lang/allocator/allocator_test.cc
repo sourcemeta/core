@@ -5,6 +5,7 @@
 #include <mimalloc.h>
 
 #include <cstddef> // std::size_t
+#include <cstdio>  // asprintf
 #include <cstdlib> // std::malloc, std::calloc, std::realloc, std::free, posix_memalign, aligned_alloc
 #include <cstring> // std::memset, strdup
 #include <new>     // std::align_val_t
@@ -24,6 +25,10 @@ static constexpr std::size_t REQUEST_ALIGNMENT{64};
 // the request was honoured for its full length while we are here
 static auto landed_in_this_allocator(void *pointer, const std::size_t size)
     -> bool {
+  if (pointer == nullptr) {
+    return false;
+  }
+
   std::memset(pointer, 0, size);
   return mi_is_in_heap_region(pointer);
 }
@@ -138,5 +143,17 @@ TEST(Allocator_malloc_usable_size_covers_the_request) {
 }
 
 #endif
+
+// The platform's own library allocates on a program's behalf and hands the
+// block over for the program to release, so a block it allocated has to be one
+// of ours too. Where it is not, every such release is a leak, as this allocator
+// declines to release a block it never handed out
+TEST(Allocator_owns_what_the_platform_library_allocates) {
+  char *text{nullptr};
+  EXPECT_GT(::asprintf(&text, "%d", 42), 0);
+  EXPECT_STREQ(text, "42");
+  EXPECT_TRUE(mi_is_in_heap_region(text));
+  std::free(text);
+}
 
 #endif

@@ -17,12 +17,26 @@ if(Mimalloc_FOUND)
 
   target_compile_definitions(sourcemeta_core_allocator
     PRIVATE SOURCEMETA_CORE_ALLOCATOR_MIMALLOC)
+
+  # Defining this platform's own names replaces them only for the program that
+  # does the defining, so a library that is not the program has to ask the
+  # platform to redirect them instead
+  if(APPLE AND BUILD_SHARED_LIBS)
+    target_compile_definitions(sourcemeta_core_allocator
+      PRIVATE SOURCEMETA_CORE_ALLOCATOR_REDIRECT)
+  endif()
   target_link_libraries(sourcemeta_core_allocator PRIVATE Mimalloc::Mimalloc)
 
   if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     # This library is the allocator, so the compiler cannot be allowed to
-    # reason about the standard entry points or to synthesise calls to them
-    target_compile_options(sourcemeta_core_allocator PRIVATE -fno-builtin-malloc)
+    # reason about the entry points it defines or to synthesise calls to them.
+    # Each one has to be named, as the option only covers the entry point it
+    # names
+    target_compile_options(sourcemeta_core_allocator PRIVATE
+      -fno-builtin-malloc
+      -fno-builtin-calloc
+      -fno-builtin-realloc
+      -fno-builtin-free)
   endif()
 endif()
 

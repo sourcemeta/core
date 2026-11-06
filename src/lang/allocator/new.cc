@@ -1,55 +1,101 @@
 #include <mimalloc.h>
 
+#include "entrypoint.h"
+
 #include <cstddef> // std::size_t
-#include <new>     // std::align_val_t, std::nothrow_t
+#include <new> // std::align_val_t, std::nothrow_t, std::bad_alloc, std::get_new_handler
 
-// This library hides its symbols by default, which these definitions cannot
-// afford, as the whole point of them is that a program already calls them by
-// name. Link time optimisation has to keep them for the same reason, even
-// though nothing here refers to them
-#define SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT                                   \
-  __attribute__((visibility("default"), used))
+namespace {
 
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new(const std::size_t size) -> void * { return mi_new(size); }
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new[](const std::size_t size) -> void * { return mi_new(size); }
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new(const std::size_t size, const std::nothrow_t &) noexcept
+// What this language asks of a failed allocation, which the allocator behind
+// these entry points cannot do for us, as it is compiled as the language that
+// has no way of reporting a failure other than ending the program. See
+// [basic.stc.dynamic.allocation] and [new.delete.single]
+auto allocate_or_report(const std::size_t size, const std::size_t alignment)
     -> void * {
-  return mi_new_nothrow(size);
+  while (true) {
+    void *pointer{alignment == 0 ? mi_malloc(size)
+                                 : mi_malloc_aligned(size, alignment)};
+    if (pointer != nullptr) {
+      return pointer;
+    }
+
+    const auto handler{std::get_new_handler()};
+    if (handler == nullptr) {
+      throw std::bad_alloc{};
+    }
+
+    handler();
+  }
+}
+
+// The reporting forms are specified in terms of the ones that do report, down
+// to answering with nothing where those would have thrown
+auto allocate_or_nothing(const std::size_t size,
+                         const std::size_t alignment) noexcept -> void * {
+  try {
+    return allocate_or_report(size, alignment);
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+} // namespace
+
+// Under the redirecting arrangement the platform declines to redirect a name
+// that this library also defines, so these eight answer to names of their own
+// and the redirection puts them in the platform's place. The twelve that
+// follow it are the ones the platform does not export, which leaves defining
+// them the only way they exist
+#ifdef SOURCEMETA_CORE_ALLOCATOR_REDIRECT
+
+extern "C" {
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto sourcemeta_core_allocator_new(std::size_t size) -> void * {
+  return allocate_or_report(size, 0);
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new[](const std::size_t size, const std::nothrow_t &) noexcept
+auto sourcemeta_core_allocator_new_nothrow(std::size_t size) noexcept
     -> void * {
-  return mi_new_nothrow(size);
+  return allocate_or_nothing(size, 0);
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new(const std::size_t size, const std::align_val_t alignment)
+auto sourcemeta_core_allocator_delete(void *pointer) noexcept -> void {
+  mi_free(pointer);
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto sourcemeta_core_allocator_delete_size(void *pointer,
+                                           std::size_t size) noexcept -> void {
+  mi_free_size(pointer, size);
+}
+
+} // extern "C"
+
+#else
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new(std::size_t size) -> void * {
+  return allocate_or_report(size, 0);
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new[](std::size_t size) -> void * {
+  return allocate_or_report(size, 0);
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new(std::size_t size, const std::nothrow_t &) noexcept -> void * {
+  return allocate_or_nothing(size, 0);
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new[](std::size_t size, const std::nothrow_t &) noexcept
     -> void * {
-  return mi_new_aligned(size, static_cast<std::size_t>(alignment));
-}
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new[](const std::size_t size, const std::align_val_t alignment)
-    -> void * {
-  return mi_new_aligned(size, static_cast<std::size_t>(alignment));
-}
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new(const std::size_t size, const std::align_val_t alignment,
-                  const std::nothrow_t &) noexcept -> void * {
-  return mi_new_aligned_nothrow(size, static_cast<std::size_t>(alignment));
-}
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator new[](const std::size_t size, const std::align_val_t alignment,
-                    const std::nothrow_t &) noexcept -> void * {
-  return mi_new_aligned_nothrow(size, static_cast<std::size_t>(alignment));
+  return allocate_or_nothing(size, 0);
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
@@ -57,6 +103,40 @@ auto operator delete(void *pointer) noexcept -> void { mi_free(pointer); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
 auto operator delete[](void *pointer) noexcept -> void { mi_free(pointer); }
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator delete(void *pointer, std::size_t size) noexcept -> void {
+  mi_free_size(pointer, size);
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator delete[](void *pointer, std::size_t size) noexcept -> void {
+  mi_free_size(pointer, size);
+}
+
+#endif
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new(std::size_t size, std::align_val_t alignment) -> void * {
+  return allocate_or_report(size, static_cast<std::size_t>(alignment));
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new[](std::size_t size, std::align_val_t alignment) -> void * {
+  return allocate_or_report(size, static_cast<std::size_t>(alignment));
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new(std::size_t size, std::align_val_t alignment,
+                  const std::nothrow_t &) noexcept -> void * {
+  return allocate_or_nothing(size, static_cast<std::size_t>(alignment));
+}
+
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+auto operator new[](std::size_t size, std::align_val_t alignment,
+                    const std::nothrow_t &) noexcept -> void * {
+  return allocate_or_nothing(size, static_cast<std::size_t>(alignment));
+}
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
 auto operator delete(void *pointer, const std::nothrow_t &) noexcept -> void {
@@ -69,47 +149,37 @@ auto operator delete[](void *pointer, const std::nothrow_t &) noexcept -> void {
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete(void *pointer, const std::size_t size) noexcept -> void {
-  mi_free_size(pointer, size);
-}
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete[](void *pointer, const std::size_t size) noexcept -> void {
-  mi_free_size(pointer, size);
-}
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete(void *pointer, const std::align_val_t alignment) noexcept
+auto operator delete(void *pointer, std::align_val_t alignment) noexcept
     -> void {
   mi_free_aligned(pointer, static_cast<std::size_t>(alignment));
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete[](void *pointer, const std::align_val_t alignment) noexcept
+auto operator delete[](void *pointer, std::align_val_t alignment) noexcept
     -> void {
   mi_free_aligned(pointer, static_cast<std::size_t>(alignment));
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete(void *pointer, const std::align_val_t alignment,
+auto operator delete(void *pointer, std::align_val_t alignment,
                      const std::nothrow_t &) noexcept -> void {
   mi_free_aligned(pointer, static_cast<std::size_t>(alignment));
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete[](void *pointer, const std::align_val_t alignment,
+auto operator delete[](void *pointer, std::align_val_t alignment,
                        const std::nothrow_t &) noexcept -> void {
   mi_free_aligned(pointer, static_cast<std::size_t>(alignment));
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete(void *pointer, const std::size_t size,
-                     const std::align_val_t alignment) noexcept -> void {
+auto operator delete(void *pointer, std::size_t size,
+                     std::align_val_t alignment) noexcept -> void {
   mi_free_size_aligned(pointer, size, static_cast<std::size_t>(alignment));
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-auto operator delete[](void *pointer, const std::size_t size,
-                       const std::align_val_t alignment) noexcept -> void {
+auto operator delete[](void *pointer, std::size_t size,
+                       std::align_val_t alignment) noexcept -> void {
   mi_free_size_aligned(pointer, size, static_cast<std::size_t>(alignment));
 }

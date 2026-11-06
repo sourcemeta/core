@@ -7,6 +7,8 @@
 
 #include <mimalloc.h>
 
+#include "entrypoint.h"
+
 #include <stdlib.h> // size_t, malloc, calloc, realloc, free, posix_memalign, aligned_alloc, valloc, reallocarray
 #include <string.h> // strdup, strndup
 
@@ -17,31 +19,24 @@
 #include <malloc.h> // memalign, pvalloc, malloc_usable_size
 #endif
 
-// This library hides its symbols by default, which these definitions cannot
-// afford, as the whole point of them is that a program already calls them by
-// name. Link time optimisation has to keep them for the same reason, even
-// though nothing here refers to them
-#define SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT                                   \
-  __attribute__((visibility("default"), used))
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc)(size_t size) { return mi_malloc(size); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *malloc(size_t size) { return mi_malloc(size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(calloc)(size_t count, size_t size) { return mi_calloc(count, size); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *calloc(size_t count, size_t size) { return mi_calloc(count, size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(realloc)(void *pointer, size_t size) { return mi_realloc(pointer, size); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *realloc(void *pointer, size_t size) { return mi_realloc(pointer, size); }
-
-SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void free(void *pointer) { mi_free(pointer); }
+void SOURCEMETA_CORE_ALLOCATOR_REPLACES(free)(void *pointer) { mi_free(pointer); }
 
 // Neither of the two below has to go through this allocator, but on some
 // platforms they reach for something more primitive than the general entry
 // point, and on others the platform makes them macros that cannot be replaced
 #if !defined(strdup)
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-char *strdup(const char *string) { return mi_strdup(string); }
+char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strdup)(const char *string) { return mi_strdup(string); }
 #endif
 
 #if !defined(strndup) &&                                                       \
@@ -49,18 +44,18 @@ char *strdup(const char *string) { return mi_strdup(string); }
      (defined(MAC_OS_X_VERSION_10_7) &&                                        \
       MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7))
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-char *strndup(const char *string, size_t length) {
+char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(strndup)(const char *string, size_t length) {
   return mi_strndup(string, length);
 }
 #endif
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *reallocf(void *pointer, size_t size) {
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(reallocf)(void *pointer, size_t size) {
   return mi_reallocf(pointer, size);
 }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-size_t malloc_size(const void *pointer) { return mi_malloc_size(pointer); }
+size_t SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc_size)(const void *pointer) { return mi_malloc_size(pointer); }
 
 #if !defined(__ANDROID__)
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
@@ -75,16 +70,16 @@ size_t malloc_usable_size(const void *pointer) {
 #endif
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *valloc(size_t size) { return mi_valloc(size); }
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(valloc)(size_t size) { return mi_valloc(size); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void vfree(void *pointer) { mi_free(pointer); }
+void SOURCEMETA_CORE_ALLOCATOR_REPLACES(vfree)(void *pointer) { mi_free(pointer); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-size_t malloc_good_size(size_t size) { return mi_malloc_good_size(size); }
+size_t SOURCEMETA_CORE_ALLOCATOR_REPLACES(malloc_good_size)(size_t size) { return mi_malloc_good_size(size); }
 
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-int posix_memalign(void **pointer, size_t alignment, size_t size) {
+int SOURCEMETA_CORE_ALLOCATOR_REPLACES(posix_memalign)(void **pointer, size_t alignment, size_t size) {
   return mi_posix_memalign(pointer, alignment, size);
 }
 
@@ -93,8 +88,20 @@ int posix_memalign(void **pointer, size_t alignment, size_t size) {
 // the entry points above, so it ends up here anyway
 #if !defined(__GLIBC__) || __USE_ISOC11
 SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
-void *aligned_alloc(size_t alignment, size_t size) {
+void *SOURCEMETA_CORE_ALLOCATOR_REPLACES(aligned_alloc)(size_t alignment, size_t size) {
   return mi_aligned_alloc(alignment, size);
+}
+#endif
+
+// This one allocates on its caller's behalf and leaves the caller to release
+// the result, so under the redirecting arrangement it has to come from here
+// too. Where the platform's own names are replaced by defining them, the
+// platform's version already allocates through the entry points above
+#ifdef SOURCEMETA_CORE_ALLOCATOR_REDIRECT
+SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
+char *SOURCEMETA_CORE_ALLOCATOR_REPLACES(realpath)(const char *path,
+                                                   char *resolved) {
+  return mi_realpath(path, resolved);
 }
 #endif
 
@@ -164,5 +171,72 @@ SOURCEMETA_CORE_ALLOCATOR_ENTRYPOINT
 int __posix_memalign(void **pointer, size_t alignment, size_t size) {
   return mi_posix_memalign(pointer, alignment, size);
 }
+
+#endif
+
+// How this platform is asked to put the entry points above in place of its own.
+// The four that this language cannot name are the allocation and deallocation
+// forms of the other one, which the platform binds by their encoded names
+#ifdef SOURCEMETA_CORE_ALLOCATOR_REDIRECT
+
+void *sourcemeta_core_allocator_new(size_t size);
+void *sourcemeta_core_allocator_new_nothrow(size_t size);
+void sourcemeta_core_allocator_delete(void *pointer);
+void sourcemeta_core_allocator_delete_size(void *pointer, size_t size);
+
+void vfree(void *pointer);
+void *_Znwm(size_t size);
+void *_Znam(size_t size);
+void *_ZnwmRKSt9nothrow_t(size_t size, void *tag);
+void *_ZnamRKSt9nothrow_t(size_t size, void *tag);
+void _ZdlPv(void *pointer);
+void _ZdaPv(void *pointer);
+void _ZdlPvm(void *pointer, size_t size);
+void _ZdaPvm(void *pointer, size_t size);
+
+struct sourcemeta_core_allocator_redirection {
+  const void *replacement;
+  const void *target;
+};
+
+#define SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(from, to)                        \
+  {(const void *)&to, (const void *)&from}
+
+#define SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(name)                         \
+  SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(name, sourcemeta_core_allocator_##name)
+
+__attribute__((used)) static const struct sourcemeta_core_allocator_redirection
+    SOURCEMETA_CORE_ALLOCATOR_REDIRECTIONS[]
+    __attribute__((section("__DATA,__interpose"))) = {
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(malloc),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(calloc),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(realloc),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(free),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(strdup),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(strndup),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(realpath),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(posix_memalign),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(reallocf),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(valloc),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(vfree),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(malloc_size),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(malloc_good_size),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION_OF(aligned_alloc),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(_Znwm,
+                                              sourcemeta_core_allocator_new),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(_Znam,
+                                              sourcemeta_core_allocator_new),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(
+            _ZnwmRKSt9nothrow_t, sourcemeta_core_allocator_new_nothrow),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(
+            _ZnamRKSt9nothrow_t, sourcemeta_core_allocator_new_nothrow),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(_ZdlPv,
+                                              sourcemeta_core_allocator_delete),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(_ZdaPv,
+                                              sourcemeta_core_allocator_delete),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(
+            _ZdlPvm, sourcemeta_core_allocator_delete_size),
+        SOURCEMETA_CORE_ALLOCATOR_REDIRECTION(
+            _ZdaPvm, sourcemeta_core_allocator_delete_size)};
 
 #endif

@@ -21,12 +21,19 @@
 /// already calls. No other library in this project links it, so a program that
 /// does not ask for it keeps the allocator its platform ships with.
 ///
-/// This library defines those entry points itself and forwards each of them on
-/// to the allocator behind it, so that what a program gets by linking it is
-/// settled here rather than by whichever allocator that happens to be. What it
-/// replaces is the general purpose allocation and deallocation entry points of
-/// the C library, the alignment aware and platform specific extensions offered
-/// alongside them, and every replaceable allocation function of C++.
+/// Where this library brings an allocator of its own, it defines those entry
+/// points itself and forwards each of them on to it, so that what a program
+/// gets by linking it is settled here rather than by whichever allocator that
+/// happens to be. What it replaces is the general purpose allocation and
+/// deallocation entry points of the C library, the alignment aware and platform
+/// specific extensions offered alongside them, and every replaceable allocation
+/// function of C++.
+///
+/// Not every build brings one. A build for a platform this project does not
+/// vendor an allocator for, a build under a sanitiser, and a build that asked
+/// for the platform allocator outright all define no entry point at all and
+/// leave the platform's own in place, which is what makes this report worth
+/// asking for rather than assuming.
 
 namespace sourcemeta::core {
 
