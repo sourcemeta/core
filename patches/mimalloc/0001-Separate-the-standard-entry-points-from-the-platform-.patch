@@ -1,0 +1,85 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Juan Cruz Viotti <jviotti@sourcemeta.com>
+Date: Fri, 6 Nov 2026 12:00:00 -0300
+Subject: [PATCH] Separate the standard entry points from the platform hook
+
+One definition enables two unrelated things at once: the definitions of the
+standard allocation entry points, and the hook into this platform's allocation
+path on macOS. A build that wants to define those entry points itself, so that
+the interface contract lives where the rest of its allocator does, has no way
+of asking for the hook on its own.
+
+Give the entry point definitions a condition of their own, left enabled by
+default, so that the hook can be taken without them.
+
+Two of the mi prefixed Posix definitions sat with the entry points rather than
+with their siblings, which left them declared in the public header and defined
+nowhere at all whenever the entry points were not wanted. Aliasing was the
+reason given, and aliasing needs its target in the same translation unit, so
+the two forwards that relied on it become ordinary calls.
+diff --git a/src/alloc-override.c b/src/alloc-override.c
+index 04da5f293..0f523103a 100644
+--- a/src/alloc-override.c
++++ b/src/alloc-override.c
+@@ -10,7 +10,7 @@ terms of the MIT license. A copy of the license can be found in the file
+ #endif
+ 
+ 
+-#if defined(MI_MALLOC_OVERRIDE) && !defined(_DLL)
++#if defined(MI_MALLOC_OVERRIDE) && !defined(MI_NO_MALLOC_OVERRIDE_ENTRYPOINTS) && !defined(_DLL)
+ 
+ #if defined(__APPLE__)
+ #include <AvailabilityMacros.h>
+@@ -324,25 +324,17 @@ typedef void* mi_nothrow_t;
+ extern "C" {
+ #endif
+ 
+-// defined here instead alloc-posix so we can alias it
+-mi_decl_nodiscard size_t mi_malloc_size(const void* p) mi_attr_noexcept {
+-  if (!mi_is_in_heap_region(p)) return 0;
+-  return mi_usable_size(p);
+-}
+-
+-mi_decl_nodiscard size_t mi_malloc_usable_size(const void *p) mi_attr_noexcept {
+-  if (!mi_is_in_heap_region(p)) return 0;
+-  return mi_usable_size(p);
+-}
+-
+ #ifndef MI_OSX_IS_INTERPOSED
+   // Forward Posix/Unix calls as well
+   void*  reallocf(void* p, size_t newsize) MI_FORWARD2(mi_reallocf,p,newsize)
+-  size_t malloc_size(const void* p)        MI_FORWARD1(mi_malloc_size,p)
++  // No forwarding for the two below, as `mi_malloc_size` and
++  // `mi_malloc_usable_size` live in `alloc-posix.c` with the rest of the `mi_`
++  // prefixed Posix definitions, and aliasing needs its target in this file
++  size_t malloc_size(const void* p)        { return mi_malloc_size(p); }
+   #if !defined(__ANDROID__) && !defined(__FreeBSD__) && !defined(__DragonFly__)
+-  size_t malloc_usable_size(void *p)       MI_FORWARD1(mi_malloc_usable_size,p)
++  size_t malloc_usable_size(void *p)       { return mi_malloc_usable_size(p); }
+   #else
+-  size_t malloc_usable_size(const void *p) MI_FORWARD1(mi_malloc_usable_size,p)
++  size_t malloc_usable_size(const void *p) { return mi_malloc_usable_size(p); }
+   #endif
+ 
+   // No forwarding here due to aliasing/name mangling issues
+diff --git a/src/alloc-posix.c b/src/alloc-posix.c
+index c7d6e3bb6..10e83c3cd 100644
+--- a/src/alloc-posix.c
++++ b/src/alloc-posix.c
+@@ -35,6 +35,16 @@ mi_decl_nodiscard size_t mi_malloc_good_size(size_t size) mi_attr_noexcept {
+   return mi_good_size(size);
+ }
+ 
++mi_decl_nodiscard size_t mi_malloc_size(const void* p) mi_attr_noexcept {
++  if (!mi_is_in_heap_region(p)) return 0;
++  return mi_usable_size(p);
++}
++
++mi_decl_nodiscard size_t mi_malloc_usable_size(const void *p) mi_attr_noexcept {
++  if (!mi_is_in_heap_region(p)) return 0;
++  return mi_usable_size(p);
++}
++
+ void mi_cfree(void* p) mi_attr_noexcept {
+   if (mi_is_in_heap_region(p)) {
+     mi_free(p);

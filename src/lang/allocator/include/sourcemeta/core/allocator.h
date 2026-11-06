@@ -20,6 +20,13 @@
 /// the standard allocation entry points it defines are the ones the program
 /// already calls. No other library in this project links it, so a program that
 /// does not ask for it keeps the allocator its platform ships with.
+///
+/// This library defines those entry points itself and forwards each of them on
+/// to the allocator behind it, so that what a program gets by linking it is
+/// settled here rather than by whichever allocator that happens to be. What it
+/// replaces is the general purpose allocation and deallocation entry points of
+/// the C library, the alignment aware and platform specific extensions offered
+/// alongside them, and every replaceable allocation function of C++.
 
 namespace sourcemeta::core {
 

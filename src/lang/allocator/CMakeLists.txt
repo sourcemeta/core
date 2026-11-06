@@ -6,9 +6,24 @@ if(SOURCEMETA_CORE_INSTALL)
 endif()
 
 if(Mimalloc_FOUND)
+  # The standard entry points that this library replaces, defined here so that
+  # the interface contract a program gets by linking it is written down in this
+  # library rather than left to whichever allocator sits behind it. The half
+  # that replaces the platform's own names stays in its language, where every
+  # one of them keeps that language's linkage without being asked, and where
+  # the diagnostics this project holds its own names to do not reach a set of
+  # names it does not get to choose
+  target_sources(sourcemeta_core_allocator PRIVATE malloc.c new.cc)
+
   target_compile_definitions(sourcemeta_core_allocator
     PRIVATE SOURCEMETA_CORE_ALLOCATOR_MIMALLOC)
   target_link_libraries(sourcemeta_core_allocator PRIVATE Mimalloc::Mimalloc)
+
+  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+    # This library is the allocator, so the compiler cannot be allowed to
+    # reason about the standard entry points or to synthesise calls to them
+    target_compile_options(sourcemeta_core_allocator PRIVATE -fno-builtin-malloc)
+  endif()
 endif()
 
 # Every executable in this build links this library, and no library does, so
