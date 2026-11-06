@@ -331,87 +331,118 @@ auto sourcemeta::core::metaschema_try_embedded(
     return nullptr;
   }
 
-  const auto candidate{
-      sourcemeta::core::embedded_metaschema_candidate(schema, identifier)};
-  if (candidate.first == nullptr) {
-    return nullptr;
-  }
+  // A document may spell identifiers with a keyword the dialect in force does
+  // not read, and such a resource is never a link that validation accepts. So
+  // the search runs once per keyword, and within a pass every lookup uses that
+  // one keyword, which keeps a resource spelled the other way from hiding the
+  // one that would have been accepted. A candidate the chain or the validation
+  // rejects does not end a pass either, as another entry may still answer
+  bool unknown_base_dialect{false};
+  for (const auto keyword : sourcemeta::core::EMBEDDED_METASCHEMA_KEYWORDS) {
+    for (std::size_t skip{0};; skip += 1) {
+      const auto candidate{sourcemeta::core::embedded_metaschema_candidate(
+          schema, identifier, keyword, skip)};
+      if (candidate.first == nullptr) {
+        break;
+      }
 
-  std::unordered_set<std::string_view> visited;
-  std::vector<sourcemeta::core::EmbeddedMetaschemaLink> links{
-      {.schema = candidate.first,
-       .identifier = identifier,
-       .container = candidate.second}};
-  // Chain links that the resolver knows about are returned by value, so we
-  // keep them alive while we walk the chain, in a container that never
-  // relocates its elements, as we hold views into them
-  std::deque<sourcemeta::core::JSON> resolved;
-  const auto *current{candidate.first};
-  std::string_view current_identifier{identifier};
-  std::optional<SchemaBaseDialect> terminal;
+      bool rejected{false};
+      try {
+        std::unordered_set<std::string_view> visited;
+        std::vector<sourcemeta::core::EmbeddedMetaschemaLink> links{
+            {.schema = candidate.first,
+             .identifier = identifier,
+             .container = candidate.second}};
+        // Chain links that the resolver knows about are returned by value, so
+        // we keep them alive while we walk the chain, in a container that never
+        // relocates its elements, as we hold views into them
+        std::deque<sourcemeta::core::JSON> resolved;
+        const auto *current{candidate.first};
+        std::string_view current_identifier{identifier};
+        std::optional<SchemaBaseDialect> terminal;
 
-  while (true) {
-    // The meta-schema is present, but its chain can never terminate at an
-    // official base dialect, just like a self-descriptive or cyclic
-    // meta-schema that the resolver knows about
-    if (!visited.emplace(current_identifier).second) {
-      throw sourcemeta::core::SchemaUnknownBaseDialectError();
-    }
+        while (true) {
+          // The meta-schema is present, but its chain can never terminate at an
+          // official base dialect, just like a self-descriptive or cyclic
+          // meta-schema that the resolver knows about
+          if (!visited.emplace(current_identifier).second) {
+            throw sourcemeta::core::SchemaUnknownBaseDialectError();
+          }
 
-    if (!current->is_object()) {
-      throw sourcemeta::core::SchemaUnknownBaseDialectError();
-    }
+          if (!current->is_object()) {
+            throw sourcemeta::core::SchemaUnknownBaseDialectError();
+          }
 
-    const auto *metaschema_dialect{
-        current->try_at("$schema"sv, sourcemeta::core::JSONSCHEMA_HASH_SCHEMA)};
-    if ((metaschema_dialect == nullptr) || !metaschema_dialect->is_string()) {
-      throw sourcemeta::core::SchemaUnknownBaseDialectError();
-    }
+          const auto *metaschema_dialect{current->try_at(
+              "$schema"sv, sourcemeta::core::JSONSCHEMA_HASH_SCHEMA)};
+          if ((metaschema_dialect == nullptr) ||
+              !metaschema_dialect->is_string()) {
+            throw sourcemeta::core::SchemaUnknownBaseDialectError();
+          }
 
-    const auto &dialect_uri{metaschema_dialect->to_string()};
-    auto known{sourcemeta::core::to_base_dialect(dialect_uri)};
-    if (!known.has_value()) {
-      known = base_dialect_of_settled(dialect_uri);
-    }
+          const auto &dialect_uri{metaschema_dialect->to_string()};
+          auto known{sourcemeta::core::to_base_dialect(dialect_uri)};
+          if (!known.has_value()) {
+            known = base_dialect_of_settled(dialect_uri);
+          }
 
-    if (known.has_value()) {
-      terminal = known;
-      break;
-    }
+          if (known.has_value()) {
+            terminal = known;
+            break;
+          }
 
-    if (sourcemeta::core::URI::is_uri(dialect_uri)) {
-      const auto next{
-          sourcemeta::core::embedded_metaschema_candidate(schema, dialect_uri)};
-      if (next.first != nullptr) {
-        links.push_back({.schema = next.first,
-                         .identifier = dialect_uri,
-                         .container = next.second});
-        current = next.first;
-        current_identifier = dialect_uri;
-        continue;
+          if (sourcemeta::core::URI::is_uri(dialect_uri)) {
+            const auto next{sourcemeta::core::embedded_metaschema_candidate(
+                schema, dialect_uri, keyword)};
+            if (next.first != nullptr) {
+              links.push_back({.schema = next.first,
+                               .identifier = dialect_uri,
+                               .container = next.second});
+              current = next.first;
+              current_identifier = dialect_uri;
+              continue;
+            }
+          }
+
+          auto remote{resolver(dialect_uri)};
+          if (!remote.has_value()) {
+            rejected = true;
+            break;
+          }
+
+          resolved.push_back(std::move(remote).value());
+          current = &resolved.back();
+          current_identifier = dialect_uri;
+        }
+
+        if (!rejected) {
+          assert(terminal.has_value());
+          for (const auto &link : links) {
+            if (!sourcemeta::core::embedded_metaschema_link_valid(
+                    *(link.schema), link.identifier, link.container,
+                    terminal.value(), &schema)) {
+              rejected = true;
+              break;
+            }
+          }
+        }
+
+        if (!rejected) {
+          return candidate.first;
+        }
+      } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &) {
+        // This candidate leads nowhere, but another entry may still answer to
+        // the identifier. The error is only the answer if none of them do
+        unknown_base_dialect = true;
       }
     }
-
-    auto remote{resolver(dialect_uri)};
-    if (!remote.has_value()) {
-      return nullptr;
-    }
-
-    resolved.push_back(std::move(remote).value());
-    current = &resolved.back();
-    current_identifier = dialect_uri;
   }
 
-  assert(terminal.has_value());
-  for (const auto &link : links) {
-    if (!sourcemeta::core::embedded_metaschema_link_valid(
-            *(link.schema), link.identifier, link.container,
-            terminal.value())) {
-      return nullptr;
-    }
+  if (unknown_base_dialect) {
+    throw sourcemeta::core::SchemaUnknownBaseDialectError();
   }
 
-  return candidate.first;
+  return nullptr;
 }
 
 // A resolver that answers to one spelling of a URI answers for the document
