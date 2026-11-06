@@ -1,0 +1,38 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "$self": "https://www.sourcemeta.com/named/entry.json",
+    "jsonSchemaDialect": "dialect.json",
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/elsewhere/entry.json",
+  "schemaResolver": {
+    "https://www.sourcemeta.com/named/dialect.json": {
+      "$id": "https://www.sourcemeta.com/named/dialect.json",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "https://www.sourcemeta.com/elsewhere/entry.json",
+      "pointer": "/jsonSchemaDialect",
+      "destination": "https://www.sourcemeta.com/named/dialect.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 6,
+  "fetched": []
+}

@@ -1,0 +1,48 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/alias.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/alias.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/canonical.json",
+      "properties": {
+        "a": {
+          "$ref": "https://www.sourcemeta.com/leaf.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/leaf.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/leaf.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/alias.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/canonical.json",
+      "pointer": "/properties/a/$ref",
+      "destination": "https://www.sourcemeta.com/leaf.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 10,
+  "fetched": []
+}

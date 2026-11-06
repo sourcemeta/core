@@ -1,0 +1,65 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/held.json#/paths/~1here"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/mid.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/held.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Held",
+        "version": "1.0.0"
+      },
+      "$self": "https://www.sourcemeta.com/named.json",
+      "paths": {
+        "/here": {
+          "description": "Here"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/mid.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/mid.json",
+      "properties": {
+        "a": {
+          "$ref": "https://www.sourcemeta.com/named.json"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1one/$ref",
+      "destination": "https://www.sourcemeta.com/held.json",
+      "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/mid.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 13,
+  "fetched": [
+    "https://www.sourcemeta.com/held.json"
+  ]
+}

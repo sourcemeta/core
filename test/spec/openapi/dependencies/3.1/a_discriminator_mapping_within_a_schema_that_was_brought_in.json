@@ -1,0 +1,47 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/a.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/a.json": {
+      "$id": "https://www.sourcemeta.com/a.json",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Cat"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "petType",
+        "mapping": {
+          "cat": "#/$defs/Cat"
+        }
+      },
+      "$defs": {
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/a.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 11,
+  "fetched": []
+}

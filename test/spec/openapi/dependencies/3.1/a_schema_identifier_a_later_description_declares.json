@@ -1,0 +1,55 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/one": {
+        "$ref": "https://www.sourcemeta.com/held.json#/paths/~1here"
+      }
+    },
+    "components": {
+      "schemas": {
+        "A": {
+          "$ref": "https://www.sourcemeta.com/pet.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/held.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Held",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/here": {
+          "description": "Here"
+        }
+      },
+      "components": {
+        "schemas": {
+          "Pet": {
+            "$id": "https://www.sourcemeta.com/pet.json",
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1one/$ref",
+      "destination": "https://www.sourcemeta.com/held.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 15,
+  "fetched": [
+    "https://www.sourcemeta.com/held.json"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/thing": {
+        "$ref": "https://www.sourcemeta.com/shared.json#/paths/~1thing"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/shared.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/thing": {
+          "description": "Here"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/thing": {
+          "description": "Here"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1thing/$ref",
+      "destination": "https://www.sourcemeta.com/shared.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 11,
+  "fetched": [
+    "https://www.sourcemeta.com/shared.json"
+  ]
+}

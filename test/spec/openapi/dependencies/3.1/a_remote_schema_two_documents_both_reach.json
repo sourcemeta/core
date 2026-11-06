@@ -1,0 +1,58 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "One": {
+          "$ref": "https://www.sourcemeta.com/one.json"
+        },
+        "Two": {
+          "$ref": "https://www.sourcemeta.com/two.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/one.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/one.json",
+      "properties": {
+        "a": {
+          "$ref": "https://www.sourcemeta.com/two.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/two.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/two.json",
+      "properties": {
+        "b": {
+          "type": "string"
+        },
+        "c": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/One/$ref",
+      "destination": "https://www.sourcemeta.com/one.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Two/$ref",
+      "destination": "https://www.sourcemeta.com/two.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 12,
+  "fetched": []
+}

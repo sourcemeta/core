@@ -1,0 +1,51 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "security": [
+      {
+        "https://www.sourcemeta.com/auth.json#/components/securitySchemes/Main": []
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "Local": {
+          "type": "http",
+          "scheme": "bearer"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/auth.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Auth",
+        "version": "1.0.0"
+      },
+      "components": {
+        "securitySchemes": {
+          "Main": {
+            "type": "http",
+            "scheme": "bearer"
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/security/0/https:~1~1www.sourcemeta.com~1auth.json#~1components~1securitySchemes~1Main",
+      "destination": "https://www.sourcemeta.com/auth.json",
+      "kind": "security-scheme"
+    }
+  ],
+  "locations": 9,
+  "fetched": [
+    "https://www.sourcemeta.com/auth.json"
+  ]
+}
