@@ -3,6 +3,8 @@
     "$schema": "relative-meta",
     "type": "string"
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "relative-meta"

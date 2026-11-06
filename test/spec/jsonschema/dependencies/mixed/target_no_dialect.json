@@ -12,6 +12,8 @@
       "foo": 1
     }
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "https://www.sourcemeta.com/no-dialect"

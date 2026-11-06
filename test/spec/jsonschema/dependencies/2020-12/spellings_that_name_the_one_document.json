@@ -3,10 +3,18 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://www.sourcemeta.com/entry",
     "allOf": [
-      { "$ref": "https://www.sourcemeta.com:443/t" },
-      { "$ref": "HTTPS://www.sourcemeta.com/t" },
-      { "$ref": "https://WWW.Sourcemeta.COM/t" },
-      { "$ref": "https://www.sourcemeta.com/t" }
+      {
+        "$ref": "https://www.sourcemeta.com:443/t"
+      },
+      {
+        "$ref": "HTTPS://www.sourcemeta.com/t"
+      },
+      {
+        "$ref": "https://WWW.Sourcemeta.COM/t"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/t"
+      }
     ]
   },
   "resolver": {
@@ -16,6 +24,11 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/t"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

@@ -26,6 +26,13 @@
       "$ref": "https://www.sourcemeta.com/needed"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/aaa-consumer",
+    "https://www.sourcemeta.com/zzz-meta",
+    "https://www.sourcemeta.com/needed"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

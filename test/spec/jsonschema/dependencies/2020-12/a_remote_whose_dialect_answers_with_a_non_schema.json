@@ -15,6 +15,10 @@
       "schema"
     ]
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry"
+  ],
   "dependencies": [],
   "fetched": [
     "https://www.sourcemeta.com/remote",

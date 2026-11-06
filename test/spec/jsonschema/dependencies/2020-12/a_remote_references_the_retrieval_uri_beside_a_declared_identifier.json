@@ -12,6 +12,12 @@
     }
   },
   "defaultBase": "https://www.sourcemeta.com/retrieved.json",
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/retrieved.json",
+    "https://www.sourcemeta.com/declared",
+    "https://www.sourcemeta.com/b"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/declared",

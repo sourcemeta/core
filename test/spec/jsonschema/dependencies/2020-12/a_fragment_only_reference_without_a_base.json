@@ -5,6 +5,8 @@
       "$ref": "#/$defs/missing"
     }
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [],
   "error": {

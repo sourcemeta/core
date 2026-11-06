@@ -18,6 +18,11 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "urn:entry",
+    "https://www.sourcemeta.com/remote"
+  ],
   "dependencies": [
     {
       "origin": "urn:entry",

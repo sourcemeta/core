@@ -19,6 +19,12 @@
   },
   "defaultId": "https://www.sourcemeta.com/declared/me.json",
   "defaultBase": "https://www.sourcemeta.com/retrieved/doc.json",
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/retrieved/doc.json",
+    "https://www.sourcemeta.com/declared/me.json",
+    "https://www.sourcemeta.com/remote"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/declared/me.json",

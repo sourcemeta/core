@@ -38,6 +38,15 @@
       }
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/hub",
+    "https://www.sourcemeta.com/aaa-consumer",
+    "https://www.sourcemeta.com/bbb-bridge",
+    "https://www.sourcemeta.com/zzz-host",
+    "https://www.sourcemeta.com/deep"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

@@ -17,6 +17,12 @@
       "$ref": "https://www.sourcemeta.com/a-inner"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/a",
+    "https://www.sourcemeta.com/a-inner",
+    "https://www.sourcemeta.com/b"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/a",

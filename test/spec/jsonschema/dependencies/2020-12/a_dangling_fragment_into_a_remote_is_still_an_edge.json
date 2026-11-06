@@ -12,6 +12,10 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/target"
+  ],
   "dependencies": [
     {
       "origin": "",

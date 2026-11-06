@@ -7,6 +7,8 @@
   "resolver": {
     "https://www.sourcemeta.com/boolean-dialect": true
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "https://www.sourcemeta.com/boolean-dialect"

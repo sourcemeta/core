@@ -20,6 +20,12 @@
       "type": "integer"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/dir/fetched.json",
+    "https://www.sourcemeta.com/dir/sub/sub/declared.json",
+    "https://www.sourcemeta.com/dir/sub/leaf.json"
+  ],
   "dependencies": [
     {
       "origin": "",

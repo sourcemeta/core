@@ -11,6 +11,10 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/test-4"
+  ],
   "dependencies": [
     {
       "origin": "",

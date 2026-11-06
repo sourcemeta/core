@@ -33,6 +33,12 @@
     "/apple",
     "/mango"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/two",
+    "https://www.sourcemeta.com/three",
+    "https://www.sourcemeta.com/one"
+  ],
   "dependencies": [
     {
       "origin": "",

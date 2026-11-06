@@ -13,6 +13,12 @@
       }
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/fetched-as",
+    "https://www.sourcemeta.com/declares-as"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

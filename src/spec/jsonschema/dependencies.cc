@@ -49,9 +49,25 @@ struct Walk {
   std::uint64_t limit;
   std::uint64_t remaining;
   URISet accounted;
+  const SchemaDependenciesOptions::AccountedPredicate &accounted_predicate;
+  const SchemaDependenciesOptions::AccountedCallback &accounted_callback;
   std::vector<JSON::String> deferred;
   std::deque<Fetched> pending;
 };
+
+// Whatever the caller holds counts here too, and whatever this comes to
+// account for is handed back, which is how several walks of one span agree on
+// what has been read and what a reference still needs
+auto is_accounted(const Walk &walk, const JSON::StringView identifier) -> bool {
+  return walk.accounted.contains(identifier) ||
+         (walk.accounted_predicate && walk.accounted_predicate(identifier));
+}
+
+auto account(Walk &walk, const JSON::StringView identifier) -> void {
+  if (walk.accounted.emplace(identifier).second && walk.accounted_callback) {
+    walk.accounted_callback(identifier);
+  }
+}
 
 // Every frame that the walk constructs spends from the same allowance, as how
 // many of them it ends up needing is a function of what the resolver hands
@@ -111,7 +127,7 @@ auto examine(Walk &walk, const SchemaFrame &frame,
   // never has to fetch of its own, whether the document declares it at the top
   // or carries it within itself
   frame.for_each_resource_uri(
-      [&walk](const auto &uri) -> void { walk.accounted.emplace(uri); });
+      [&walk](const auto &uri) -> void { account(walk, uri); });
 
   frame.for_each_unresolved_reference([&walk, &frame,
                                        origin](const auto &pointer,
@@ -139,7 +155,7 @@ auto examine(Walk &walk, const SchemaFrame &frame,
     // Whatever the walk accounts for travels with the document it came from,
     // so a reference into it reaches nothing the caller has to fetch of its
     // own. This is also what keeps a cycle from going round for ever
-    if (walk.accounted.contains(reference.base)) {
+    if (is_accounted(walk, reference.base)) {
       return;
     }
 
@@ -171,7 +187,7 @@ auto examine(Walk &walk, const SchemaFrame &frame,
                    .pointer = pointer,
                    .destination = reference.base,
                    .document = remote.value()});
-    walk.accounted.emplace(reference.base);
+    account(walk, reference.base);
 
     // Official schemas can only reference other official schemas, so reading
     // them can never surface further dependencies
@@ -221,6 +237,8 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
             .limit = options.max_locations,
             .remaining = options.max_locations,
             .accounted = {},
+            .accounted_predicate = options.accounted,
+            .accounted_callback = options.accounted_callback,
             .deferred = {},
             .pending = {}};
 
@@ -235,8 +253,8 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
       // already made a URI of this one, so there is no second way for it to
       // fail here
       if (!options.default_base.empty()) {
-        walk.accounted.emplace(
-            sourcemeta::core::URI::canonicalize(options.default_base));
+        account(walk,
+                sourcemeta::core::URI::canonicalize(options.default_base));
       }
 
       examine(walk, *frame, frame->root());
@@ -258,7 +276,7 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
     }
 
     for (const auto &identifier : walk.deferred) {
-      if (!walk.accounted.contains(identifier)) {
+      if (!is_accounted(walk, identifier)) {
         throw SchemaResolutionError(
             "Could not resolve the reference to an external schema",
             identifier);

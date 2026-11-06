@@ -3,11 +3,21 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://www.sourcemeta.com/entry",
     "allOf": [
-      { "$ref": "https://www.sourcemeta.com/A" },
-      { "$ref": "https://www.sourcemeta.com/a" },
-      { "$ref": "https://www.sourcemeta.com/t?" },
-      { "$ref": "https://user@www.sourcemeta.com/t" },
-      { "$ref": "https://www.sourcemeta.com/t" }
+      {
+        "$ref": "https://www.sourcemeta.com/A"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/a"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/t?"
+      },
+      {
+        "$ref": "https://user@www.sourcemeta.com/t"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/t"
+      }
     ]
   },
   "resolver": {
@@ -37,6 +47,15 @@
       "type": "number"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/A",
+    "https://www.sourcemeta.com/a",
+    "https://www.sourcemeta.com/t?",
+    "https://user@www.sourcemeta.com/t",
+    "https://www.sourcemeta.com/t"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

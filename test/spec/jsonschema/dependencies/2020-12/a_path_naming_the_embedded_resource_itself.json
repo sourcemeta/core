@@ -31,6 +31,12 @@
   "paths": [
     "/components/schemas/Outer"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/openapi.json",
+    "https://www.sourcemeta.com/nested/outer",
+    "https://www.sourcemeta.com/nested/leaf"
+  ],
   "dependencies": [
     {
       "origin": "",

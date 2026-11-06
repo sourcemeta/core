@@ -12,6 +12,10 @@
       }
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/dangling"
+  ],
   "dependencies": [
     {
       "origin": "",

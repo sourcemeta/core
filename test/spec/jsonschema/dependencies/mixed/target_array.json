@@ -14,6 +14,8 @@
       "baz"
     ]
   },
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "https://www.sourcemeta.com/array"

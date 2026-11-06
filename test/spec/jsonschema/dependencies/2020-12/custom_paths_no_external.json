@@ -20,6 +20,10 @@
     "/common/test",
     "/common/with-id"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/schema"
+  ],
   "dependencies": [],
   "locations": 4,
   "fetched": []

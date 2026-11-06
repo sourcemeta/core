@@ -1,6 +1,8 @@
 {
   "schema": true,
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "locations": 1,
   "fetched": []

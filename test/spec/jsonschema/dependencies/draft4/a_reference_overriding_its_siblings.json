@@ -20,6 +20,11 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "http://www.example.com/entry",
+    "http://www.example.com/target"
+  ],
   "dependencies": [
     {
       "origin": "http://www.example.com/entry",

@@ -12,7 +12,7 @@
 #include <sourcemeta/core/jsonschema_types.h>
 
 #include <cstdint>     // std::uint64_t
-#include <functional>  // std::function
+#include <functional>  // std::equal_to, std::function, std::hash
 #include <limits>      // std::numeric_limits
 #include <string_view> // std::string_view
 
@@ -49,6 +49,11 @@ using SchemaDependencyCallback = std::function<void(const SchemaDependency &)>;
 /// for as long as analysis runs, so the caller owns them across the call,
 /// while the identifier and the base are copied
 struct SchemaDependenciesOptions {
+  /// A predicate to ask whether the caller already accounts for a URI
+  using AccountedPredicate = std::function<bool(std::string_view)>;
+  /// A callback to report every URI that analysis comes to account for
+  using AccountedCallback = std::function<void(std::string_view)>;
+
   /// The dialect to assume for a schema that declares none
   std::string_view default_dialect{};
   /// The identifier to assume for a schema that declares none, which names
@@ -79,6 +84,20 @@ struct SchemaDependenciesOptions {
   /// than whether one does. Bounding the size of a document remains the
   /// caller's to do
   std::uint64_t max_locations{std::numeric_limits<std::uint64_t>::max()};
+  /// Whether the caller already accounts for a URI, which analysis asks
+  /// before reading the document it names and again before deciding that a
+  /// reference making it leads nowhere. Answering yes for one keeps the
+  /// document it names from being either reported or read, so a caller
+  /// answers for what it holds rather than for what it would rather not hear
+  /// about
+  AccountedPredicate accounted{};
+  /// Reports every URI that analysis comes to account for, whether it is one
+  /// a dependency was reported for or one a document it read answers to of
+  /// its own. A caller that walks several documents of one span keeps what
+  /// this hands back and answers the predicate above from it, so that a
+  /// document any of them reaches is read once and a reference that a
+  /// document any of them read answers to settles for all of them
+  AccountedCallback accounted_callback{};
 };
 
 /// @ingroup jsonschema

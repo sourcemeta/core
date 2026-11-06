@@ -15,6 +15,11 @@
       "type": "string"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/dir/entry.json",
+    "https://www.sourcemeta.com/dir/other.json"
+  ],
   "dependencies": [
     {
       "origin": "",

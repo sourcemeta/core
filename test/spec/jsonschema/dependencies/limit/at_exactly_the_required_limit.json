@@ -21,6 +21,12 @@
     }
   },
   "maxLocations": 4,
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/chain-1",
+    "https://www.sourcemeta.com/chain-2",
+    "https://www.sourcemeta.com/chain-3"
+  ],
   "dependencies": [
     {
       "origin": "",

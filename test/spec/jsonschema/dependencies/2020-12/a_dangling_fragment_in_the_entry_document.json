@@ -6,6 +6,10 @@
       "$ref": "#missing"
     }
   },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry"
+  ],
   "dependencies": [],
   "fetched": [],
   "error": {

@@ -23,6 +23,12 @@
     }
   },
   "maxLocations": 4,
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/custom-meta",
+    "https://www.sourcemeta.com/leaf"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

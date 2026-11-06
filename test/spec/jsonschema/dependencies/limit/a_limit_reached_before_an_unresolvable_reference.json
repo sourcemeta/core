@@ -32,6 +32,11 @@
     }
   },
   "maxLocations": 4,
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/zzz-wide"
+  ],
   "dependencies": [
     {
       "origin": "https://www.sourcemeta.com/entry",

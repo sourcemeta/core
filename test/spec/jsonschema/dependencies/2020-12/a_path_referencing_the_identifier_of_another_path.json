@@ -18,6 +18,10 @@
     "/components/schemas/Consumer",
     "/components/schemas/Producer"
   ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/produced"
+  ],
   "dependencies": [],
   "locations": 3,
   "fetched": []

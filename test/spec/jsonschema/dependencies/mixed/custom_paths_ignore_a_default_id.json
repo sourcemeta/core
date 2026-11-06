@@ -18,6 +18,8 @@
   "paths": [
     "/common/entry"
   ],
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "fetched": [
     "test-1"

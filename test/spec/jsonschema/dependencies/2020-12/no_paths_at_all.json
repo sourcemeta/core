@@ -18,6 +18,8 @@
   },
   "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
   "paths": [],
+  "accounted": [],
+  "accountedReported": [],
   "dependencies": [],
   "locations": 0,
   "fetched": []
