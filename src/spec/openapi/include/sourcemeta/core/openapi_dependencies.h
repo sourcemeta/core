@@ -104,9 +104,9 @@ struct OpenAPIDependencyOptions {
 /// What a Schema Object names has to be a document that is a schema and
 /// nothing else, and one that declares no dialect of its own is read against
 /// the dialect of the revision the description naming it is written against.
-/// What such a document reaches is read as JSON Schema alone, so a
-/// Discriminator Object within one names a document that goes unreported,
-/// unlike one a description carries itself. A
+/// What a Discriminator Object within such a document names is reported too,
+/// as the keyword it sits under belongs to this specification rather than to
+/// JSON Schema. A
 /// description holding the schema it names is refused with
 /// sourcemeta::core::OpenAPIReferenceError rather than followed, as reading
 /// part of a description without the rest of it would miss whatever bears on

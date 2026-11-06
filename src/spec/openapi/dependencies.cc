@@ -1,5 +1,6 @@
 #include <sourcemeta/core/openapi.h>
 
+#include "discriminator.h"
 #include "document.h"
 
 #include <cassert> // assert
@@ -259,6 +260,33 @@ auto schema_resolver_within(const Walk &walk, const JSON::StringView origin)
   };
 }
 
+// Whether anything of this document sits under the keyword a Discriminator
+// Object goes by, which is what decides whether reading it takes a frame of
+// its own. Most documents hold none, and this spares them that
+auto holds_discriminator(const JSON &document) -> bool {
+  std::vector<std::reference_wrapper<const JSON>> pending;
+  pending.emplace_back(document);
+  while (!pending.empty()) {
+    const auto &current{pending.back().get()};
+    pending.pop_back();
+    if (current.is_object()) {
+      if (current.defines("discriminator")) {
+        return true;
+      }
+
+      for (const auto &entry : current.as_object()) {
+        pending.emplace_back(entry.second);
+      }
+    } else if (current.is_array()) {
+      for (const auto &entry : current.as_array()) {
+        pending.emplace_back(entry);
+      }
+    }
+  }
+
+  return false;
+}
+
 // Everything one document of the description reaches, which is the references
 // this specification gives meaning to and the ones its schemas make
 auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
@@ -390,6 +418,39 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
       // what it reaches in turn is for the schema walk to follow. That walk
       // reports the whole closure below this document, so what comes back is
       // passed straight on, and the one allowance covers both
+      // What a Discriminator Object names is as much a dependency within a
+      // schema this walk fetched as within the description itself, and the
+      // schema walk below reads neither, as the keyword it sits under belongs
+      // to the OpenAPI dialect rather than to JSON Schema
+      if (holds_discriminator(entry.document)) {
+        const sourcemeta::core::SchemaFrame mappings{
+            sourcemeta::core::SchemaFrame::Mode::References,
+            entry.document,
+            walk.walker,
+            walk.schema_resolver,
+            entry.dialect,
+            entry.identifier,
+            sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+            sourcemeta::core::SchemaFrame::Paths{
+                sourcemeta::core::EMPTY_WEAK_POINTER},
+            entry.identifier,
+            walk.remaining};
+        charge(walk, mappings.location_count());
+        for (const auto &discriminator :
+             sourcemeta::core::openapi_discriminators(
+                 entry.document, mappings, entry.identifier, walk.walker,
+                 walk.schema_resolver)) {
+          if (sourcemeta::core::openapi_discriminator_lands(mappings,
+                                                            discriminator)) {
+            continue;
+          }
+
+          report(walk, entry.identifier, discriminator.origin,
+                 document_of(discriminator.destination),
+                 OpenAPIObjectKind::Schema, Reached::Schema, entry.dialect);
+        }
+      }
+
       SchemaDependenciesOptions schemas;
       schemas.default_dialect = entry.dialect;
       schemas.default_id = entry.identifier;
