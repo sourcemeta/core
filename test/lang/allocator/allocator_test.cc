@@ -8,7 +8,8 @@
 #include <cstdio>  // asprintf
 #include <cstdlib> // std::malloc, std::calloc, std::realloc, std::free, posix_memalign, aligned_alloc, valloc
 #include <cstring> // std::memset, strdup, strndup
-#include <new>     // std::align_val_t, std::nothrow
+#include <limits>  // std::numeric_limits
+#include <new>     // std::align_val_t, std::nothrow, std::bad_alloc
 
 #if defined(__APPLE__)
 #include <malloc/malloc.h> // malloc_size, malloc_good_size
@@ -18,6 +19,13 @@
 
 static constexpr std::size_t REQUEST_SIZE{64};
 static constexpr std::size_t REQUEST_ALIGNMENT{64};
+
+// The largest request a well formed program is allowed to make, and far more
+// than any machine can hand over, so that asking for it leaves nothing but the
+// path that refuses. Asking for more is something the compiler itself objects
+// to, which would leave nothing here to run
+static constexpr std::size_t IMPOSSIBLE_REQUEST_SIZE{
+    std::numeric_limits<std::ptrdiff_t>::max()};
 
 // Freshly handed out storage holds nothing in particular, and a compiler that
 // sees it reach a function taking a pointer to constant memory has to assume
@@ -266,6 +274,23 @@ TEST(Allocator_sized_aligned_array_delete_takes_back_what_it_handed_out) {
   EXPECT_TRUE(landed_in_this_allocator(pointer, REQUEST_SIZE));
   ::operator delete[](pointer, REQUEST_SIZE,
                       std::align_val_t{REQUEST_ALIGNMENT});
+}
+
+TEST(Allocator_new_reports_a_request_it_cannot_satisfy) {
+  void *pointer{nullptr};
+  try {
+    pointer = ::operator new(IMPOSSIBLE_REQUEST_SIZE);
+    FAIL();
+  } catch (const std::bad_alloc &) {
+    // Refusing a request of this size is expected
+  }
+
+  EXPECT_EQ(pointer, nullptr);
+}
+
+TEST(Allocator_nothrow_new_answers_with_nothing_when_it_cannot_satisfy) {
+  void *pointer{::operator new(IMPOSSIBLE_REQUEST_SIZE, std::nothrow)};
+  EXPECT_EQ(pointer, nullptr);
 }
 
 TEST(Allocator_malloc_size_covers_the_request) {
