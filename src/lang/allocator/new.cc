@@ -11,33 +11,63 @@ namespace {
 // these entry points cannot do for us, as it is compiled as the language that
 // has no way of reporting a failure other than ending the program. See
 // [basic.stc.dynamic.allocation] and [new.delete.single]
-auto allocate_or_report(const std::size_t size, const std::size_t alignment)
+//
+// This stands apart from the entry points that reach it, and stays apart, so
+// that asking for memory and getting it remains a request and a test of the
+// answer, with the asking again and the giving up out of its way
+__attribute__((noinline)) auto ask_again_or_report(const std::size_t size,
+                                                   const std::size_t alignment)
     -> void * {
   while (true) {
-    void *pointer{alignment == 0 ? mi_malloc(size)
-                                 : mi_malloc_aligned(size, alignment)};
-    if (pointer != nullptr) {
-      return pointer;
-    }
-
     const auto handler{std::get_new_handler()};
     if (handler == nullptr) {
       throw std::bad_alloc{};
     }
 
     handler();
+
+    void *pointer{alignment == 0 ? mi_malloc(size)
+                                 : mi_malloc_aligned(size, alignment)};
+    if (pointer != nullptr) {
+      return pointer;
+    }
   }
 }
 
 // The reporting forms are specified in terms of the ones that do report, down
-// to answering with nothing where those would have thrown
-auto allocate_or_nothing(const std::size_t size,
-                         const std::size_t alignment) noexcept -> void * {
+// to answering with nothing where those would have thrown. Keeping the catch
+// here rather than one step closer to the entry points is what lets the entry
+// points that answer with nothing stay as plain as the ones that do report
+__attribute__((noinline)) auto
+ask_again_or_nothing(const std::size_t size,
+                     const std::size_t alignment) noexcept -> void * {
   try {
-    return allocate_or_report(size, alignment);
+    return ask_again_or_report(size, alignment);
   } catch (...) {
     return nullptr;
   }
+}
+
+auto allocate_or_report(const std::size_t size, const std::size_t alignment)
+    -> void * {
+  void *pointer{alignment == 0 ? mi_malloc(size)
+                               : mi_malloc_aligned(size, alignment)};
+  if (pointer == nullptr) [[unlikely]] {
+    return ask_again_or_report(size, alignment);
+  }
+
+  return pointer;
+}
+
+auto allocate_or_nothing(const std::size_t size,
+                         const std::size_t alignment) noexcept -> void * {
+  void *pointer{alignment == 0 ? mi_malloc(size)
+                               : mi_malloc_aligned(size, alignment)};
+  if (pointer == nullptr) [[unlikely]] {
+    return ask_again_or_nothing(size, alignment);
+  }
+
+  return pointer;
 }
 
 } // namespace
