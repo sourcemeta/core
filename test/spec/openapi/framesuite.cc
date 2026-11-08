@@ -11,6 +11,7 @@
 #include <functional>  // std::less
 #include <iostream>    // std::cerr
 #include <limits>      // std::numeric_limits
+#include <memory>      // std::make_unique, std::unique_ptr
 #include <optional>    // std::nullopt, std::optional
 #include <set>         // std::set
 #include <sstream>     // std::ostringstream
@@ -24,9 +25,9 @@ namespace {
 // Every key a fixture may declare. Anything else is a mistake that would
 // otherwise go unnoticed, as the runner would simply not read it
 // NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
-const std::vector<std::string> KNOWN_KEYS{"document",       "defaultBase",
-                                          "schemaResolver", "frame",
-                                          "maxLocations",   "error"};
+const std::vector<std::string> KNOWN_KEYS{
+    "document",     "defaultBase", "schemaResolver", "frame",
+    "maxLocations", "error",       "entry",          "entryBase"};
 const std::vector<std::string> KNOWN_ERROR_KEYS{
     "message", "location", "base",  "identifier", "keyword",
     "value",   "other",    "limit", "dialect"};
@@ -97,6 +98,30 @@ auto make_default_base(const sourcemeta::core::JSON &test)
     -> sourcemeta::core::JSON::String {
   const auto *base{test.try_at("defaultBase")};
   return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
+}
+
+// The base the document a description begins at was retrieved from
+auto make_entry_base(const sourcemeta::core::JSON &test)
+    -> sourcemeta::core::JSON::String {
+  const auto *base{test.try_at("entryBase")};
+  return base == nullptr ? sourcemeta::core::JSON::String{} : base->to_string();
+}
+
+// The frame of the document a description begins at, which a fixture declares
+// where it means to read another as part of that description. Nothing is read
+// of it beyond the names it puts in scope, and it outlives the frame that
+// borrows them
+auto make_entry_frame(const sourcemeta::core::JSON &test,
+                      const sourcemeta::core::SchemaResolver &resolver,
+                      const sourcemeta::core::JSON::String &base)
+    -> std::unique_ptr<sourcemeta::core::OpenAPIFrame> {
+  const auto *entry{test.try_at("entry")};
+  if (entry == nullptr) {
+    return nullptr;
+  }
+
+  return std::make_unique<sourcemeta::core::OpenAPIFrame>(
+      *entry, sourcemeta::core::schema_walker, resolver, base);
 }
 
 // How many locations a fixture is talking about, which it has to say as a
@@ -739,21 +764,25 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
 auto check_formatting(const sourcemeta::core::JSON &document,
                       const sourcemeta::core::SchemaResolver &resolver,
                       const sourcemeta::core::JSON::String &default_base,
-                      const std::uint64_t max_locations) -> void {
+                      const std::uint64_t max_locations,
+                      const sourcemeta::core::OpenAPIFrame *entry) -> void {
   auto formatted{document};
   {
     const sourcemeta::core::OpenAPIFrame frame{
-        formatted, sourcemeta::core::schema_walker, resolver, default_base,
-        max_locations};
+        formatted,     sourcemeta::core::schema_walker,
+        resolver,      default_base,
+        max_locations, entry};
     sourcemeta::core::openapi_format(formatted, frame);
   }
 
   const sourcemeta::core::OpenAPIFrame before{
-      document, sourcemeta::core::schema_walker, resolver, default_base,
-      max_locations};
+      document,      sourcemeta::core::schema_walker,
+      resolver,      default_base,
+      max_locations, entry};
   const sourcemeta::core::OpenAPIFrame after{
-      formatted, sourcemeta::core::schema_walker, resolver, default_base,
-      max_locations};
+      formatted,     sourcemeta::core::schema_walker,
+      resolver,      default_base,
+      max_locations, entry};
 
   EXPECT_EQ(after.object_count(), before.object_count());
   EXPECT_EQ(after.reference_count(), before.reference_count());
@@ -762,8 +791,9 @@ auto check_formatting(const sourcemeta::core::JSON &document,
   auto again{formatted};
   {
     const sourcemeta::core::OpenAPIFrame frame{
-        again, sourcemeta::core::schema_walker, resolver, default_base,
-        max_locations};
+        again,         sourcemeta::core::schema_walker,
+        resolver,      default_base,
+        max_locations, entry};
     sourcemeta::core::openapi_format(again, frame);
   }
 
@@ -786,10 +816,15 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   const auto default_base{make_default_base(test)};
   const auto resolver{make_schema_resolver(test)};
   const auto max_locations{make_max_locations(test)};
+  const auto entry_base{make_entry_base(test)};
+  const auto entry{make_entry_frame(test, resolver, entry_base)};
 
-  const sourcemeta::core::OpenAPIFrame frame{
-      test.at("document"), sourcemeta::core::schema_walker, resolver,
-      default_base, max_locations};
+  const sourcemeta::core::OpenAPIFrame frame{test.at("document"),
+                                             sourcemeta::core::schema_walker,
+                                             resolver,
+                                             default_base,
+                                             max_locations,
+                                             entry.get()};
   // The invariants come first because a failed expectation aborts the test. A
   // frame that contradicts itself is a deeper failure than one that merely
   // differs from what a fixture recorded, so it is the one worth reporting
@@ -798,7 +833,8 @@ auto run_pass_test(const sourcemeta::core::JSON &test) -> void {
   check_window_invariants(frame, result);
   EXPECT_EQ(result, test.at("frame"));
 
-  check_formatting(test.at("document"), resolver, default_base, max_locations);
+  check_formatting(test.at("document"), resolver, default_base, max_locations,
+                   entry.get());
 }
 
 // What a Schema Object holds is JSON Schema's to make sense of, so what it
@@ -821,6 +857,9 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
   }
 
   const auto default_base{make_default_base(test)};
+  const auto resolver{make_schema_resolver(test)};
+  const auto entry_base{make_entry_base(test)};
+  const auto entry{make_entry_frame(test, resolver, entry_base)};
 
   // Whether anything was turned down is settled outside the handlers, as the
   // way this runner reports a failed expectation is an exception of its own
@@ -828,8 +867,8 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
   bool refused{false};
   try {
     [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
-        test.at("document"), sourcemeta::core::schema_walker,
-        make_schema_resolver(test), default_base, make_max_locations(test)};
+        test.at("document"), sourcemeta::core::schema_walker, resolver,
+        default_base,        make_max_locations(test),        entry.get()};
   } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
     refused = true;
     EXPECT_EQ(error.what(), test.at("error").at("message").to_string());
