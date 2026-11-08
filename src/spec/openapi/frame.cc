@@ -793,6 +793,7 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
       max_locations, entry == nullptr ? nullptr : &entry->internal_->names)};
   this->internal_->version = walk.version;
   this->internal_->info = walk.info;
+  this->internal_->names.base = walk.base;
   this->internal_->names.security_schemes = walk.security_schemes;
   this->internal_->names.security_schemes_without_scopes =
       walk.security_schemes_without_scopes;
@@ -906,9 +907,14 @@ OpenAPIFrame::OpenAPIFrame(const JSON &document, const SchemaWalker &walker,
   // description makes. It is the one of them that a schema frame does not
   // read, as the keyword it sits under belongs to the dialect this
   // specification publishes rather than to JSON Schema
-  this->internal_->discriminators =
-      openapi_discriminators(document, *(this->internal_->schemas),
-                             this->internal_->base, walker, resolver);
+  //
+  // The name form of a `mapping` stands for a schema the Components Object of
+  // the description holds, which Section 4.3.3 resolves from the entry
+  // document, so where this reads a document as part of a description the base
+  // a name resolves against is that document's rather than this one's
+  this->internal_->discriminators = openapi_discriminators(
+      document, *(this->internal_->schemas), this->internal_->base, walker,
+      resolver, entry == nullptr ? nullptr : &entry->internal_->names.base);
   auto every_mapping_lands{true};
   for (auto &discriminator : this->internal_->discriminators) {
     discriminator.dangling = !openapi_discriminator_lands(

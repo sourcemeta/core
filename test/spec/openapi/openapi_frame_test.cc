@@ -1576,3 +1576,75 @@ TEST(entry_frame_keeps_the_earliest_revision_scope_rule) {
                  "security scheme of this type");
   }
 }
+
+TEST(entry_frame_resolves_a_discriminator_name) {
+  const auto entry{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Entry", "version": "1.0.0" },
+    "components": { "schemas": { "Cat": { "type": "object" } } }
+  })JSON")};
+
+  const auto referenced{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Referenced", "version": "1.0.0" },
+    "paths": { "/p": { "get": { "responses": { "200": {
+      "description": "Ok",
+      "content": { "application/json": { "schema": {
+        "oneOf": [ { "type": "object" } ],
+        "discriminator": { "propertyName": "k", "mapping": { "cat": "Cat" } }
+      } } } } } } } }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame first{
+      entry, sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "https://example.com/openapi.json"};
+  const sourcemeta::core::OpenAPIFrame second{referenced,
+                                              sourcemeta::core::schema_walker,
+                                              sourcemeta::core::schema_resolver,
+                                              "https://example.com/other.json",
+                                              UNBOUNDED,
+                                              &first};
+
+  EXPECT_EQ(second.version(), sourcemeta::core::OpenAPIVersion::OPENAPI_3_1);
+  EXPECT_EQ(second.base(), "https://example.com/other.json");
+
+  EXPECT_EQ(second.discriminators().size(), 1);
+  const auto &discriminator{second.discriminators().front()};
+  EXPECT_EQ(sourcemeta::core::to_string(discriminator.origin),
+            "/paths/~1p/get/responses/200/content/application~1json/schema/"
+            "discriminator/mapping/cat");
+  EXPECT_EQ(discriminator.destination,
+            "https://example.com/openapi.json#/components/schemas/Cat");
+  EXPECT_EQ(discriminator.scope, "https://example.com/openapi.json");
+
+  // The schema it stands for sits in the entry document, which this frame does
+  // not hold, so what it names leaves this one
+  EXPECT_TRUE(discriminator.dangling);
+  EXPECT_FALSE(second.standalone());
+}
+
+TEST(discriminator_name_of_a_document_read_on_its_own) {
+  const auto referenced{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Referenced", "version": "1.0.0" },
+    "components": { "schemas": { "Cat": { "type": "object" } } },
+    "paths": { "/p": { "get": { "responses": { "200": {
+      "description": "Ok",
+      "content": { "application/json": { "schema": {
+        "oneOf": [ { "type": "object" } ],
+        "discriminator": { "propertyName": "k", "mapping": { "cat": "Cat" } }
+      } } } } } } } }
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{
+      referenced, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, "https://example.com/other.json"};
+
+  EXPECT_EQ(frame.discriminators().size(), 1);
+  const auto &discriminator{frame.discriminators().front()};
+  EXPECT_EQ(discriminator.destination,
+            "https://example.com/other.json#/components/schemas/Cat");
+  EXPECT_EQ(discriminator.scope, "https://example.com/other.json");
+  EXPECT_FALSE(discriminator.dangling);
+  EXPECT_TRUE(frame.standalone());
+}
