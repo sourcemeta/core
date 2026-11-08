@@ -1,0 +1,47 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "one": {
+        "$ref": "https://www.sourcemeta.com/dir/fetched.json"
+      },
+      "two": {
+        "$ref": "https://www.sourcemeta.com/dir/deep/inner.json"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/dir/fetched.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "sub/declared.json",
+      "$defs": {
+        "inner": {
+          "$id": "deep/inner.json",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/dir/fetched.json",
+    "https://www.sourcemeta.com/dir/sub/declared.json",
+    "https://www.sourcemeta.com/dir/sub/deep/inner.json"
+  ],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/properties/one/$ref",
+      "destination": "https://www.sourcemeta.com/dir/fetched.json"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/dir/fetched.json",
+    "https://www.sourcemeta.com/dir/deep/inner.json"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "https://www.sourcemeta.com/dir/deep/inner.json"
+  }
+}
