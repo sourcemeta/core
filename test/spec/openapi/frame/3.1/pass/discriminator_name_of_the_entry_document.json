@@ -1,0 +1,195 @@
+{
+  "entry": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "entryBase": "https://example.com/openapi.json",
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Referenced",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "oneOf": [
+                      {
+                        "type": "object"
+                      }
+                    ],
+                    "discriminator": {
+                      "propertyName": "k",
+                      "mapping": {
+                        "cat": "Cat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/other.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/other.json",
+    "standalone": false,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {
+          "https://example.com/other.json#/paths/~1p/get/responses/200/content/application~1json/schema": {
+            "parent": null,
+            "type": "subschema",
+            "root": null,
+            "base": "https://example.com/other.json",
+            "pointer": "/paths/~1p/get/responses/200/content/application~1json/schema",
+            "relativePointer": "/paths/~1p/get/responses/200/content/application~1json/schema",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
+            }
+          },
+          "https://example.com/other.json#/paths/~1p/get/responses/200/content/application~1json/schema/oneOf/0": {
+            "parent": "/paths/~1p/get/responses/200/content/application~1json/schema",
+            "type": "subschema",
+            "root": null,
+            "base": "https://example.com/other.json",
+            "pointer": "/paths/~1p/get/responses/200/content/application~1json/schema/oneOf/0",
+            "relativePointer": "/paths/~1p/get/responses/200/content/application~1json/schema/oneOf/0",
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+            "baseDialect": "https://json-schema.org/draft/2020-12/schema",
+            "propertyName": false,
+            "orphan": false,
+            "hasReferencesTo": false,
+            "hasReferencesThrough": false,
+            "vocabularies": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+              "https://json-schema.org/draft/2020-12/vocab/unevaluated": true,
+              "https://json-schema.org/draft/2020-12/vocab/validation": true,
+              "https://json-schema.org/draft/2020-12/vocab/meta-data": true,
+              "https://json-schema.org/draft/2020-12/vocab/format-annotation": true,
+              "https://json-schema.org/draft/2020-12/vocab/content": true,
+              "https://spec.openapis.org/oas/3.1/vocab/base": false
+            }
+          }
+        },
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Referenced",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/other.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/other.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/other.json"
+      },
+      "https://example.com/other.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/other.json"
+      },
+      "https://example.com/other.json#/paths/~1p": {
+        "type": "path-item",
+        "pointer": "/paths/~1p",
+        "parent": "https://example.com/other.json#/paths"
+      },
+      "https://example.com/other.json#/paths/~1p/get": {
+        "type": "operation",
+        "pointer": "/paths/~1p/get",
+        "parent": "https://example.com/other.json#/paths/~1p"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1p/get/responses",
+        "parent": "https://example.com/other.json#/paths/~1p/get"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1p/get/responses/200",
+        "parent": "https://example.com/other.json#/paths/~1p/get/responses"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses/200/content/application~1json": {
+        "type": "media-type",
+        "pointer": "/paths/~1p/get/responses/200/content/application~1json",
+        "parent": "https://example.com/other.json#/paths/~1p/get/responses/200"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses/200/content/application~1json/schema": {
+        "type": "schema",
+        "pointer": "/paths/~1p/get/responses/200/content/application~1json/schema",
+        "parent": "https://example.com/other.json#/paths/~1p/get/responses/200/content/application~1json",
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+        "base": "https://example.com/other.json"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/p",
+        "method": "get",
+        "origin": "https://example.com/other.json#/paths/~1p/get",
+        "endpoint": "https://example.com/other.json#/paths/~1p",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ],
+    "discriminators": [
+      {
+        "pointer": "/paths/~1p/get/responses/200/content/application~1json/schema/discriminator/mapping/cat",
+        "destination": "https://example.com/openapi.json#/components/schemas/Cat",
+        "scope": "https://example.com/openapi.json",
+        "dangling": true
+      }
+    ]
+  }
+}

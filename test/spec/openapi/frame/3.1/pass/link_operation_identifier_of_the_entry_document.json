@@ -1,0 +1,124 @@
+{
+  "entry": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "listPets",
+          "responses": {
+            "200": {
+              "description": "Ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "entryBase": "https://example.com/openapi.json",
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Referenced",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Ok",
+              "links": {
+                "owners": {
+                  "operationId": "listPets"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/other.json",
+  "frame": {
+    "version": "3.1",
+    "base": "https://example.com/other.json",
+    "standalone": true,
+    "schemas": {
+      "mode": "references",
+      "locations": {
+        "static": {},
+        "dynamic": {}
+      },
+      "references": []
+    },
+    "info": {
+      "title": "Referenced",
+      "version": "1.0.0",
+      "summary": null,
+      "description": null,
+      "termsOfService": null,
+      "contact": null,
+      "license": null
+    },
+    "locations": {
+      "https://example.com/other.json": {
+        "type": "openapi",
+        "pointer": "",
+        "parent": null,
+        "defaultDialect": "https://spec.openapis.org/oas/3.1/dialect/base"
+      },
+      "https://example.com/other.json#/info": {
+        "type": "info",
+        "pointer": "/info",
+        "parent": "https://example.com/other.json"
+      },
+      "https://example.com/other.json#/paths": {
+        "type": "paths",
+        "pointer": "/paths",
+        "parent": "https://example.com/other.json"
+      },
+      "https://example.com/other.json#/paths/~1p": {
+        "type": "path-item",
+        "pointer": "/paths/~1p",
+        "parent": "https://example.com/other.json#/paths"
+      },
+      "https://example.com/other.json#/paths/~1p/get": {
+        "type": "operation",
+        "pointer": "/paths/~1p/get",
+        "parent": "https://example.com/other.json#/paths/~1p"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses": {
+        "type": "responses",
+        "pointer": "/paths/~1p/get/responses",
+        "parent": "https://example.com/other.json#/paths/~1p/get"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses/200": {
+        "type": "response",
+        "pointer": "/paths/~1p/get/responses/200",
+        "parent": "https://example.com/other.json#/paths/~1p/get/responses"
+      },
+      "https://example.com/other.json#/paths/~1p/get/responses/200/links/owners": {
+        "type": "link",
+        "pointer": "/paths/~1p/get/responses/200/links/owners",
+        "parent": "https://example.com/other.json#/paths/~1p/get/responses/200"
+      }
+    },
+    "operations": [
+      {
+        "type": "path",
+        "path": "/p",
+        "method": "get",
+        "origin": "https://example.com/other.json#/paths/~1p/get",
+        "endpoint": "https://example.com/other.json#/paths/~1p",
+        "tags": [],
+        "servers": [],
+        "security": [],
+        "parameters": []
+      }
+    ]
+  }
+}

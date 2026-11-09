@@ -1,0 +1,49 @@
+{
+  "entry": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "MyKey": {
+          "type": "apiKey",
+          "name": "X-Key",
+          "in": "header"
+        }
+      }
+    }
+  },
+  "entryBase": "https://example.com/openapi.json",
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Referenced",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "get": {
+          "security": [
+            {
+              "MyKey": [
+                "read"
+              ]
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Ok"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/other.json",
+  "error": {
+    "message": "The Security Requirement Object entry must be empty for a security scheme of this type",
+    "location": "/paths/~1p/get/security/0/MyKey"
+  }
+}
