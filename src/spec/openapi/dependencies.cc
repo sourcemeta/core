@@ -79,13 +79,6 @@ struct Fetched {
 // what detecting that takes
 struct Held {
   Reached reached;
-  // The dialect it was read under, and whether that reading is beyond question.
-  // It is not for a standalone schema that declares no dialect, as the OAS
-  // dialect the section above falls back on is one per revision, so two
-  // descriptions of different revisions naming such a document mean two
-  // readings of it
-  JSON::StringView dialect;
-  bool dialect_settled;
   // Whether what is held names a dialect that is not the one the earliest
   // revision publishes, which a description of that revision may not reach
   // however the walk came to hold it. Recording it is what keeps the answer
@@ -115,12 +108,13 @@ struct Deferred {
   JSON::String origin;
   Pointer pointer;
   JSON::String destination;
-  // The dialect the position naming it would have read it under, as a document
-  // that answers later is answering to this reference as much as to any other
-  JSON::StringView dialect;
   // What the position spelling it expects the far end to be, as a document
   // answering to that name settles the reference only where it is that
   Reached reached;
+  // The error the schema walk raised for it, where it was that walk rather
+  // than this one that could not settle the name. Reporting it again at the
+  // end is what keeps the terms it was raised in
+  std::exception_ptr foreign{};
 };
 
 struct Walk {
@@ -198,16 +192,6 @@ auto is_skippable_metaschema_reference(const WeakPointer &pointer,
   return schema_is_official(destination);
 }
 
-// Whether the dialect this document is read under is beyond question, which
-// OpenAPI 3.1.1 Section 4.8.24.5 has it be wherever the document says so for
-// itself: "The `$schema` keyword MAY be present in any Schema Object that is a
-// schema resource root, and if present MUST be used to determine which dialect
-// should be used when processing the schema". A boolean is a schema in full
-// with nowhere to carry that keyword, so nothing about it is in question either
-auto dialect_settled(const JSON &document) -> bool {
-  return !document.is_object() || document.defines("$schema");
-}
-
 // A destination that names the document being examined, and a place within it,
 // is no reference out of that document. Where such a fragment leads is the
 // business of whoever reads the document rather than a dependency on another,
@@ -238,14 +222,10 @@ auto names_this_document(const JSON::StringView destination,
 }
 
 auto account(Walk &walk, const JSON::StringView uri, const Reached reached,
-             const JSON::StringView dialect = {},
-             const bool dialect_settled = true,
              const bool foreign_to_earliest = false) -> void {
-  walk.accounted.emplace(JSON::String{uri},
-                         Held{.reached = reached,
-                              .dialect = dialect,
-                              .dialect_settled = dialect_settled,
-                              .foreign_to_earliest = foreign_to_earliest});
+  walk.accounted.emplace(
+      JSON::String{uri},
+      Held{.reached = reached, .foreign_to_earliest = foreign_to_earliest});
 }
 
 // What one frame registered, which is both the Objects of the description and
@@ -322,27 +302,6 @@ auto reject_conflicting_kind(const Held &held, const Reached reached,
       JSON::String{origin}, pointer, JSON::String{destination}};
 }
 
-// The dialect a schema declaring none falls back on is the one its namer's
-// revision publishes, so two namers of different revisions give one document
-// two readings, and the keywords of one are not the keywords of the other.
-// OpenAPI 3.1.1 Section 4.8.24.5 has the remedy rather than a winner: "for
-// maximum interoperability, it is RECOMMENDED that OpenAPI description authors
-// explicitly set the dialect through `$schema` in such documents"
-auto reject_two_readings(const Held &held, const Reached reached,
-                         const JSON::StringView dialect,
-                         const JSON::StringView origin, const Pointer &pointer,
-                         const JSON::StringView destination) -> void {
-  if (reached != Reached::Schema || held.dialect_settled ||
-      held.dialect == dialect) {
-    return;
-  }
-
-  throw OpenAPIReferenceError{
-      "A schema that declares no dialect cannot be read under the dialect of "
-      "two revisions at once",
-      JSON::String{origin}, pointer, JSON::String{destination}};
-}
-
 // What a description of the earliest revision reaches has to be written against
 // the dialect that revision publishes whether this walk is reading it now or
 // read it for another description earlier
@@ -376,13 +335,10 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
                        JSON::String{origin}, pointer};
   }
 
-  const auto dialect{openapi_dialect(version)};
   const auto known{walk.accounted.find(destination)};
   if (known != walk.accounted.cend()) {
     reject_conflicting_kind(known->second, reached, origin, pointer,
                             destination);
-    reject_two_readings(known->second, reached, dialect, origin, pointer,
-                        destination);
     reject_foreign_hold(known->second, reached, version, origin, pointer);
     return;
   }
@@ -404,7 +360,6 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
     walk.deferred.emplace_back(Deferred{.origin = JSON::String{origin},
                                         .pointer = pointer,
                                         .destination = key,
-                                        .dialect = dialect,
                                         .reached = reached});
     return;
   }
@@ -426,9 +381,7 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
                           .destination = destination,
                           .document = remote.value(),
                           .expected = expected});
-  const auto settled{reached == Reached::Description ||
-                     dialect_settled(remote.value())};
-  account(walk, key, reached, dialect, settled,
+  account(walk, key, reached,
           reached == Reached::Schema &&
               declares_foreign_dialect(remote.value()));
 
@@ -505,7 +458,7 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
   // among the fields a reference target may be defined by
   frame.schemas().for_each_resource_uri(
       [&walk, &version](const auto &uri) -> void {
-        account(walk, uri, Reached::Schema, {}, true,
+        account(walk, uri, Reached::Schema,
                 version.value() != OpenAPIVersion::OPENAPI_3_0);
       });
 
@@ -632,22 +585,11 @@ auto register_schema(Walk &walk, const Fetched &entry) -> void {
   }
 
   reject_foreign_dialect(walk, entry, *frame);
-  const auto dialect{openapi_dialect(entry.version)};
-  // Every resource of the document answers for its own reading rather than for
-  // the one at the top of it, as the keyword that settles a reading may sit on
-  // any resource root
-  frame->for_each_location(
-      [&walk, &entry, &dialect](const auto, const auto &uri,
-                                const auto &location) -> void {
-        if (location.type != SchemaFrame::LocationType::Resource) {
-          return;
-        }
-
-        const auto *held{
-            sourcemeta::core::try_get(entry.document, location.pointer)};
-        account(walk, uri, Reached::Schema, dialect,
-                held == nullptr || dialect_settled(*held));
-      });
+  // Every name the document answers to, which is every resource root it holds
+  // rather than the one at the top of it alone
+  frame->for_each_resource_uri([&walk](const auto &uri) -> void {
+    account(walk, uri, Reached::Schema);
+  });
 
   // What a Discriminator Object names is as much a dependency within a schema
   // this walk fetched as within the description itself, and the schema walk
@@ -710,9 +652,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
                                       .destination = dependency.destination,
                                       .document = dependency.document,
                                       .expected = OpenAPIObjectKind::Schema});
-              account(walk, dependency.destination, Reached::Schema,
-                      openapi_dialect(entry.version),
-                      dialect_settled(dependency.document));
+              account(walk, dependency.destination, Reached::Schema);
 
               reject_foreign_declaration(entry, dependency.destination,
                                          dependency.document);
@@ -734,6 +674,21 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
             schemas));
   } catch (const SchemaFrameLimitError &) {
     throw OpenAPIFrameLimitError{walk.limit};
+  } catch (const SchemaResolutionError &error) {
+    // A schema of the span not read yet may answer to the name this walk could
+    // not, and what it reaches is only known once it has been read, so the
+    // name is left for the end rather than settled here. The schema walk reads
+    // the whole document before it raises, so what it reported already stands
+    //
+    // What that walk registered goes uncharged, as a walk that raises reports
+    // no count, so the allowance is looser than the caller set by whatever it
+    // got through
+    walk.deferred.emplace_back(
+        Deferred{.origin = JSON::String{entry.identifier},
+                 .pointer = EMPTY_POINTER,
+                 .destination = JSON::String{error.identifier()},
+                 .reached = Reached::Schema,
+                 .foreign = std::current_exception()});
   }
 }
 
@@ -791,65 +746,26 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
     // in their turn before the next is read
     std::size_t registered_upto{0};
     std::size_t read_upto{0};
-    // What one schema of the span reaches may answer to the name another of
-    // them could not, and what it reaches is only known once it has been read,
-    // so a name nothing answers for yet is left for a later pass. OpenAPI 3.2.1
-    // Section 4.1.2.1 has an implementation "MUST NOT treat a reference as
-    // unresolvable before completely parsing all documents provided to the
-    // implementation as possible parts of the OAD", and a schema whose own
-    // closure is unread is one of those documents
-    std::vector<std::size_t> postponed;
-    while (true) {
+    while (read_upto < walk.schemas.size()) {
       while (registered_upto < walk.schemas.size()) {
         register_schema(walk, walk.schemas[registered_upto]);
         registered_upto += 1;
       }
 
-      if (read_upto < walk.schemas.size()) {
-        const auto index{read_upto};
-        read_upto += 1;
-        if (!walk.schemas[index].closure_read) {
-          try {
-            read_closure(walk, walk.schemas[index]);
-          } catch (const SchemaResolutionError &) {
-            postponed.push_back(index);
-          }
-        }
-
-        continue;
+      const auto index{read_upto};
+      read_upto += 1;
+      if (!walk.schemas[index].closure_read) {
+        read_closure(walk, walk.schemas[index]);
       }
-
-      if (postponed.empty()) {
-        break;
-      }
-
-      std::vector<std::size_t> remaining;
-      std::exception_ptr unresolved;
-      for (const auto index : postponed) {
-        try {
-          read_closure(walk, walk.schemas[index]);
-        } catch (const SchemaResolutionError &) {
-          if (!unresolved) {
-            unresolved = std::current_exception();
-          }
-
-          remaining.push_back(index);
-        }
-      }
-
-      // A pass that settles none of them is one that never will, and the name
-      // nothing answers for is reported in the terms it was raised in rather
-      // than restated in these
-      if (remaining.size() == postponed.size()) {
-        std::rethrow_exception(unresolved);
-      }
-
-      postponed = std::move(remaining);
     }
 
     for (const auto &entry : walk.deferred) {
       const auto known{walk.accounted.find(entry.destination)};
       if (known == walk.accounted.cend()) {
+        if (entry.foreign) {
+          std::rethrow_exception(entry.foreign);
+        }
+
         throw OpenAPIResolutionError{
             "Could not resolve the reference to an external document",
             entry.origin, entry.pointer, entry.destination};
@@ -857,8 +773,6 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
 
       reject_conflicting_kind(known->second, entry.reached, entry.origin,
                               entry.pointer, entry.destination);
-      reject_two_readings(known->second, entry.reached, entry.dialect,
-                          entry.origin, entry.pointer, entry.destination);
     }
   } catch (const ForeignLimitError &foreign) {
     std::rethrow_exception(foreign.error);

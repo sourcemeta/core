@@ -1,0 +1,52 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Top": {
+          "$ref": "https://www.sourcemeta.com/s.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/s.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/s.json",
+      "$ref": "https://www.sourcemeta.com/d1.json"
+    },
+    "https://www.sourcemeta.com/d1.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/d1.json",
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/d2.json"
+        }
+      ]
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Top/$ref",
+      "destination": "https://www.sourcemeta.com/s.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s.json",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/d1.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "https://www.sourcemeta.com/d2.json"
+  }
+}

@@ -20,28 +20,19 @@ namespace sourcemeta::core {
 
 /// @ingroup openapi
 ///
-/// What one reference of a description reaches. Every member of this points
-/// into something that analysis owns for no longer than the call that reports
-/// it, so a callback that keeps any of them past its own return has to copy
-/// them out
+/// What one reference of a description reaches. Every member points into
+/// something analysis owns only for the call that reports it, so a callback
+/// keeping any of them past its own return copies them out
 struct OpenAPIDependency {
-  /// The identifier that the document making the reference goes by, which is
-  /// the identifier that document declares wherever it declares one, and the
-  /// URI it was asked for otherwise. This is empty for the description that
-  /// analysis started from unless it declares one or the caller named where it
-  /// came from
+  /// The identifier the document making the reference goes by
   JSON::StringView origin;
   /// Where in that document the reference sits
   const Pointer &pointer;
-  /// Where it points, resolved and canonicalised, without the fragment it
-  /// carried
+  /// Where it points, resolved and canonicalised, without its fragment
   JSON::StringView destination;
   /// The document that the reference leads to
   const JSON &document;
-  /// What the position that spells it expects to find at the far end, which
-  /// is fixed by where the reference sits rather than by anything the target
-  /// says about itself. What a Schema Object or a discriminator mapping names
-  /// is a schema, as nothing else may be named there
+  /// What the position spelling it expects to find at the far end
   OpenAPIObjectKind expected;
 };
 
@@ -55,26 +46,19 @@ using OpenAPIDependencyCallback =
 /// Everything dependency analysis takes beyond the description and how to read
 /// it
 struct OpenAPIDependencyOptions {
-  /// The URI the document was retrieved from, which every relative reference
-  /// it makes resolves against. From 3.2 onwards a document may declare
-  /// `$self`, which takes precedence once it is read, so a relative reference
-  /// resolves against that instead wherever one is declared
+  /// The URI the document was retrieved from, which its relative references
+  /// resolve against unless it declares a base of its own
   std::string_view default_base{};
-  /// The maximum number of locations that analysis may register. Every frame
-  /// it constructs spends from this one allowance, throwing
-  /// sourcemeta::core::OpenAPIFrameLimitError once it runs out
+  /// The most locations analysis may register before it throws
+  /// sourcemeta::core::OpenAPIFrameLimitError
   std::uint64_t max_locations{std::numeric_limits<std::uint64_t>::max()};
 };
 
 /// @ingroup openapi
 ///
-/// This function reports every other document that an OpenAPI Description
-/// reaches, transitively, each of them once, whether the reference that
-/// reaches it is one this specification gives meaning to or one that JSON
-/// Schema does. A document that the description already carries within itself
-/// is not one of them. The dialect that a description or one of its Schema
-/// Objects names counts as one, as reading them takes it, unless it is a
-/// dialect of JSON Schema itself. For example:
+/// Report every other document an OpenAPI Description reaches, transitively
+/// and each of them once, whether by a reference this specification gives
+/// meaning to or by one JSON Schema does. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -98,44 +82,15 @@ struct OpenAPIDependencyOptions {
 ///   });
 /// ```
 ///
-/// Returns how many frame locations the analysis registered, which a caller
-/// that spends from the same allowance elsewhere takes off its own count.
+/// A document the description already carries within itself is not one of
+/// them, and neither is a dialect of JSON Schema itself.
 ///
-/// What a Schema Object names has to be a document that is a schema and
-/// nothing else, and one that declares no dialect of its own is read against
-/// the dialect of the revision the description naming it is written against.
-/// What a Discriminator Object within such a document names is reported too,
-/// as the keyword it sits under belongs to this specification rather than to
-/// JSON Schema. A
-/// description holding the schema it names is refused with
-/// sourcemeta::core::OpenAPIReferenceError rather than followed, as reading
-/// part of a description without the rest of it would miss whatever bears on
-/// the reference.
-///
-/// The names a referenced document uses for a component or a tag come from the
-/// description that analysis started from rather than from the document making
-/// the reference, so a Security Requirement Object may name a scheme that the
-/// first of them declares.
-///
-/// Analysis throws where it cannot go on. A reference that nothing answers for
-/// ends it, though only once every document reached has been read, since one
-/// of them may still answer to the name an earlier reference made. Every
-/// description of a span is read before the first schema of it, and every
-/// schema of it answers for the names it carries before the first of them is
-/// walked, so what the schema walk below one cannot resolve is missing from
-/// the span rather than merely unread, and it says so in its own terms rather
-/// than in these. A document that cannot be read as a description at all ends
-/// it too, and so does one that two references require to be read as different
-/// kinds of Object, which is refused wherever analysis holds that document by
-/// another kind rather than only where it reads one afresh. A schema that
-/// declares no dialect and that descriptions of two revisions name is refused
-/// as well, as each of them would have it read under the dialect of its own
-/// revision. What a description of the earliest revision reaches has to be
-/// written against the dialect that revision publishes, as it gives a Schema
-/// Object no way of naming another. Whether a destination holds the kind of
-/// Object that the position naming it expects is not checked, and neither is
-/// whether the documents of a span agree on a revision, as reporting leaves
-/// both judgements to the caller.
+/// Analysis throws where it cannot go on, which is wherever the span turns out
+/// not to describe one API: a reference nothing answers for, a document that
+/// cannot be read as what reached it, or more locations than the allowance
+/// permits. Returns what it registered against that allowance, which falls
+/// short of what a second run needs wherever a schema walk raised and another
+/// document answered for it afterwards.
 SOURCEMETA_CORE_OPENAPI_EXPORT
 auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
                           const SchemaResolver &schema_resolver,
