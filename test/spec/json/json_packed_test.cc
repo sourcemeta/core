@@ -19,13 +19,13 @@ TEST(packed_matches_owning_parser) {
 }
 
 TEST(packed_materializes_duplicate_keys_like_the_owning_parser) {
-  constexpr std::string_view input{R"({"key":1,"key":2})"};
+  constexpr std::string_view INPUT{R"({"key":1,"key":2})"};
   sourcemeta::core::JSONPacked packed;
-  packed.parse(std::string{input});
+  packed.parse(std::string{INPUT});
   std::ostringstream actual;
   std::ostringstream expected;
   sourcemeta::core::stringify(packed.materialize(), actual);
-  sourcemeta::core::stringify(sourcemeta::core::parse_json(input), expected);
+  sourcemeta::core::stringify(sourcemeta::core::parse_json(INPUT), expected);
   EXPECT_EQ(actual.str(), expected.str());
 }
 
