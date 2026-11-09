@@ -1,0 +1,24 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "$self": "https://www.sourcemeta.com/self.json",
+    "components": {
+      "schemas": {
+        "Cat": {
+          "type": "object"
+        },
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/self.json#/components/schemas/Cat"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/entry.json",
+  "expected": [],
+  "locations": 7,
+  "fetched": []
+}

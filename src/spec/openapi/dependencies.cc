@@ -215,10 +215,20 @@ auto declares_foreign_dialect(const JSON &document) -> bool {
                openapi_dialect(OpenAPIVersion::OPENAPI_3_0));
 }
 
-auto names_this_document(const JSON::StringView destination,
-                         const JSON::StringView base) -> bool {
-  return destination.size() > base.size() && destination.starts_with(base) &&
-         destination[base.size()] == '#';
+auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
+                             const JSON::StringView document,
+                             const Reached reached) -> bool {
+  const auto known{walk.accounted.find(document)};
+  if (spelled.size() == document.size() || known == walk.accounted.cend()) {
+    return false;
+  }
+
+  // A description holds Schema Objects among its own, so a reference of either
+  // kind into one names a place it has. A schema holds nothing of this
+  // specification though, so a reference of this specification into one names
+  // a place no schema can have, which the kinds below settle instead
+  return !(known->second.reached == Reached::Schema &&
+           reached == Reached::Description);
 }
 
 auto account(Walk &walk, const JSON::StringView uri, const Reached reached,
@@ -318,9 +328,17 @@ auto reject_foreign_hold(const Held &held, const Reached reached,
 }
 
 auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
-            const JSON::StringView destination,
-            const OpenAPIObjectKind expected, const Reached reached,
-            const OpenAPIVersion version) -> void {
+            const JSON::StringView spelled, const OpenAPIObjectKind expected,
+            const Reached reached, const OpenAPIVersion version) -> void {
+  const auto destination{document_of(spelled)};
+
+  // A reference into a document the walk holds is that document's own business
+  // rather than a dependency of the description on another, and naming a whole
+  // document is the different matter that the kinds below settle
+  if (reaches_within_the_span(walk, spelled, destination, reached)) {
+    return;
+  }
+
   const JSON::String key{destination};
   if (!sourcemeta::core::URI{key}.scheme().has_value()) {
     throw OpenAPIReferenceError{
@@ -478,24 +496,22 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
     const auto identifier{settled.recompose()};
     if (!schema_is_official(identifier)) {
       static const Pointer POINTER{"jsonSchemaDialect"};
-      report(walk, origin, POINTER, document_of(identifier),
-             OpenAPIObjectKind::Schema, Reached::Schema, version.value());
+      report(walk, origin, POINTER, identifier, OpenAPIObjectKind::Schema,
+             Reached::Schema, version.value());
     }
   }
 
   for (const auto &entry : frame.references()) {
     if (entry.second.dangling) {
-      report(walk, origin, entry.second.origin,
-             document_of(entry.second.destination), entry.second.expected,
-             Reached::Description, version.value());
+      report(walk, origin, entry.second.origin, entry.second.destination,
+             entry.second.expected, Reached::Description, version.value());
     }
   }
 
   for (const auto &entry : frame.security_references()) {
     if (entry.second.dangling) {
-      report(walk, origin, entry.second.origin,
-             document_of(entry.second.destination), entry.second.expected,
-             Reached::Description, version.value());
+      report(walk, origin, entry.second.origin, entry.second.destination,
+             entry.second.expected, Reached::Description, version.value());
     }
   }
 
@@ -505,24 +521,20 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
   // out of it. Only the URI form names something the span may not hold, and
   // that one names a document this walk does not account for yet
   for (const auto &discriminator : frame.discriminators()) {
-    if (discriminator.dangling &&
-        !names_this_document(discriminator.destination, base) &&
-        !walk.accounted.contains(document_of(discriminator.destination))) {
-      report(walk, origin, discriminator.origin,
-             document_of(discriminator.destination), OpenAPIObjectKind::Schema,
-             Reached::Schema, version.value());
+    if (discriminator.dangling) {
+      report(walk, origin, discriminator.origin, discriminator.destination,
+             OpenAPIObjectKind::Schema, Reached::Schema, version.value());
     }
   }
 
   // What a Schema Object reaches is JSON Schema's to give meaning to, so the
   // kind a position expects has nothing to say about it
   frame.schemas().for_each_unresolved_reference(
-      [&walk, &origin, &base, &version](const auto &pointer,
-                                        const auto &reference) -> void {
+      [&walk, &origin, &version](const auto &pointer,
+                                 const auto &reference) -> void {
         if (!reference.base.empty() &&
-            !names_this_document(reference.destination, base) &&
             !is_skippable_metaschema_reference(pointer, reference.base)) {
-          report(walk, origin, to_pointer(pointer), reference.base,
+          report(walk, origin, to_pointer(pointer), reference.destination,
                  OpenAPIObjectKind::Schema, Reached::Schema, version.value());
         }
       });
@@ -610,9 +622,8 @@ auto register_schema(Walk &walk, const Fetched &entry) -> void {
       continue;
     }
 
-    report(walk, reported, discriminator.origin,
-           document_of(discriminator.destination), OpenAPIObjectKind::Schema,
-           Reached::Schema, entry.version);
+    report(walk, reported, discriminator.origin, discriminator.destination,
+           OpenAPIObjectKind::Schema, Reached::Schema, entry.version);
   }
 }
 
