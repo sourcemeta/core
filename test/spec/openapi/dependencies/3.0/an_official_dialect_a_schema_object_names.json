@@ -1,0 +1,23 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Meta": {
+          "$ref": "https://json-schema.org/draft/2020-12/schema"
+        }
+      }
+    }
+  },
+  "expected": [],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIError",
+    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect"
+  }
+}

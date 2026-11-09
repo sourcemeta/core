@@ -1,0 +1,61 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/dir/remote.json#/paths/~1p"
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/entry.json",
+  "openapiResolver": {
+    "https://www.sourcemeta.com/dir/remote.json": {
+      "openapi": "3.2.0",
+      "$self": "https://www.sourcemeta.com/other/named.json",
+      "info": {
+        "title": "Remote",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "$ref": "https://www.sourcemeta.com/far.json#/paths/~1p"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/far.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Far",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "description": "Far"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "https://www.sourcemeta.com/entry.json",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/dir/remote.json",
+      "kind": "path-item"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/other/named.json",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/far.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 12,
+  "fetched": [
+    "https://www.sourcemeta.com/dir/remote.json",
+    "https://www.sourcemeta.com/far.json"
+  ]
+}

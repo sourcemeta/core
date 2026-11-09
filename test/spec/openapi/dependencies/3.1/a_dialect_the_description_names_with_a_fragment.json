@@ -1,0 +1,43 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://www.sourcemeta.com/dialect.json#meta",
+    "components": {
+      "schemas": {
+        "Pet": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/dialect.json": {
+      "$id": "https://www.sourcemeta.com/dialect.json",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+      }
+    },
+    "https://www.sourcemeta.com/dialect.json#meta": {
+      "$id": "https://www.sourcemeta.com/dialect.json",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/jsonSchemaDialect",
+      "destination": "https://www.sourcemeta.com/dialect.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 6,
+  "fetched": []
+}

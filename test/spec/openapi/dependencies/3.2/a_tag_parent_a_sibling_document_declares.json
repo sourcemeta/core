@@ -1,0 +1,73 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/c": {
+        "$ref": "https://www.sourcemeta.com/child.json#/paths/~1c"
+      },
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/parent.json#/paths/~1p"
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/child.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Child",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "Child",
+          "parent": "Parent"
+        }
+      ],
+      "paths": {
+        "/c": {
+          "description": "Child"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/parent.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Parent",
+        "version": "1.0.0"
+      },
+      "tags": [
+        {
+          "name": "Parent"
+        }
+      ],
+      "paths": {
+        "/p": {
+          "description": "Parent"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1c/$ref",
+      "destination": "https://www.sourcemeta.com/child.json",
+      "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/parent.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 15,
+  "fetched": [
+    "https://www.sourcemeta.com/child.json",
+    "https://www.sourcemeta.com/parent.json"
+  ]
+}

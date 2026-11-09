@@ -1,0 +1,41 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "One": {
+          "$ref": "https://www.sourcemeta.com/other.json"
+        },
+        "Two": {
+          "$ref": "https://www.sourcemeta.com/pet.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/other.json",
+      "$defs": {
+        "held": {
+          "$id": "https://www.sourcemeta.com/pet.json",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/One/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 10,
+  "fetched": []
+}

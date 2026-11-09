@@ -1,0 +1,55 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/other.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "schemas": {
+        "X": {
+          "$ref": "https://www.sourcemeta.com/named.json#/components/schemas/Pet"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": "3.2.0",
+      "$self": "https://www.sourcemeta.com/named.json",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "description": "Other"
+        }
+      },
+      "components": {
+        "schemas": {
+          "Pet": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 14,
+  "fetched": [
+    "https://www.sourcemeta.com/other.json"
+  ]
+}

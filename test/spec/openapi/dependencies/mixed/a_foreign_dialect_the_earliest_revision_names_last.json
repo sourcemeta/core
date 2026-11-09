@@ -1,0 +1,70 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/old.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/shared.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/old.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Old",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "description": "Old"
+        }
+      },
+      "components": {
+        "schemas": {
+          "Pet": {
+            "$ref": "https://www.sourcemeta.com/shared.json"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/shared.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/old.json",
+      "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/shared.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/old.json"
+  ],
+  "error": {
+    "type": "OpenAPIError",
+    "message": "A Schema Object of this revision must be written against the OpenAPI 3.0 dialect"
+  }
+}

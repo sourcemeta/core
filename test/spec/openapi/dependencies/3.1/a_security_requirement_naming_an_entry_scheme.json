@@ -1,0 +1,60 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/other.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "MySecurity": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "get": {
+            "security": [
+              {
+                "MySecurity": []
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Ok"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "path-item"
+    }
+  ],
+  "locations": 14,
+  "fetched": [
+    "https://www.sourcemeta.com/other.json"
+  ]
+}

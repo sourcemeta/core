@@ -1,0 +1,65 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Aaa": {
+          "$ref": "https://www.sourcemeta.com/z.json"
+        },
+        "Bbb": {
+          "$ref": "https://www.sourcemeta.com/x.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/x.json": {
+      "$id": "https://www.sourcemeta.com/x.json",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Y"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "y": "https://www.sourcemeta.com/y.json"
+        }
+      },
+      "$defs": {
+        "Y": {
+          "type": "object"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/z.json": {
+      "$id": "https://www.sourcemeta.com/z.json",
+      "$defs": {
+        "Y": {
+          "$id": "https://www.sourcemeta.com/y.json",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Aaa/$ref",
+      "destination": "https://www.sourcemeta.com/z.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Bbb/$ref",
+      "destination": "https://www.sourcemeta.com/x.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 13,
+  "fetched": []
+}

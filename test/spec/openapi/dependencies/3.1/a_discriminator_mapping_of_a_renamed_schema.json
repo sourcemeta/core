@@ -1,0 +1,62 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/alias.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/alias.json": {
+      "$id": "https://www.sourcemeta.com/canonical.json",
+      "oneOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/leaf.json"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "petType",
+        "mapping": {
+          "cat": "https://www.sourcemeta.com/cat.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/leaf.json": {
+      "$id": "https://www.sourcemeta.com/leaf.json",
+      "type": "object"
+    },
+    "https://www.sourcemeta.com/cat.json": {
+      "$id": "https://www.sourcemeta.com/cat.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/alias.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/canonical.json",
+      "pointer": "/discriminator/mapping/cat",
+      "destination": "https://www.sourcemeta.com/cat.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/canonical.json",
+      "pointer": "/oneOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/leaf.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 11,
+  "fetched": []
+}

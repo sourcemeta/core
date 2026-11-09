@@ -1,0 +1,97 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/p": {
+        "$ref": "https://www.sourcemeta.com/b.json#/paths/~1p"
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/outer.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/b.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "B",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/p": {
+          "description": "B"
+        }
+      },
+      "components": {
+        "schemas": {
+          "Thing": {
+            "$ref": "https://www.sourcemeta.com/holder.json"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/outer.json": {
+      "$id": "https://www.sourcemeta.com/outer.json",
+      "$defs": {
+        "embedded": {
+          "$id": "https://www.sourcemeta.com/embedded.json",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/holder.json": {
+      "$id": "https://www.sourcemeta.com/holder.json",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/A"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "k",
+        "mapping": {
+          "one": "https://www.sourcemeta.com/embedded.json"
+        }
+      },
+      "$defs": {
+        "A": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1p/$ref",
+      "destination": "https://www.sourcemeta.com/b.json",
+      "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/outer.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/b.json",
+      "pointer": "/components/schemas/Thing/$ref",
+      "destination": "https://www.sourcemeta.com/holder.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 20,
+  "fetched": [
+    "https://www.sourcemeta.com/b.json"
+  ]
+}

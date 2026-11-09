@@ -1,0 +1,82 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/a.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/a.json": {
+      "$id": "https://www.sourcemeta.com/a.json",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/One"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "one": "https://www.sourcemeta.com/b.json"
+        }
+      },
+      "$defs": {
+        "One": {
+          "type": "object"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/b.json": {
+      "$id": "https://www.sourcemeta.com/b.json",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Two"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "two": "https://www.sourcemeta.com/c.json"
+        }
+      },
+      "$defs": {
+        "Two": {
+          "type": "object"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/c.json": {
+      "$id": "https://www.sourcemeta.com/c.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/a.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/a.json",
+      "pointer": "/discriminator/mapping/one",
+      "destination": "https://www.sourcemeta.com/b.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/b.json",
+      "pointer": "/discriminator/mapping/two",
+      "destination": "https://www.sourcemeta.com/c.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 12,
+  "fetched": []
+}
