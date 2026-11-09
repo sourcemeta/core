@@ -463,14 +463,14 @@ TEST(different_major_not_equal) {
 }
 
 TEST(compare_pre_release_overflow_same_length) {
-  // Both identifiers are too large for uint64; same digit length, lexicographic order
+  // Huge numeric identifiers of the same length compare digit by digit
   const sourcemeta::core::SemVer left{"1.0.0-99999999999999999998"};
   const sourcemeta::core::SemVer right{"1.0.0-99999999999999999999"};
   EXPECT_LT(left, right);
 }
 
 TEST(compare_pre_release_overflow_different_length) {
-  // Both identifiers overflow uint64; shorter digit string is less
+  // A huge numeric identifier with fewer digits is lower
   const sourcemeta::core::SemVer left{"1.0.0-9999999999999999999"};
   const sourcemeta::core::SemVer right{"1.0.0-99999999999999999999"};
   EXPECT_LT(left, right);
@@ -530,14 +530,14 @@ TEST(compare_pre_release_multi_part_alpha_vs_numeric) {
 }
 
 TEST(compare_pre_release_overflow_at_exact_digit_boundary) {
-  // One past uint64 max: both sides overflow and compare as digit strings
+  // Identifiers just past the largest 64-bit value still order correctly
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551616"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551617"};
   EXPECT_LT(left, right);
 }
 
 TEST(compare_pre_release_overflow_at_digit_boundary_9) {
-  // Overflowing identifiers that differ only in the last digit
+  // Huge identifiers that differ only in the last digit
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551619"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551618"};
   EXPECT_GT(left, right);
@@ -552,14 +552,14 @@ TEST(compare_pre_release_same_single_identifier) {
 }
 
 TEST(compare_pre_release_overflow_shorter_length) {
-  // Both identifiers overflow; shorter digit string is less
+  // A huge numeric identifier with fewer digits is lower
   const sourcemeta::core::SemVer left{"1.0.0-99999999999999999999"};
   const sourcemeta::core::SemVer right{"1.0.0-100000000000000000000"};
   EXPECT_LT(left, right);
 }
 
 TEST(compare_pre_release_at_exact_max_boundary) {
-  // Exact uint64 max still compares numerically, not as overflow strings
+  // The largest 64-bit value still compares as a number
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551615"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551614"};
   EXPECT_GT(left, right);
@@ -567,7 +567,7 @@ TEST(compare_pre_release_at_exact_max_boundary) {
 }
 
 TEST(compare_pre_release_just_below_overflow) {
-  // Values just below uint64 max still compare numerically
+  // Values just below the largest 64-bit value compare as numbers
   const sourcemeta::core::SemVer left{"1.0.0-18446744073709551614"};
   const sourcemeta::core::SemVer right{"1.0.0-18446744073709551613"};
   EXPECT_GT(left, right);
@@ -575,7 +575,7 @@ TEST(compare_pre_release_just_below_overflow) {
 }
 
 TEST(compare_pre_release_overflow_left_longer) {
-  // Both identifiers overflow; longer digit string is greater
+  // A huge numeric identifier with more digits is higher
   const sourcemeta::core::SemVer left{"1.0.0-99999999999999999999"};
   const sourcemeta::core::SemVer right{"1.0.0-9999999999999999999"};
   EXPECT_GT(left, right);
