@@ -20,11 +20,13 @@ namespace sourcemeta::core {
 
 /// @ingroup openapi
 ///
-/// What one reference of a description reaches. Every member points into
+/// What one reference reaches, whether a description or a schema of the span
+/// made it. Every member points into
 /// something analysis owns only for the call that reports it, so a callback
 /// keeping any of them past its own return copies them out
 struct OpenAPIDependency {
-  /// The identifier the document making the reference goes by
+  /// The identifier the document making the reference goes by, which is
+  /// nothing at all where it declares none and the caller named none
   JSON::StringView origin;
   /// Where in that document the reference sits
   const Pointer &pointer;
@@ -64,6 +66,20 @@ struct OpenAPIDependencyOptions {
 /// #include <sourcemeta/core/json.h>
 /// #include <sourcemeta/core/openapi.h>
 ///
+/// // A resolver that knows the other document of this description
+/// static auto shared_resolver(std::string_view identifier)
+///     -> sourcemeta::core::OpenAPIResolverResult {
+///   if (identifier == "https://www.example.com/shared.json") {
+///     return sourcemeta::core::parse_json(R"JSON({
+///       "openapi": "3.1.1",
+///       "info": { "title": "Shared", "version": "1.0.0" },
+///       "paths": { "/thing": { "description": "Shared" } }
+///     })JSON");
+///   }
+///
+///   return std::nullopt;
+/// }
+///
 /// const auto document = sourcemeta::core::parse_json(R"JSON({
 ///   "openapi": "3.1.1",
 ///   "info": { "title": "Example", "version": "1.0.0" },
@@ -76,14 +92,15 @@ struct OpenAPIDependencyOptions {
 ///
 /// sourcemeta::core::openapi_dependencies(document,
 ///   sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
-///   test_resolver,
+///   shared_resolver,
 ///   [](const auto &dependency) {
 ///     // Do something with the information
 ///   });
 /// ```
 ///
 /// A document the description already carries within itself is not one of
-/// them, and neither is a dialect of JSON Schema itself.
+/// them. An official JSON Schema dialect is reported where a reference names
+/// one and left out where a dialect declaration does, and neither is read.
 ///
 /// Analysis throws where it cannot go on, which is wherever the span turns out
 /// not to describe one API: a reference nothing answers for, a document that

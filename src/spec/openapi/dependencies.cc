@@ -60,11 +60,13 @@ struct ForeignLimitError {
 struct Fetched {
   JSON::String identifier;
   JSON document;
-  // The revision of the description that named it, which OpenAPI 3.1.1 Section
-  // 4.8.24.5 is what settles the dialect of a schema declaring none: "For
+  // The revision of the description that named it, which OpenAPI 3.1.1
+  // Section 4.8.24.5 makes what settles the dialect of a schema declaring
+  // none: "For
   // standalone JSON Schema documents that do not set `$schema` [...] the
   // dialect SHOULD be assumed to be the OAS dialect", which is the one the
   // description making the reference is written against
+  // See https://spec.openapis.org/oas/v3.1.1.html#specifying-schema-dialects
   OpenAPIVersion version;
   // Whether the schema walk below this document has already reported what it
   // reaches, which is so of a document that walk came upon rather than one a
@@ -202,11 +204,6 @@ auto is_skippable_metaschema_reference(const WeakPointer &pointer,
   return schema_is_official(destination);
 }
 
-// A destination that names the document being examined, and a place within it,
-// is no reference out of that document. Where such a fragment leads is the
-// business of whoever reads the document rather than a dependency on another,
-// and naming the document itself without one is a different matter that the
-// kinds below settle
 // Whether a document says of itself that it is written against a dialect other
 // than the one the earliest revision publishes. OpenAPI 3.0.4 Section 4.7.24.1
 // closes that revision's keyword set with "Additional keywords defined by the
@@ -574,9 +571,10 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
 // Which dialect a Schema Object may be read under is the revision's to say,
 // and the earliest of them gives one no way of naming any, so what a
 // description of that revision reaches has to be written against the dialect
-// it publishes. OpenAPI 3.0.4 Section 4.7.24.1 says of seven of the keywords it
-// tables that the "Inline or referenced schema MUST be of a Schema Object and
-// not a standard JSON Schema", and closes the set for every other position with
+// it publishes. OpenAPI 3.0.4 Section 4.7.24.1 says of six of the keywords it
+// lists that the "Inline or referenced schema MUST be of a Schema Object and
+// not a standard JSON Schema", says as much of a seventh in its own words, and
+// closes the set for every other position with
 // "Additional keywords defined by the JSON Schema specification that are not
 // mentioned here are strictly unsupported", which together rule out a schema of
 // another dialect at the far end of a reference as much as one written within
