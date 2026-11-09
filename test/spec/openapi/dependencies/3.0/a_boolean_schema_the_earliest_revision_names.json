@@ -1,0 +1,29 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/bool.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/bool.json": true
+  },
+  "expected": [],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "A Schema Object of this revision must be an object",
+    "identifier": "https://www.sourcemeta.com/bool.json",
+    "base": "",
+    "location": "/components/schemas/Pet/$ref"
+  }
+}

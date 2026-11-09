@@ -33,6 +33,8 @@ enum class Reached : std::uint8_t { Description, Schema };
 // dialect it is written against or what it answers to is taken at its word,
 // leaving the field to tell of a document that says neither. A boolean is a
 // schema in full per JSON Schema Section 4.3, and carries no field at all
+// See https://spec.openapis.org/oas/v3.1.1.html#parsing-documents
+// See https://json-schema.org/draft/2020-12/json-schema-core.html#section-4.3
 auto is_description(const JSON &document) -> bool {
   if (!document.is_object()) {
     return false;
@@ -77,6 +79,7 @@ struct Fetched {
 // handling "is implementation defined, and MAY be treated as an error if
 // detected", and telling what the walk holds apart from the bare name of it is
 // what detecting that takes
+// See https://spec.openapis.org/oas/v3.1.1.html#structural-interoperability
 struct Held {
   Reached reached;
   // Whether what is held names a dialect that is not the one the earliest
@@ -108,6 +111,13 @@ struct Deferred {
   JSON::String origin;
   Pointer pointer;
   JSON::String destination;
+  // What the document spelled, fragment and all, as whether it names a place
+  // within something the span holds is a question the document part alone
+  // cannot answer
+  JSON::String spelled;
+  // The revision of the description that made it, which is what the dialect
+  // its far end may be written against turns on
+  OpenAPIVersion version;
   // What the position spelling it expects the far end to be, as a document
   // answering to that name settles the reference only where it is that
   Reached reached;
@@ -203,6 +213,7 @@ auto is_skippable_metaschema_reference(const WeakPointer &pointer,
 // JSON Schema specification that are not mentioned here are strictly
 // unsupported", which leaves a Schema Object of it no way of naming one, so
 // anything a document names here is another
+// See https://spec.openapis.org/oas/v3.0.4.html#json-schema-keywords
 auto declares_foreign_dialect(const JSON &document) -> bool {
   if (!document.is_object()) {
     return false;
@@ -293,6 +304,7 @@ auto schema_frame_within(const Walk &walk, const Fetched &entry)
 // what bears on the reference, which Section 4.3.1 warns resolves references to
 // unintended URIs, so this is detected wherever the walk knows the document by
 // another kind rather than only where it reads one afresh
+// See https://spec.openapis.org/oas/v3.1.1.html#structural-interoperability
 auto reject_conflicting_kind(const Held &held, const Reached reached,
                              const JSON::StringView origin,
                              const Pointer &pointer,
@@ -375,17 +387,34 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
     // provided to the implementation as possible parts of the OAD", so
     // whether this leads anywhere is settled once there is nothing left to
     // read rather than here
+    // See https://spec.openapis.org/oas/v3.2.1.html#parsing-documents
     walk.deferred.emplace_back(Deferred{.origin = JSON::String{origin},
                                         .pointer = pointer,
                                         .destination = key,
+                                        .spelled = JSON::String{spelled},
+                                        .version = version,
                                         .reached = reached});
     return;
+  }
+
+  // OpenAPI 3.0.4 Section 4.4 makes a Schema Object "an extended subset of
+  // JSON Schema Specification Draft Wright-00", and Section 4.4 of that draft
+  // has it that "A JSON schema MUST be an object", so the boolean form a later
+  // revision admits is one this one has nowhere to take
+  // See https://spec.openapis.org/oas/v3.0.4.html#data-types
+  // See https://www.ietf.org/archive/id/draft-wright-json-schema-00.txt
+  if (reached == Reached::Schema && version == OpenAPIVersion::OPENAPI_3_0 &&
+      remote.value().is_boolean()) {
+    throw OpenAPIReferenceError{
+        "A Schema Object of this revision must be an object",
+        JSON::String{origin}, pointer, key};
   }
 
   // Reading a part of a description without the rest of it would miss what
   // bears on the reference, which OpenAPI 3.1.1 Section 4.3.1 warns resolves
   // references to unintended URIs, so what a Schema Object names has to be a
   // schema document rather than a description holding one
+  // See https://spec.openapis.org/oas/v3.1.1.html#parsing-documents
   if (reached == Reached::Schema &&
       ((!remote.value().is_object() && !remote.value().is_boolean()) ||
        is_description(remote.value()))) {
@@ -474,6 +503,7 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
   // A Schema Object of this document answers to whatever it declares, which
   // the Objects above never hold, and OpenAPI 3.2.1 Section 4.1.2.1 counts it
   // among the fields a reference target may be defined by
+  // See https://spec.openapis.org/oas/v3.2.1.html#parsing-documents
   frame.schemas().for_each_resource_uri(
       [&walk, &version](const auto &uri) -> void {
         account(walk, uri, Reached::Schema,
@@ -487,6 +517,7 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
   if (dialect != nullptr && dialect->is_string()) {
     // OpenAPI 3.1.1 Section 4.6 has every field that is a URI take a relative
     // reference, which resolves against the base of the document naming it
+    // See https://spec.openapis.org/oas/v3.1.1.html
     auto settled{sourcemeta::core::URI{dialect->to_string()}};
     if (!base.empty()) {
       settled.resolve_from(sourcemeta::core::URI{JSON::String{base}});
@@ -549,6 +580,7 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
 // "Additional keywords defined by the JSON Schema specification that are not
 // mentioned here are strictly unsupported", which together rule out a schema of
 // another dialect at the far end of a reference as much as one written within
+// See https://spec.openapis.org/oas/v3.0.4.html#json-schema-keywords
 auto reject_foreign_dialect(const Walk &walk, const Fetched &entry,
                             const SchemaFrame &frame) -> void {
   const SchemaFrame::Paths paths{sourcemeta::core::EMPTY_WEAK_POINTER};
@@ -565,6 +597,7 @@ auto reject_foreign_dialect(const Walk &walk, const Fetched &entry,
 // earliest revision publishes one dialect and gives a Schema Object no way of
 // naming any, so a document of such a span that names one of its own is among
 // those OpenAPI 3.0.4 Section 4.7.24.1 calls "a standard JSON Schema"
+// See https://spec.openapis.org/oas/v3.0.4.html#json-schema-keywords
 auto reject_foreign_declaration(const Fetched &entry,
                                 const JSON::StringView destination,
                                 const JSON &document) -> void {
@@ -587,6 +620,7 @@ auto reject_foreign_declaration(const Fetched &entry,
 // parsing all documents provided to the implementation as possible parts of the
 // OAD", and a schema still queued is one not parsed yet, so what one of them
 // answers to has to be known before the first of them asks
+// See https://spec.openapis.org/oas/v3.2.1.html#parsing-documents
 auto register_schema(Walk &walk, const Fetched &entry) -> void {
   const auto frame{schema_frame_within(walk, entry)};
   // A document the schema walk reached is framed here and nowhere else, so what
@@ -698,6 +732,8 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
         Deferred{.origin = JSON::String{entry.identifier},
                  .pointer = EMPTY_POINTER,
                  .destination = JSON::String{error.identifier()},
+                 .spelled = JSON::String{error.identifier()},
+                 .version = entry.version,
                  .reached = Reached::Schema,
                  .foreign = std::current_exception()});
   }
@@ -729,6 +765,7 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
     // OpenAPI 3.1.1 Section 4.3.3 resolves the component and tag names a
     // referenced document uses from the document the description begins at,
     // so the frame holding those names outlives the pass that reads it
+    // See https://spec.openapis.org/oas/v3.1.1.html
     const auto entry_frame{
         frame_within(walk, document, options.default_base, nullptr)};
     charge(walk, registered(*entry_frame));
@@ -770,20 +807,35 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
       }
     }
 
+    // A name the schema walk could not settle is reported in the terms it
+    // raised, so those are answered before the ones this walk spells itself.
+    // Otherwise which of the two a caller sees would turn on the order
+    // references happen to sit in
+    for (const auto &entry : walk.deferred) {
+      if (entry.foreign && !walk.accounted.contains(entry.destination)) {
+        std::rethrow_exception(entry.foreign);
+      }
+    }
+
     for (const auto &entry : walk.deferred) {
       const auto known{walk.accounted.find(entry.destination)};
       if (known == walk.accounted.cend()) {
-        if (entry.foreign) {
-          std::rethrow_exception(entry.foreign);
-        }
-
         throw OpenAPIResolutionError{
             "Could not resolve the reference to an external document",
             entry.origin, entry.pointer, entry.destination};
       }
 
+      // A document answering to the name settles it the same way whether it
+      // was there to begin with or arrived later
+      if (reaches_within_the_span(walk, entry.spelled, entry.destination,
+                                  entry.reached)) {
+        continue;
+      }
+
       reject_conflicting_kind(known->second, entry.reached, entry.origin,
                               entry.pointer, entry.destination);
+      reject_foreign_hold(known->second, entry.reached, entry.version,
+                          entry.origin, entry.pointer);
     }
   } catch (const ForeignLimitError &foreign) {
     std::rethrow_exception(foreign.error);
