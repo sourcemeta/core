@@ -24,28 +24,29 @@ namespace sourcemeta::core {
 /// document.parse(R"({"version": 1})");
 /// assert(document.contains_root_key("version"));
 /// ```
-class SOURCEMETA_CORE_JSON_EXPORT JSONPacked {
+class JSONPacked {
 public:
-  JSONPacked();
-  ~JSONPacked();
+  SOURCEMETA_CORE_JSON_EXPORT JSONPacked();
+  SOURCEMETA_CORE_JSON_EXPORT ~JSONPacked();
   JSONPacked(const JSONPacked &) = delete;
   auto operator=(const JSONPacked &) -> JSONPacked & = delete;
 
   /// Replace the current document, taking ownership of the input string.
   /// Invalid JSON throws JSONParseError and leaves this object empty.
   /// Error positions may differ from parse_json().
-  auto parse(std::string input) -> void;
+  SOURCEMETA_CORE_JSON_EXPORT auto parse(std::string input) -> void;
 
   /// Discard the document while retaining storage for reuse.
-  auto reset() noexcept -> void;
+  SOURCEMETA_CORE_JSON_EXPORT auto reset() noexcept -> void;
 
   /// Test for a decoded property name in a top-level object.
   /// Returns false for an empty document or a root of any other type.
-  [[nodiscard]] auto contains_root_key(std::string_view key) const -> bool;
+  [[nodiscard]] SOURCEMETA_CORE_JSON_EXPORT auto
+  contains_root_key(std::string_view key) const -> bool;
 
   /// Build an independent, mutable JSON value. Throws std::logic_error if
   /// this object contains no document.
-  [[nodiscard]] auto materialize() const -> JSON;
+  [[nodiscard]] SOURCEMETA_CORE_JSON_EXPORT auto materialize() const -> JSON;
 
 private:
   struct Storage;

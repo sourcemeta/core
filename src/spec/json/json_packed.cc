@@ -30,21 +30,24 @@ public:
 
   [[nodiscard]] T *allocate(std::size_t count) {
     static_assert(alignof(T) <= alignof(std::max_align_t));
-    if (count == 0)
+    if (count == 0) {
       return nullptr;
+    }
     if (count > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
       throw std::bad_array_new_length{};
     }
     void *address = mmap(nullptr, count * sizeof(T), PROT_READ | PROT_WRITE,
                          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (address == MAP_FAILED)
+    if (address == MAP_FAILED) {
       throw std::bad_alloc{};
+    }
     return static_cast<T *>(address);
   }
 
   void deallocate(T *address, std::size_t count) noexcept {
-    if (address)
+    if (address) {
       munmap(address, count * sizeof(T));
+    }
   }
 
   template <typename U>
@@ -61,17 +64,17 @@ template <typename T> using TapeAllocator = std::allocator<T>;
 struct JSONPacked::Storage {
   using Token = TapeEntry;
   using Kind = TapeType;
-  std::string input_;
-  std::vector<Token, TapeAllocator<Token>> tape_;
-  std::string decoded_;
-  std::vector<JSON> decimals_;
+  std::string source;
+  std::vector<Token, TapeAllocator<Token>> tape;
+  std::string decoded;
+  std::vector<JSON> decimals;
 
-  auto string_at(const Token &token) const -> std::string_view {
-    const auto &storage = token.flags ? decoded_ : input_;
+  [[nodiscard]] auto string_at(const Token &token) const -> std::string_view {
+    const auto &storage = token.flags != 0 ? decoded : source;
     return std::string_view{storage}.substr(token.offset, token.length);
   }
 
-  auto value_at(const Token &token) const -> JSON {
+  [[nodiscard]] auto value_at(const Token &token) const -> JSON {
     switch (token.type) {
       case Kind::ObjectStart:
         return JSON::make_object();
@@ -92,7 +95,7 @@ struct JSONPacked::Storage {
           case JSON::Type::Real:
             return JSON{std::bit_cast<JSON::Real>(token.column)};
           case JSON::Type::Decimal:
-            return decimals_.at(token.column);
+            return decimals.at(token.column);
           default:
             break;
         }
@@ -104,10 +107,10 @@ struct JSONPacked::Storage {
   }
 
   auto reset() noexcept -> void {
-    decimals_.clear();
-    decoded_.clear();
-    tape_.clear();
-    input_.clear();
+    decimals.clear();
+    decoded.clear();
+    tape.clear();
+    source.clear();
   }
 
   auto parse(std::string input) -> void {
@@ -116,23 +119,25 @@ struct JSONPacked::Storage {
         input.size() > std::numeric_limits<std::uint32_t>::max()) {
       throw JSONParseError(1, 0);
     }
-    input_ = std::move(input);
+    source = std::move(input);
     try {
-      const char *const begin = input_.data();
-      const char *const end = begin + input_.size();
+      const char *const begin = source.data();
+      const char *const end = begin + source.size();
       const char *cursor = begin;
-      std::uint64_t line = 1, column = 0;
-      tape_.reserve(input_.size() / 8);
-      scan_json<false>(cursor, end, begin, line, column, tape_);
+      std::uint64_t line = 1;
+      std::uint64_t column = 0;
+      tape.reserve(source.size() / 8);
+      scan_json<false>(cursor, end, begin, line, column, tape);
       internal::skip_whitespace<false>(cursor, end, line, column);
-      if (cursor != end)
+      if (cursor != end) {
         throw JSONParseError(1, 0);
+      }
 
       // Positions are unnecessary after scanning. Use the space already
       // present in a token for a subtree boundary and numeric payload.
-      auto parent = tape_.size();
-      for (std::size_t index = 0; index < tape_.size(); ++index) {
-        auto &token = tape_[index];
+      auto parent = tape.size();
+      for (std::size_t index = 0; index < tape.size(); ++index) {
+        auto &token = tape[index];
         switch (token.type) {
           case Kind::ArrayStart:
           case Kind::ObjectStart:
@@ -141,19 +146,19 @@ struct JSONPacked::Storage {
             break;
           case Kind::ArrayEnd:
           case Kind::ObjectEnd: {
-            auto &open = tape_[parent];
+            auto &open = tape[parent];
             open.line = index + 1;
             parent = open.column;
             break;
           }
           case Kind::String:
           case Kind::Key:
-            if (token.flags & TAPE_FLAG_STRING_ESCAPE) {
+            if ((token.flags & TAPE_FLAG_STRING_ESCAPE) != 0) {
               const auto value = internal::unescape_string(begin + token.offset,
                                                            token.length, true);
-              token.offset = static_cast<std::uint32_t>(decoded_.size());
+              token.offset = static_cast<std::uint32_t>(decoded.size());
               token.length = static_cast<std::uint32_t>(value.size());
-              decoded_.append(value);
+              decoded.append(value);
             }
             break;
           case Kind::Number: {
@@ -164,8 +169,8 @@ struct JSONPacked::Storage {
             } else if (value.is_real()) {
               token.column = std::bit_cast<std::uint64_t>(value.as_real());
             } else {
-              token.column = decimals_.size();
-              decimals_.push_back(std::move(value));
+              token.column = decimals.size();
+              decimals.push_back(std::move(value));
             }
             break;
           }
@@ -179,13 +184,15 @@ struct JSONPacked::Storage {
     }
   }
 
-  auto contains_root_key(std::string_view key) const -> bool {
-    if (tape_.empty() || tape_.front().type != Kind::ObjectStart)
+  [[nodiscard]] auto contains_root_key(std::string_view key) const -> bool {
+    if (tape.empty() || tape.front().type != Kind::ObjectStart) {
       return false;
-    for (std::size_t index = 1; index + 1 < tape_.size();) {
-      if (string_at(tape_[index]) == key)
+    }
+    for (std::size_t index = 1; index + 1 < tape.size();) {
+      if (string_at(tape[index]) == key) {
         return true;
-      const auto &value = tape_[++index];
+      }
+      const auto &value = tape[++index];
       index = value.type == Kind::ObjectStart || value.type == Kind::ArrayStart
                   ? value.line
                   : index + 1;
@@ -194,22 +201,25 @@ struct JSONPacked::Storage {
   }
 
   // Convert only when a caller needs Core's independently mutable JSON value.
-  auto materialize() const -> JSON {
-    if (tape_.empty())
+  [[nodiscard]] auto materialize() const -> JSON {
+    if (tape.empty()) {
       throw std::logic_error("no packed document");
-    auto result = value_at(tape_.front());
-    if (!result.is_array() && !result.is_object())
+    }
+    auto result = value_at(tape.front());
+    if (!result.is_array() && !result.is_object()) {
       return result;
+    }
 
-    if (result.is_array())
-      result.as_array().reserve(tape_.front().count);
-    else
-      result.as_object().reserve(tape_.front().count);
+    if (result.is_array()) {
+      result.as_array().reserve(tape.front().count);
+    } else {
+      result.as_object().reserve(tape.front().count);
+    }
 
     std::vector<JSON *> parents{&result};
-    for (std::size_t index = 1; index < tape_.size(); ++index) {
+    for (std::size_t index = 1; index < tape.size(); ++index) {
       auto &parent = *parents.back();
-      const auto *token = &tape_[index];
+      const auto *token = &tape[index];
       if (token->type == Kind::ArrayEnd || token->type == Kind::ObjectEnd) {
         parents.pop_back();
         continue;
@@ -218,7 +228,7 @@ struct JSONPacked::Storage {
       JSON *child;
       if (parent.is_object()) {
         JSON::String key{string_at(*token)};
-        token = &tape_[++index];
+        token = &tape[++index];
         const auto hash = JSON::Object::hash(key);
         child =
             &parent.assign_assume_new(std::move(key), value_at(*token), hash);
