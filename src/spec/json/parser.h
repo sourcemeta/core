@@ -457,11 +457,10 @@ struct ContainerFrame {
 // and the three places a string value can stand differ in nothing but where
 // the scan goes next, so what all four do with what they read is spelled out
 // once here
-template <bool TrackPositions, TapeType Type>
+template <bool TrackPositions, TapeType Type, typename Tape>
 inline auto push_string(const char *&cursor, const char *end,
                         const char *buffer_start, std::uint64_t &line,
-                        std::uint64_t &column, std::vector<TapeEntry> &tape)
-    -> void {
+                        std::uint64_t &column, Tape &tape) -> void {
   const auto start{static_cast<std::uint32_t>(cursor - buffer_start)};
   const auto value_line{line};
   const auto value_column{column};
@@ -479,11 +478,11 @@ inline auto push_string(const char *&cursor, const char *end,
 // Closing an array and closing an object differ in nothing but the entry each
 // leaves behind, as both settle the count of what the container held before
 // giving up the frame that was counting
-template <TapeType Type>
+template <TapeType Type, typename Tape>
 inline auto push_container_end(const std::uint64_t line,
                                const std::uint64_t column,
                                std::vector<ContainerFrame> &container_stack,
-                               std::vector<TapeEntry> &tape) -> void {
+                               Tape &tape) -> void {
   assert(!container_stack.empty());
   auto &frame{container_stack.back()};
   tape[frame.tape_index].count = frame.child_count;
@@ -501,11 +500,10 @@ inline auto push_container_end(const std::uint64_t line,
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-goto)
 
-template <bool TrackPositions>
+template <bool TrackPositions, typename Tape>
 inline auto scan_json(const char *&cursor, const char *end,
                       const char *buffer_start, std::uint64_t &line,
-                      std::uint64_t &column, std::vector<TapeEntry> &tape)
-    -> void {
+                      std::uint64_t &column, Tape &tape) -> void {
   using CharT = JSON::Char;
   char character = 0;
   std::vector<internal::ContainerFrame> container_stack;

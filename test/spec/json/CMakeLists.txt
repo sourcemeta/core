@@ -13,6 +13,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME json
     json_parse_callback_test.cc
     json_parse_error_test.cc
     json_parse_test.cc
+    json_packed_test.cc
     json_try_parse_test.cc
     json_parse_roundtrip_test.cc
     json_prettify_test.cc
