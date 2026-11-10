@@ -107,13 +107,13 @@ auto openapi_version_name(const OpenAPIVersion version) noexcept
 /// #include <cassert>
 ///
 /// const auto document{sourcemeta::core::parse_json(R"({
-///   "openapi": "3.0.4",
+///   "openapi": "3.3.0",
 ///   "info": { "title": "Example", "version": "1.0.0" },
 ///   "paths": {}
 /// })")};
 ///
 /// assert(sourcemeta::core::openapi_version_string(document).value() ==
-///        "3.0.4");
+///        "3.3.0");
 /// assert(!sourcemeta::core::openapi_version(document).has_value());
 /// ```
 SOURCEMETA_CORE_OPENAPI_EXPORT
