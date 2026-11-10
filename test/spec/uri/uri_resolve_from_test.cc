@@ -4,13 +4,17 @@
 // Relative-to-relative resolution is no part of RFC 3986, whose Section 5.1
 // states that "Relative resolution requires a base URI to be absolute". This
 // module extends that to a relative base as a convenience, and every test of
-// it is named with an extension prefix
+// it is named with an extension prefix. Section 5.2.2 reads nothing of the
+// base but its authority, path and query, so the algorithm runs over a
+// relative base as written. The one departure is Section 5.2.4, which
+// discards the leading block of the path it is handed, as a base that is
+// absolute never merges to one that has a block to discard
 
-TEST(extension_relative_base_unchanged) {
+TEST(extension_relative_base_merges_into_its_own_directory) {
   const sourcemeta::core::URI base{"../foo"};
   sourcemeta::core::URI relative{"../baz"};
   relative.resolve_from(base);
-  EXPECT_EQ(relative.recompose(), "../baz");
+  EXPECT_EQ(relative.recompose(), "../../baz");
 }
 
 TEST(extension_fragment_on_relative_path) {
@@ -625,4 +629,102 @@ TEST(interior_parent_segment_exhausting_the_output) {
   sourcemeta::core::URI uri{"../a/.."};
   uri.resolve_from(sourcemeta::core::URI{"urn:example:entry"});
   EXPECT_EQ(uri.recompose(), "urn:/");
+}
+
+// RFC 3986 Section 5.2.2 takes the authority from the reference whenever the
+// reference states one, and Section 3.2 lets a userinfo state one on its own
+TEST(reference_naming_only_a_userinfo_keeps_it) {
+  sourcemeta::core::URI uri;
+  uri.userinfo("alice");
+  uri.resolve_from(sourcemeta::core::URI{"https://example.com/a/b"});
+  EXPECT_EQ(uri.recompose(), "https://alice@");
+}
+
+// A path that holds nothing once the dot segments go is no path at all, which
+// is the spelling the rest of this class answers with
+TEST(reference_with_a_scheme_and_a_lone_dot_path) {
+  sourcemeta::core::URI uri{"foo:."};
+  uri.resolve_from(sourcemeta::core::URI{"https://example.com/a/b"});
+  EXPECT_FALSE(uri.path().has_value());
+  EXPECT_EQ(uri.recompose(), "foo:");
+}
+
+TEST(a_lone_dot_against_a_relative_base_without_a_path) {
+  sourcemeta::core::URI uri{"."};
+  uri.resolve_from(sourcemeta::core::URI{""});
+  EXPECT_FALSE(uri.path().has_value());
+  EXPECT_EQ(uri.recompose(), "");
+}
+
+// RFC 3986 Section 5.2.3 merges against the base path with everything after
+// its right-most slash excluded, which a rooted base path answers for just as
+// a rootless one does
+TEST(relative_base_with_an_absolute_path_merges) {
+  sourcemeta::core::URI uri{"c"};
+  uri.resolve_from(sourcemeta::core::URI{"/a/b"});
+  EXPECT_EQ(uri.recompose(), "/a/c");
+}
+
+TEST(relative_base_with_an_absolute_path_merges_a_reference_with_segments) {
+  sourcemeta::core::URI uri{"c/d"};
+  uri.resolve_from(sourcemeta::core::URI{"/a/b"});
+  EXPECT_EQ(uri.recompose(), "/a/c/d");
+}
+
+TEST(rootless_relative_base_merges_a_reference_with_segments) {
+  sourcemeta::core::URI uri{"c/d"};
+  uri.resolve_from(sourcemeta::core::URI{"a/b"});
+  EXPECT_EQ(uri.recompose(), "a/c/d");
+}
+
+// RFC 3986 Section 5.2.2: "if defined(R.query) then T.query = R.query" and
+// "T.path = Base.path" where the reference path is empty, so a reference that
+// states nothing but a query names the base document
+TEST(reference_without_a_path_against_a_relative_base) {
+  sourcemeta::core::URI uri{"?q"};
+  uri.resolve_from(sourcemeta::core::URI{"a/b"});
+  EXPECT_EQ(uri.recompose(), "a/b?q");
+}
+
+TEST(reference_without_a_path_takes_the_query_of_a_relative_base) {
+  sourcemeta::core::URI uri{"#f"};
+  uri.resolve_from(sourcemeta::core::URI{"a/b?q"});
+  EXPECT_EQ(uri.recompose(), "a/b?q#f");
+}
+
+// RFC 3986 Section 5.2.2 reads the base no further than its authority once the
+// reference path begins with a slash, so a relative base leaves the reference
+// to answer for itself with its dot segments gone
+TEST(reference_with_a_rooted_path_against_a_relative_base) {
+  sourcemeta::core::URI uri{"/c/./d/../e"};
+  uri.resolve_from(sourcemeta::core::URI{"a/b"});
+  EXPECT_EQ(uri.recompose(), "/c/e");
+}
+
+// RFC 3986 Section 5.2.2: "if defined(R.authority) then T.authority =
+// R.authority", which says nothing of the base at all
+TEST(reference_with_an_authority_against_a_relative_base) {
+  sourcemeta::core::URI uri{"//example.com/c/../d"};
+  uri.resolve_from(sourcemeta::core::URI{"a/b"});
+  EXPECT_EQ(uri.recompose(), "//example.com/d");
+}
+
+// RFC 3986 Section 5.2.3 supplies the separator from a base that has a defined
+// authority and no path, and Section 3.2 lets a userinfo define one, so
+// Section 3.3 still requires the merged path to begin with a slash
+TEST(base_naming_only_a_userinfo_supplies_the_separator) {
+  sourcemeta::core::URI base{"https:"};
+  base.userinfo("alice");
+  sourcemeta::core::URI uri{"x"};
+  uri.resolve_from(base);
+  EXPECT_EQ(uri.recompose(), "https://alice@/x");
+}
+
+// RFC 3986 Section 5.2.3 merges into the directory of the base, so a reference
+// that runs above that directory names a level above the base's own leading
+// block rather than cancelling it
+TEST(reference_running_above_the_directory_of_a_relative_base) {
+  sourcemeta::core::URI uri{"a/../../c"};
+  uri.resolve_from(sourcemeta::core::URI{"../b"});
+  EXPECT_EQ(uri.recompose(), "../../c");
 }

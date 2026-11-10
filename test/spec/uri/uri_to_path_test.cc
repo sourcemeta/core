@@ -166,3 +166,10 @@ TEST(rootless_path_is_not_a_drive_letter) {
   const std::filesystem::path expected{"foo/bar"};
   EXPECT_EQ(uri.to_path(), expected);
 }
+
+// A colon in the second segment position only names a drive when a letter
+// precedes it, so anything else stays the path it reads as
+TEST(a_colon_after_something_that_is_no_drive_letter) {
+  const sourcemeta::core::URI uri{"file:///1:/foo"};
+  EXPECT_EQ(uri.to_path(), std::filesystem::path{"/1:/foo"});
+}

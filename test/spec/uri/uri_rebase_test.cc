@@ -289,3 +289,26 @@ TEST(new_base_naming_a_userinfo_without_a_host) {
   uri.rebase(sourcemeta::core::URI{"https://a/foo"}, new_base);
   EXPECT_EQ(uri.recompose(), "//user@/base/bar");
 }
+
+TEST(a_base_of_another_scheme_leaves_the_uri_alone) {
+  sourcemeta::core::URI uri{"https://example.com/foo/bar"};
+  uri.rebase(sourcemeta::core::URI{"http://example.com/foo"},
+             sourcemeta::core::URI{"https://other.com/"});
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
+}
+
+TEST(rebasing_an_iri_keeps_it_internationalized) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/foo/bar")};
+  const sourcemeta::core::URI new_base{"https://other.com/base"};
+  uri.rebase(sourcemeta::core::URI{"https://example.com/foo"}, new_base);
+  EXPECT_TRUE(uri.is_internationalized());
+  EXPECT_EQ(uri.recompose(), "https://other.com/base/bar");
+}
+
+TEST(rebasing_an_iri_onto_an_owned_new_base_keeps_it_internationalized) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/foo/bar")};
+  uri.rebase(sourcemeta::core::URI{"https://example.com/foo"},
+             sourcemeta::core::URI{"https://other.com/base"});
+  EXPECT_TRUE(uri.is_internationalized());
+  EXPECT_EQ(uri.recompose(), "https://other.com/base/bar");
+}

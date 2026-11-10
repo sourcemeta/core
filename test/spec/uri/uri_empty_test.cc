@@ -46,3 +46,19 @@ TEST(iri_not_empty) {
       sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
   EXPECT_FALSE(uri.empty());
 }
+
+TEST(userinfo_only) {
+  sourcemeta::core::URI uri;
+  uri.userinfo("alice");
+  EXPECT_FALSE(uri.empty());
+}
+
+TEST(host_only) {
+  const sourcemeta::core::URI uri{"//example.com"};
+  EXPECT_FALSE(uri.empty());
+}
+
+TEST(scheme_only) {
+  const sourcemeta::core::URI uri{"mailto:"};
+  EXPECT_FALSE(uri.empty());
+}

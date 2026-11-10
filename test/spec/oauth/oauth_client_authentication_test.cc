@@ -25,7 +25,17 @@ TEST(client_secret_post_emits_both_parameters) {
 TEST(client_secret_post_escapes_the_secret) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_client_secret_post("abc", "s p@ce", body);
-  EXPECT_TRUE(body == "client_id=abc&client_secret=s%20p%40ce");
+  EXPECT_TRUE(body == "client_id=abc&client_secret=s+p%40ce");
+}
+
+// The appender joins to whatever precedes it, so a sink that already ends in
+// the separator does not take a second one
+TEST(client_secret_post_after_a_trailing_separator) {
+  sourcemeta::core::SecureString body;
+  body.append("grant_type=client_credentials&");
+  sourcemeta::core::oauth_client_secret_post("abc", "xyz", body);
+  EXPECT_TRUE(body == "grant_type=client_credentials"
+                      "&client_id=abc&client_secret=xyz");
 }
 
 TEST(client_id_only_emits_the_identifier) {

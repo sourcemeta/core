@@ -14,6 +14,16 @@ TEST(build_device_authorization_request_emits_client_id_and_scope) {
   EXPECT_EQ(body, "client_id=1406020730&scope=read");
 }
 
+// RFC 8628 Section 3.1 sends the request in the
+// "application/x-www-form-urlencoded" format, which RFC 6749 Appendix B
+// spells with a space as "+"
+TEST(build_device_authorization_request_with_a_space_in_the_scope) {
+  std::string body;
+  sourcemeta::core::oauth_build_device_authorization_request(
+      "1406020730", "read write", {}, body);
+  EXPECT_EQ(body, "client_id=1406020730&scope=read+write");
+}
+
 // RFC 8628 Section 3.1 writes the client identifier as required only where
 // the client is not otherwise authenticated and the scope as optional, so
 // neither is written out when the caller leaves it out

@@ -103,7 +103,7 @@ TEST(build_par_request_honors_a_custom_response_type) {
   request.scope = "openid";
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_par_request(request, body);
-  EXPECT_EQ(body, "response_type=code%20id_token&scope=openid");
+  EXPECT_EQ(body, "response_type=code+id_token&scope=openid");
 }
 
 TEST(build_par_request_emits_repeatable_resources) {

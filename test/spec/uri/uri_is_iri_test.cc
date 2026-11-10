@@ -530,3 +530,190 @@ TEST(scheme_with_empty_authority) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
 }
+
+TEST(host_terminated_by_a_fragment) {
+  const std::string input{"http://example.com#foo"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(host_terminated_by_a_query) {
+  const std::string input{"http://example.com?foo"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(host_terminated_by_a_userinfo) {
+  const std::string input{"http://user@example.com/"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(host_with_a_percent_escape) {
+  const std::string input{"http://ex%41mple.com/"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(host_with_a_sub_delimiter) {
+  const std::string input{"http://ex&ample.com/"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(host_character_outside_the_grammar_rejected) {
+  const std::string input{"http://ex<ample.com/"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(userinfo_with_a_colon) {
+  const std::string input{"http://user:pass@e/"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(empty_port) {
+  const std::string input{"http://e:/foo"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+// RFC 3986 Section 3.2.3 leaves `port = *DIGIT` unbounded, so the grammar
+// admits a port that the width this class answers with cannot hold, which is
+// why parsing one refuses an input these accept
+TEST(port_wider_than_thirty_two_bits) {
+  const std::string input{"http://e:4294967296/foo"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(second_at_sign_in_the_authority_rejected) {
+  const std::string input{"http://a@b@c/"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(character_after_the_authority_rejected) {
+  const std::string input{"http://e:80x/"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(query_with_a_slash) {
+  const std::string input{"http://e/?a/b"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(query_with_a_question_mark) {
+  const std::string input{"http://e/?a?b"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(query_character_outside_the_grammar_rejected) {
+  const std::string input{"http://e/?a<b"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(fragment_with_a_slash_and_a_question_mark) {
+  const std::string input{"http://e/#a/b?c"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(fragment_with_a_percent_escape) {
+  const std::string input{"http://e/#a%41b"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(fragment_character_outside_the_grammar_rejected) {
+  const std::string input{"http://e/#a<b"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(colon_in_the_first_segment_of_a_relative_reference_rejected) {
+  const std::string input{"1a:b"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(colon_after_the_first_segment_of_a_relative_reference) {
+  const std::string input{"1a/b:c"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(ipvfuture_host_without_an_address_rejected) {
+  const std::string input{"http://[v7.]"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(ipvfuture_host_with_a_character_outside_the_grammar_rejected) {
+  const std::string input{"http://[v7.a<b]"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(ipvfuture_host_with_a_sub_delimiter) {
+  const std::string input{"http://[v7.a$b]/x"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(colon_before_the_first_slash_of_a_relative_reference_rejected) {
+  const std::string input{"1a:b/c"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}

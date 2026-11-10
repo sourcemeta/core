@@ -1016,3 +1016,90 @@ TEST(syntax_error_ip_future_cut_short_after_the_point) {
   }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7."));
 }
+
+TEST(host_with_a_sub_delimiter) {
+  const sourcemeta::core::URI uri{"http://ex&ample.com/"};
+  EXPECT_EQ(uri.host().value(), "ex&ample.com");
+}
+
+// RFC 3986 Section 4.2: "A path segment that contains a colon character cannot
+// be used as the first segment of a relative-path reference, as it would be
+// mistaken for a scheme name", which leaves a later segment free to carry one
+TEST(colon_after_the_first_segment_of_a_relative_reference) {
+  const sourcemeta::core::URI uri{"1a/b:c"};
+  EXPECT_FALSE(uri.scheme().has_value());
+  EXPECT_EQ(uri.path().value(), "1a/b:c");
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference("1a/b:c"));
+}
+
+TEST(syntax_error_ip_future_without_an_address) {
+  try {
+    sourcemeta::core::URI uri{"http://[v7.]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 12);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7.]"));
+}
+
+TEST(syntax_error_ip_future_with_a_character_outside_the_grammar) {
+  try {
+    sourcemeta::core::URI uri{"http://[v7.a<b]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 13);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v7.a<b]"));
+}
+
+TEST(ip_future_host_with_a_sub_delimiter) {
+  const sourcemeta::core::URI uri{"http://[v7.a$b]/x"};
+  EXPECT_EQ(uri.host().value(), "v7.a$b");
+  EXPECT_EQ(uri.recompose(), "http://[v7.a$b]/x");
+}
+
+TEST(syntax_error_colon_before_the_first_slash_of_a_relative_reference) {
+  try {
+    sourcemeta::core::URI uri{"1a:b/c"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 3);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("1a:b/c"));
+}
+
+TEST(host_terminated_by_a_query) {
+  const sourcemeta::core::URI uri{"http://example.com?foo"};
+  EXPECT_EQ(uri.host().value(), "example.com");
+  EXPECT_EQ(uri.query().value().raw(), "foo");
+  EXPECT_FALSE(uri.path().has_value());
+}
+
+TEST(host_terminated_by_a_fragment) {
+  const sourcemeta::core::URI uri{"http://example.com#foo"};
+  EXPECT_EQ(uri.host().value(), "example.com");
+  EXPECT_EQ(uri.fragment().value(), "foo");
+  EXPECT_FALSE(uri.path().has_value());
+}
+
+TEST(syntax_error_colon_in_the_only_segment_of_a_relative_reference) {
+  try {
+    sourcemeta::core::URI uri{"1a:b"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 3);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("1a:b"));
+}
+
+// RFC 3986 Section 3.2 writes `authority = [ userinfo "@" ] host [ ":" port
+// ]`, where neither the host nor the port can carry an at sign
+TEST(syntax_error_second_at_sign_in_the_authority) {
+  try {
+    sourcemeta::core::URI uri{"http://a@b@c/"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 11);
+  }
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://a@b@c/"));
+}

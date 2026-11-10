@@ -251,3 +251,39 @@ TEST(iri_lower_boundary_ucschar) {
       sourcemeta::core::URI::from_iri("https://example.com/\xC2\xA0")};
   EXPECT_EQ(uri.recompose(), "https://example.com/\xC2\xA0");
 }
+
+// RFC 3986 Section 2.4 holds that a percent sign that is not the start of an
+// escape is data, so it is escaped rather than passed through
+TEST(a_percent_sign_without_two_hexadecimal_digits_is_escaped) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  uri.fragment("%4z");
+  EXPECT_EQ(uri.recompose(), "https://example.com#%254z");
+}
+
+TEST(iri_fragment_that_is_not_valid_utf8_is_escaped) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com")};
+  uri.fragment("\xC3");
+  EXPECT_EQ(uri.recompose(), "https://example.com#%C3");
+}
+
+// RFC 3987 leaves the private-use characters out of ucschar, and only the
+// query admits them through iprivate
+TEST(iri_fragment_with_a_private_use_character_is_escaped) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com")};
+  uri.fragment("\xEE\x80\x80");
+  EXPECT_EQ(uri.recompose(), "https://example.com#%EE%80%80");
+}
+
+TEST(iri_query_with_a_private_use_character_is_preserved) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/?x=\xEE\x80\x80")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/?x=\xEE\x80\x80");
+}
+
+// U+FFFE is a noncharacter, which RFC 3987 leaves out of both ucschar and
+// iprivate
+TEST(iri_query_with_a_noncharacter_is_escaped) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/")};
+  uri.query("x=\xEF\xBF\xBE");
+  EXPECT_EQ(uri.recompose(), "https://example.com/?x=%EF%BF%BE");
+}

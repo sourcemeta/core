@@ -1176,3 +1176,36 @@ TEST(append_path_to_a_urn) {
   uri.append_path("b");
   EXPECT_EQ(uri.recompose(), "urn:example:a/b");
 }
+
+// Nothing a relative reference hangs off names a root, so the appended path
+// stays rootless
+TEST(append_path_to_an_empty_relative_reference) {
+  sourcemeta::core::URI uri;
+  uri.append_path("foo");
+  EXPECT_EQ(uri.recompose(), "foo");
+}
+
+// RFC 3986 Section 3.3 admits the colon in a path segment, and only the two
+// slashes of an authority after it make the input name something else
+TEST(append_path_whose_colon_ends_the_input) {
+  sourcemeta::core::URI uri;
+  uri.append_path("a:");
+  EXPECT_EQ(uri.recompose(), "./a:");
+}
+
+TEST(append_path_whose_colon_leads_a_single_slash) {
+  sourcemeta::core::URI uri;
+  uri.append_path("a:/b");
+  EXPECT_EQ(uri.recompose(), "./a:/b");
+}
+
+TEST(append_path_with_a_percent_sign_and_one_hexadecimal_digit) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  try {
+    uri.append_path("a%4z");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
+  }
+}

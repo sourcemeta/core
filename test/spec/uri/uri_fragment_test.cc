@@ -367,3 +367,31 @@ TEST(iri_unicode_fragment) {
   EXPECT_TRUE(uri.fragment().has_value());
   EXPECT_EQ(uri.fragment().value(), "section-\xCE\xB1");
 }
+
+TEST(is_fragment_only_false_with_a_userinfo) {
+  sourcemeta::core::URI uri;
+  uri.userinfo("alice");
+  uri.fragment("foo");
+  EXPECT_FALSE(uri.is_fragment_only());
+}
+
+TEST(is_fragment_only_false_with_a_host) {
+  const sourcemeta::core::URI uri{"//example.com#foo"};
+  EXPECT_FALSE(uri.is_fragment_only());
+}
+
+TEST(is_fragment_only_false_with_a_query) {
+  const sourcemeta::core::URI uri{"?bar#foo"};
+  EXPECT_FALSE(uri.is_fragment_only());
+}
+
+TEST(is_fragment_only_false_without_a_fragment) {
+  const sourcemeta::core::URI uri{""};
+  EXPECT_FALSE(uri.is_fragment_only());
+}
+
+TEST(is_fragment_only_true_for_a_set_fragment) {
+  sourcemeta::core::URI uri;
+  uri.fragment("foo");
+  EXPECT_TRUE(uri.is_fragment_only());
+}

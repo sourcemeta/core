@@ -129,3 +129,56 @@ TEST(relative_dot_dot_followed_by_a_rooted_remainder) {
 TEST(relative_dot_dot_segment_with_nothing_after_it) {
   EXPECT_EQ(sourcemeta::core::URI::normalize_path("../"), "../");
 }
+
+// RFC 3986 Section 5.2.4 step C drops the last segment of what has been
+// normalised so far, and the leading block is no part of that, so a dot
+// segment running past the start of the path names one more level above it
+// rather than cancelling one the path already carries
+TEST(relative_dot_dot_segments_running_past_the_leading_block) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("../a/../../c"), "../../c");
+}
+
+TEST(relative_dot_dot_segments_extending_the_leading_block) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("../a/../.."), "../../");
+}
+
+TEST(relative_dot_dot_segment_below_the_leading_block) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("../a/.."), "../");
+}
+
+// Normalising a relative path must not change what it resolves to, which is
+// the whole reason the leading block is kept. RFC 3986 Section 5.2.4 applied
+// as written answers for the rooted path a merge produces, so each check below
+// is that both spellings land in the same place
+TEST(normalising_preserves_resolution_past_the_leading_block) {
+  const sourcemeta::core::URI base{"https://example.com/p/q/r"};
+  sourcemeta::core::URI written{"../a/../../c"};
+  written.resolve_from(base);
+  sourcemeta::core::URI normalised{
+      sourcemeta::core::URI::normalize_path("../a/../../c")};
+  normalised.resolve_from(base);
+  EXPECT_EQ(written.recompose(), "https://example.com/c");
+  EXPECT_EQ(normalised.recompose(), "https://example.com/c");
+}
+
+TEST(normalising_preserves_resolution_extending_the_leading_block) {
+  const sourcemeta::core::URI base{"https://example.com/p/q/r"};
+  sourcemeta::core::URI written{"../a/../.."};
+  written.resolve_from(base);
+  sourcemeta::core::URI normalised{
+      sourcemeta::core::URI::normalize_path("../a/../..")};
+  normalised.resolve_from(base);
+  EXPECT_EQ(written.recompose(), "https://example.com/");
+  EXPECT_EQ(normalised.recompose(), "https://example.com/");
+}
+
+TEST(normalising_preserves_resolution_below_the_leading_block) {
+  const sourcemeta::core::URI base{"https://example.com/p/q/r"};
+  sourcemeta::core::URI written{"../a/.."};
+  written.resolve_from(base);
+  sourcemeta::core::URI normalised{
+      sourcemeta::core::URI::normalize_path("../a/..")};
+  normalised.resolve_from(base);
+  EXPECT_EQ(written.recompose(), "https://example.com/p/");
+  EXPECT_EQ(normalised.recompose(), "https://example.com/p/");
+}

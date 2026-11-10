@@ -126,3 +126,8 @@ TEST(iri_unicode_host_not_ipv6) {
       sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
   EXPECT_FALSE(uri.is_ipv6());
 }
+
+TEST(urn_has_no_host_to_read_as_ipv6) {
+  const sourcemeta::core::URI uri{"urn:example:::1"};
+  EXPECT_FALSE(uri.is_ipv6());
+}
