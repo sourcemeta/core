@@ -54,7 +54,7 @@ TEST(build_token_request_refresh_with_scope) {
                                                       "read write", {}, body);
   EXPECT_TRUE(body ==
               "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA"
-              "&scope=read%20write");
+              "&scope=read+write");
 }
 
 TEST(build_token_request_client_credentials_minimal) {

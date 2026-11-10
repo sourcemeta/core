@@ -233,8 +233,7 @@ TEST(resolve_a_lone_dot_against_a_base_with_no_slash_in_its_path) {
   sourcemeta::core::URI uri{"."};
   uri.resolve_from(sourcemeta::core::URI{"urn:isbn:0451450523"});
   EXPECT_EQ(uri.recompose(), "urn:");
-  EXPECT_TRUE(uri.path().has_value());
-  EXPECT_TRUE(uri.path().value().empty());
+  EXPECT_FALSE(uri.path().has_value());
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "urn:");
   uri.resolve_from(sourcemeta::core::URI{"urn:isbn:0451450523"});

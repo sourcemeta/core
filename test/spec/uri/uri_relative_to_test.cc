@@ -659,3 +659,31 @@ TEST(relative_to_a_urn_whose_parent_has_no_further_separator) {
   uri.relative_to(sourcemeta::core::URI{"urn:example:a/b"});
   EXPECT_EQ(uri.recompose(), "urn:other:x");
 }
+
+// A rootless path has no separator to take a last segment from, so the whole
+// path is what names the target against a base that only differs by its query
+TEST(relative_to_a_urn_that_differs_only_by_a_query) {
+  sourcemeta::core::URI uri{"urn:example:foo"};
+  uri.relative_to(sourcemeta::core::URI{"urn:example:foo?x"});
+  EXPECT_EQ(uri.recompose(), "./example:foo");
+}
+
+// Walking up from the parent of the base reaches the root, which a rootless
+// target cannot be named below
+TEST(relative_to_a_rooted_base_from_a_rootless_target) {
+  sourcemeta::core::URI uri{"urn:c"};
+  uri.relative_to(sourcemeta::core::URI{"urn:/a/b"});
+  EXPECT_EQ(uri.recompose(), "urn:c");
+}
+
+// A base that has a defined authority and no path supplies the separator back
+// on resolution, so the reference does not carry it
+TEST(relative_to_a_base_naming_only_a_userinfo) {
+  sourcemeta::core::URI base{"https:"};
+  base.userinfo("alice");
+  sourcemeta::core::URI uri{"https:"};
+  uri.userinfo("alice");
+  uri.path("/foo");
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "foo");
+}

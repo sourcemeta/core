@@ -1347,6 +1347,14 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             if (common_pointer_weak.empty() && root_id.has_value() &&
                 base_string == root_id.value()) {
               new_id = root_id.value();
+            } else if (base_string == entry.id.value()) {
+              // Nothing above the resource states a base, so the identifier is
+              // the base the rest of it reads against and already names it.
+              // RFC 3986 Section 5.2.3 merges a relative reference into the
+              // directory of its base, so resolving the identifier against
+              // itself would name a place one level below the resource
+              maybe_relative.canonicalize();
+              new_id = maybe_relative.recompose();
             } else {
               maybe_relative.resolve_from(base).canonicalize();
               new_id = maybe_relative.recompose();

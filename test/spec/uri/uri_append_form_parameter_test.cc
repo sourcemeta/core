@@ -49,3 +49,11 @@ TEST(rfc6749_appendix_b_example) {
                                                " %&+\xC2\xA3\xE2\x82\xAC");
   EXPECT_EQ(body, "value=+%25%26%2B%C2%A3%E2%82%AC");
 }
+
+// The appender joins to whatever precedes it, so a sink that already ends in
+// the separator does not take a second one
+TEST(after_a_trailing_separator) {
+  std::string body{"grant_type=client_credentials&"};
+  sourcemeta::core::URI::append_form_parameter(body, "scope", "read");
+  EXPECT_EQ(body, "grant_type=client_credentials&scope=read");
+}

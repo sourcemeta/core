@@ -110,3 +110,24 @@ TEST(iri_unicode_path) {
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9.json");
 }
+
+TEST(rootless_path_without_a_separator) {
+  sourcemeta::core::URI uri{"foo.xml"};
+  uri.extension("json");
+  EXPECT_EQ(uri.recompose(), "foo.json");
+}
+
+// A path that was nothing but an extension holds nothing once it goes, which
+// reads as no path at all
+TEST(a_path_that_is_only_an_extension_goes_away) {
+  sourcemeta::core::URI uri{"foo:.json"};
+  uri.extension("");
+  EXPECT_FALSE(uri.path().has_value());
+  EXPECT_EQ(uri.recompose(), "foo:");
+}
+
+TEST(a_path_that_is_only_an_extension_can_take_a_new_one) {
+  sourcemeta::core::URI uri{"foo:.json"};
+  uri.extension("yaml");
+  EXPECT_EQ(uri.recompose(), "foo:.yaml");
+}

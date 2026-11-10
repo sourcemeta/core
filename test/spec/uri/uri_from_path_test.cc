@@ -209,3 +209,41 @@ TEST(windows_unc_root_maps_to_the_filesystem_root) {
   const auto uri{sourcemeta::core::URI::from_path(example)};
   EXPECT_EQ(uri.to_path(), std::filesystem::path{"/"});
 }
+
+// A colon in the second position only names a drive when a letter precedes it
+// and a separator follows, as anything else is a relative path
+TEST(unix_relative_with_a_colon) {
+  const std::filesystem::path example{"a:b"};
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
+  }
+}
+
+TEST(windows_drive_relative) {
+  const std::filesystem::path example{"C:"};
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
+  }
+}
+
+TEST(a_colon_after_something_that_is_no_drive_letter) {
+  const std::filesystem::path example{"1:/foo"};
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
+  }
+}
