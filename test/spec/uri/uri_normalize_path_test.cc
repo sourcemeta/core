@@ -138,7 +138,7 @@ TEST(relative_dot_dot_segments_running_past_the_leading_block) {
   EXPECT_EQ(sourcemeta::core::URI::normalize_path("../a/../../c"), "../../c");
 }
 
-TEST(relative_dot_dot_segments_consuming_the_leading_block) {
+TEST(relative_dot_dot_segments_extending_the_leading_block) {
   EXPECT_EQ(sourcemeta::core::URI::normalize_path("../a/../.."), "../../");
 }
 
@@ -161,7 +161,7 @@ TEST(normalising_preserves_resolution_past_the_leading_block) {
   EXPECT_EQ(normalised.recompose(), "https://example.com/c");
 }
 
-TEST(normalising_preserves_resolution_consuming_the_leading_block) {
+TEST(normalising_preserves_resolution_extending_the_leading_block) {
   const sourcemeta::core::URI base{"https://example.com/p/q/r"};
   sourcemeta::core::URI written{"../a/../.."};
   written.resolve_from(base);
