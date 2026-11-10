@@ -719,3 +719,12 @@ TEST(base_naming_only_a_userinfo_supplies_the_separator) {
   uri.resolve_from(base);
   EXPECT_EQ(uri.recompose(), "https://alice@/x");
 }
+
+// RFC 3986 Section 5.2.3 merges into the directory of the base, so a reference
+// that runs above that directory names a level above the base's own leading
+// block rather than cancelling it
+TEST(reference_running_above_the_directory_of_a_relative_base) {
+  sourcemeta::core::URI uri{"a/../../c"};
+  uri.resolve_from(sourcemeta::core::URI{"../b"});
+  EXPECT_EQ(uri.recompose(), "../../c");
+}

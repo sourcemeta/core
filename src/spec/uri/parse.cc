@@ -56,9 +56,10 @@ decode_utf8_codepoint(const std::string_view input,
 }
 
 // Step past the character at the given position when RFC 3987 widens the
-// production being read to admit it, and refuse the input otherwise. Reading a
-// URI rather than an IRI widens nothing, so what this is handed there is
-// always a refusal, which is why nothing of it is answered back
+// production being read to admit it, and refuse the input otherwise. The only
+// two outcomes are a position that moved and a refusal that leaves no caller
+// to answer, so nothing is reported back. Reading a URI rather than an IRI
+// widens nothing, so every character this is handed there is refused
 template <bool IRI, bool AllowIPrivate = false>
 auto accept_iri_extension(const std::string_view input,
                           std::string_view::size_type &position) -> void {

@@ -686,7 +686,7 @@ TEST(https_keeps_the_default_port_of_http) {
   EXPECT_EQ(uri.recompose(), "https://example.com:80/foo");
 }
 
-// Neither default port belongs to a scheme that names no default of its own
+// Neither of these is the default port of ftp, so both are content under it
 TEST(another_scheme_keeps_a_port_that_is_a_default_elsewhere) {
   sourcemeta::core::URI uri{"ftp://example.com:443/foo"};
   uri.canonicalize();
