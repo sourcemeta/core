@@ -742,9 +742,9 @@ TEST(block_mapping_anchored_empty_key_alias_is_announced) {
   EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
 }
 
-// A callback that holds nothing is one the walk has to answer for without
-// announcing anything, which holds for the pair an anchored key files for a
-// later alias to replay as much as for anything else
+// Passing a callback that holds nothing asks for a parse that announces
+// nothing, which the records an anchored key files for a later alias to replay
+// are built only for, so an alias to one is still resolved without them
 TEST(anchored_key_with_a_callback_that_holds_nothing) {
   sourcemeta::core::JSON output{nullptr};
   sourcemeta::core::parse_yaml("&k a: 1\nb: *k", output, nullptr);
