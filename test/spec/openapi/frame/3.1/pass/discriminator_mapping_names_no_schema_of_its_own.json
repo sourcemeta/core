@@ -261,6 +261,7 @@
         "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
         "destination": "https://example.com/schemas/pet#/properties/petType/description",
         "scope": "https://example.com/schemas/pet",
+        "byName": false,
         "dangling": true
       }
     ]

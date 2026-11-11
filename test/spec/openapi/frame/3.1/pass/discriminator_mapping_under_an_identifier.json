@@ -242,6 +242,7 @@
         "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
         "destination": "https://example.com/schemas/cat",
         "scope": "https://example.com/schemas/pet",
+        "byName": false,
         "dangling": false
       }
     ]

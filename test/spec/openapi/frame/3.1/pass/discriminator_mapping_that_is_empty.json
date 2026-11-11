@@ -168,6 +168,7 @@
         "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
         "destination": "https://example.com/openapi.json",
         "scope": "https://example.com/openapi.json",
+        "byName": false,
         "dangling": true
       }
     ]

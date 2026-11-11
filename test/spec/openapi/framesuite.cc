@@ -482,6 +482,16 @@ auto check_frame_invariants(const sourcemeta::core::JSON &frame) -> void {
       // Where it sits is the member of a Discriminator Object that names it
       EXPECT_TRUE(is_discriminator_member(
           sourcemeta::core::to_pointer(entry.at("pointer").to_string())));
+
+      // A name stands for a Schema Object that the Components Object of a
+      // document of the description holds, so one that is read that way leads
+      // under the schemas of whichever document it resolved against
+      if (entry.at("byName").to_boolean()) {
+        EXPECT_TRUE(entry.at("destination")
+                        .to_string()
+                        .starts_with(entry.at("scope").to_string() +
+                                     "#/components/schemas/"));
+      }
     }
   }
 
@@ -734,8 +744,11 @@ auto check_window_invariants(const sourcemeta::core::OpenAPIFrame &frame,
     EXPECT_FALSE(discriminator.destination.empty());
     EXPECT_FALSE(discriminator.scope.empty());
 
-    // And what the window says about where it lands is what the export says,
-    // which is only asked of a description that names one at all
+    // And what the window says about how it was read and about where it lands
+    // is what the export says, which is only asked of a description that names
+    // one at all
+    EXPECT_EQ(exported.at("discriminators").at(discriminators).at("byName"),
+              sourcemeta::core::JSON{discriminator.by_name});
     EXPECT_EQ(exported.at("discriminators").at(discriminators).at("dangling"),
               sourcemeta::core::JSON{discriminator.dangling});
     discriminators += 1;
