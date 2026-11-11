@@ -663,3 +663,93 @@ TEST(callback_hears_nothing_of_the_documents_after_the_first) {
   EXPECT_TRACE(1, Post, String, 1, 1, Root, 0, "");
   EXPECT_EQ(document, sourcemeta::core::JSON{"a"});
 }
+
+// An alias replays the records of the node it names. The first of them is
+// announced against the position the alias holds, which for a sequence entry
+// is its index, while the line and column stay those of the anchored node
+TEST(sequence_alias_pre_post_balance) {
+  const auto *const input{"- &node foo\n- *node"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, String, 1, 9, Index, 0, "");
+  EXPECT_TRACE(2, Post, String, 1, 11, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 1, 9, Index, 1, "");
+  EXPECT_TRACE(4, Post, String, 2, 7, Root, 0, "");
+  EXPECT_TRACE(5, Post, Array, 3, 0, Root, 0, "");
+}
+
+// A pair of a flow sequence names its value by the key of the pair, which
+// carries no position of its own, so the replay keeps the one it was given
+TEST(flow_sequence_pair_alias_pre_post_balance) {
+  const auto *const input{"a: &node foo\nb: [? k : *node]"};
+  PARSE_YAML_WITH_TRACES(document, input, 8);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "a");
+  EXPECT_TRACE(2, Post, String, 1, 12, Root, 0, "");
+  EXPECT_TRACE(3, Pre, Array, 2, 1, Property, 0, "b");
+  EXPECT_TRACE(4, Pre, String, 1, 1, Property, 0, "k");
+  EXPECT_TRACE(5, Post, String, 2, 15, Root, 0, "");
+  EXPECT_TRACE(6, Post, Array, 2, 16, Root, 0, "");
+  EXPECT_TRACE(7, Post, Object, 3, 0, Root, 0, "");
+}
+
+// An alias stands for the node its anchor names, and announces itself by
+// replaying what that node announced. A key is not announced as a node of its
+// own, so an alias to an anchored key had nothing to replay and went unheard
+TEST(flow_mapping_anchored_key_alias_is_announced) {
+  const auto *const input{"{&k a: 1, b: *k}"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, Integer, 1, 5, Property, 0, "a");
+  EXPECT_TRACE(2, Post, Integer, 1, 8, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 1, 11, Property, 0, "b");
+  EXPECT_TRACE(4, Post, String, 1, 15, Root, 0, "");
+  EXPECT_TRACE(5, Post, Object, 1, 16, Root, 0, "");
+}
+
+TEST(block_mapping_anchored_explicit_key_alias_is_announced) {
+  const auto *const input{"? &k a\n: 1\nb: *k"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, Integer, 1, 6, Property, 0, "a");
+  EXPECT_TRACE(2, Post, Integer, 2, 3, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 3, 1, Property, 0, "b");
+  EXPECT_TRACE(4, Post, String, 3, 5, Root, 0, "");
+  EXPECT_TRACE(5, Post, Object, 4, 0, Root, 0, "");
+}
+
+TEST(block_mapping_anchored_first_key_alias_is_announced) {
+  const auto *const input{"&k a: 1\nb: *k"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 4, Root, 0, "");
+  EXPECT_TRACE(1, Pre, Integer, 1, 4, Property, 0, "a");
+  EXPECT_TRACE(2, Post, Integer, 1, 7, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 2, 1, Property, 0, "b");
+  EXPECT_TRACE(4, Post, String, 2, 5, Root, 0, "");
+  EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
+}
+
+// An anchor on a key that holds nothing names the empty node, so what the
+// alias announces is the null that node resolves to
+TEST(block_mapping_anchored_empty_key_alias_is_announced) {
+  const auto *const input{"&k : 1\nb: *k"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 4, Root, 0, "");
+  EXPECT_TRACE(1, Pre, Integer, 1, 6, Property, 0, "");
+  EXPECT_TRACE(2, Post, Integer, 1, 6, Root, 0, "");
+  EXPECT_TRACE(3, Pre, Null, 2, 1, Property, 0, "b");
+  EXPECT_TRACE(4, Post, Null, 2, 5, Root, 0, "");
+  EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
+}
+
+// A callback that holds nothing hears nothing, so the records an anchored key
+// files for a later alias to replay are not built at all. Resolving the alias
+// does not rest on them
+TEST(anchored_key_with_a_callback_that_holds_nothing) {
+  sourcemeta::core::JSON output{nullptr};
+  sourcemeta::core::parse_yaml("&k a: 1\nb: *k", output, nullptr);
+  EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 2);
+  EXPECT_EQ(output.at("a").to_integer(), 1);
+  EXPECT_EQ(output.at("b").to_string(), "a");
+}

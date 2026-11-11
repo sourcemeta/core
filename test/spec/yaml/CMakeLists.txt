@@ -2,6 +2,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME yaml
   SOURCES
     yaml_error_test.cc
     yaml_parse_test.cc
+    yaml_parse_error_test.cc
     yaml_parse_callback_test.cc
     yaml_stringify_test.cc
     yaml_roundtrip_test.cc)

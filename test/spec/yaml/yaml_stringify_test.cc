@@ -1124,3 +1124,233 @@ TEST(string_quoting_keeps_a_multi_byte_character_as_it_stands) {
   sourcemeta::core::stringify_yaml(document, stream);
   EXPECT_EQ(stream.str(), "\"#\xC3\xA9\"\n");
 }
+
+// Only a flow collection is recorded while reading, as a block collection is
+// what the writer falls back to, so metadata that was built rather than read
+// is what says so, and it is written as one
+TEST(roundtrip_block_collection_style) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{}].collection =
+      sourcemeta::core::YAMLRoundTrip::CollectionStyle::Block;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: 1\n");
+}
+
+TEST(roundtrip_block_collection_style_on_an_entry) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":{"b":1}})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{"a"}].collection =
+      sourcemeta::core::YAMLRoundTrip::CollectionStyle::Block;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a:\n  b: 1\n");
+}
+
+// A tag names the kind of value its node holds, so one recorded without that
+// kind says nothing about the value the document now holds
+TEST(roundtrip_tag_without_a_recorded_type) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{"a"}].tag = "!!int";
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: 1\n");
+}
+
+// Annotations recorded against a position in a sequence stand for what is
+// written there, which a recorded size is what settles, so one that records no
+// size leaves them standing
+TEST(roundtrip_sequence_without_a_recorded_size) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":[1,2]})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{"a"}].comment_inline = "# x";
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: # x\n  - 1\n  - 2\n");
+}
+
+// A plain style says how a scalar was written, while the text it was written
+// with is what reproduces it, so a style recorded without that text leaves the
+// value to be written out afresh
+TEST(roundtrip_plain_style_without_recorded_content) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{}].collection =
+      sourcemeta::core::YAMLRoundTrip::CollectionStyle::Flow;
+  roundtrip.styles[sourcemeta::core::Pointer{"a"}].scalar =
+      sourcemeta::core::YAMLRoundTrip::ScalarStyle::Plain;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "{a: 1}\n");
+}
+
+// A block scalar style recorded on its own leaves the chomping to what the
+// value needs and the content to the value itself
+TEST(roundtrip_block_scalar_style_on_its_own) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":"x\n"})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{"a"}].scalar =
+      sourcemeta::core::YAMLRoundTrip::ScalarStyle::Literal;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: |\n  x\n");
+}
+
+// Recorded content stands for the value it was captured from, so content
+// recorded without that value is not written back
+TEST(roundtrip_block_content_without_a_recorded_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":"x\n"})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  auto &style{roundtrip.styles[sourcemeta::core::Pointer{"a"}]};
+  style.scalar = sourcemeta::core::YAMLRoundTrip::ScalarStyle::Literal;
+  style.block_content = "y\n";
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: |\n  x\n");
+}
+
+// Reading records an unindented sequence only for the value of a mapping key,
+// which always stands at least one nesting level in, so one recorded for the
+// root node has no level to give back
+TEST(roundtrip_unindented_sequence_on_the_root_node) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([1])JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{}].unindented_sequence = true;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip, 4);
+  EXPECT_EQ(stream.str(), "- 1\n");
+}
+
+TEST(roundtrip_unindented_sequence_on_a_sequence_item) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([[1]])JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{0}].unindented_sequence = true;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip, 4);
+  EXPECT_EQ(stream.str(), "- - 1\n");
+}
+
+// A document that carries a directive is closed off from it by a start marker,
+// which reading always records, and which is written out even where only the
+// directive says the document has one
+TEST(roundtrip_directive_without_a_recorded_start_marker) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.document_prefix.emplace_back("%YAML 1.2");
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "%YAML 1.2\n---\na: 1\n");
+}
+
+// A key read as a block scalar is recorded under no style of its own, as what
+// one stands for cannot be written back on the one line a key takes, so one
+// that says so is written out afresh
+TEST(roundtrip_key_recorded_as_a_block_scalar) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.key_styles[sourcemeta::core::Pointer{"a"}] =
+      sourcemeta::core::YAMLRoundTrip::ScalarStyle::Literal;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: 1\n");
+}
+
+// A single-quoted scalar carries no control character other than a tab, so a
+// key that says it was read as one and holds another is quoted the other way
+TEST(roundtrip_single_quoted_key_that_cannot_be_single_quoted) {
+  const std::string input{R"JSON({"a\u0001b":1})JSON"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.key_styles[sourcemeta::core::Pointer{"a\u0001b"}] =
+      sourcemeta::core::YAMLRoundTrip::ScalarStyle::SingleQuoted;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "\"a\\x01b\": 1\n");
+}
+
+// The order of the two block scalar indicators is recorded alongside the
+// indentation one, so an order recorded without one to write has nothing to
+// put in front of the chomping
+TEST(roundtrip_indicator_order_without_an_indentation_indicator) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":"x\n"})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  auto &style{roundtrip.styles[sourcemeta::core::Pointer{"a"}]};
+  style.scalar = sourcemeta::core::YAMLRoundTrip::ScalarStyle::Literal;
+  style.indent_before_chomping = true;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: |\n  x\n");
+}
+
+// A member added to a flow mapping after it was read is written in the flow
+// style the mapping was read with, with nothing recorded of its own
+TEST(roundtrip_sequence_added_to_a_flow_mapping) {
+  auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.styles[sourcemeta::core::Pointer{}].collection =
+      sourcemeta::core::YAMLRoundTrip::CollectionStyle::Flow;
+  document.assign("b", sourcemeta::core::parse_json(R"JSON([1,2])JSON"));
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "{a: 1, b: [1, 2]}\n");
+}
+
+// Production 163 makes an indentation indicator a single digit from one to
+// nine. Content that needs no indicator of its own keeps its block style at a
+// width no digit can express, as nothing has to be written for it
+TEST(block_scalar_without_an_indicator_laid_out_beyond_one_digit) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  const auto document{
+      sourcemeta::core::parse_yaml("foo: |\n  bar\n", roundtrip)};
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip, 10);
+  EXPECT_EQ(stream.str(), "foo: |\n          bar\n");
+}
+
+// Content whose first line opens with a space needs an indicator for its
+// indentation to be read back, so at a width no digit can express it gives up
+// on block style and is quoted instead
+TEST(block_scalar_defeating_detection_laid_out_beyond_one_digit) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  auto document{sourcemeta::core::parse_yaml("foo: |\n  bar\n", roundtrip)};
+  document.assign("foo", sourcemeta::core::JSON{" x\n"});
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip, 10);
+  EXPECT_EQ(stream.str(), "foo: \" x\\n\"\n");
+}
+
+// A comment recorded against a position in a sequence stands for what is
+// written there, so one against a block scalar is dropped once the sequence
+// holds more items than it was read with
+TEST(block_scalar_item_in_a_sequence_that_grew) {
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  auto document{sourcemeta::core::parse_yaml("- | # c\n  bar\n", roundtrip)};
+  document.push_back(sourcemeta::core::JSON{"x"});
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "- |\n  bar\n- x\n");
+}
+
+TEST(roundtrip_key_recorded_as_a_folded_block_scalar) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.key_styles[sourcemeta::core::Pointer{"a"}] =
+      sourcemeta::core::YAMLRoundTrip::ScalarStyle::Folded;
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "a: 1\n");
+}
+
+// Reading a key records the text it was quoted with together with the style it
+// was read under, and metadata holding the one without the other still has to
+// settle on a quote to write the key back with
+TEST(roundtrip_quoted_key_content_without_a_recorded_style) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.key_quoted_contents[sourcemeta::core::Pointer{"a"}] = "a";
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "\"a\": 1\n");
+}
