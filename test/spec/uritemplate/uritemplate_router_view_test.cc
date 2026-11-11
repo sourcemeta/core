@@ -49,6 +49,62 @@ auto corrupt_router_core(const std::uint32_t operations_offset,
   return bytes;
 }
 
+// One serialized node, where the fields are given in the order they are
+// written rather than through the structure the view reads them back with
+auto corrupt_node(const std::uint32_t string_offset,
+                  const std::uint32_t string_length,
+                  const std::uint32_t first_literal_child,
+                  const std::uint32_t literal_child_count,
+                  const std::uint32_t variable_child,
+                  const sourcemeta::core::URITemplateRouter::NodeType type,
+                  const std::uint16_t identifier)
+    -> std::array<std::uint32_t, 8> {
+  return {{string_offset, string_length, first_literal_child,
+           literal_child_count, variable_child,
+           static_cast<std::uint32_t>(static_cast<std::uint32_t>(type)) |
+               (static_cast<std::uint32_t>(identifier) << 16),
+           0, 0}};
+}
+
+// A serialization of the given nodes and string table, so a test can hand the
+// view a trie that no router would ever write
+auto corrupt_router_trie(const std::vector<std::array<std::uint32_t, 8>> &nodes,
+                         const std::string_view strings)
+    -> std::vector<std::uint8_t> {
+  const auto node_count{static_cast<std::uint32_t>(nodes.size())};
+  const std::uint32_t string_table_offset{48 + (node_count * 32)};
+  const auto arguments_offset{string_table_offset +
+                              static_cast<std::uint32_t>(strings.size())};
+  const std::array<std::uint32_t, 12> header{
+      {0x52544552, 9, node_count, string_table_offset, arguments_offset,
+       arguments_offset, 0, 0, 0, 0, 0, arguments_offset}};
+  std::vector<std::uint8_t> bytes;
+  const auto *header_bytes =
+      reinterpret_cast<const std::uint8_t *>(header.data());
+  bytes.insert(bytes.end(), header_bytes, header_bytes + sizeof(header));
+  for (const auto &node : nodes) {
+    const auto *node_bytes =
+        reinterpret_cast<const std::uint8_t *>(node.data());
+    bytes.insert(bytes.end(), node_bytes,
+                 node_bytes + (node.size() * sizeof(node[0])));
+  }
+
+  bytes.insert(bytes.end(), strings.cbegin(), strings.cend());
+  return bytes;
+}
+
+// A rooted path of the given number of segments, each of them the same name
+auto repeated_path(const std::string_view segment, const std::size_t count)
+    -> std::string {
+  std::string result;
+  for (std::size_t index = 0; index < count; index++) {
+    result += '/';
+    result += segment;
+  }
+
+  return result;
+}
+
 } // namespace
 
 TEST_F(URITemplateRouterViewTest, single_literal_route) {
@@ -5666,4 +5722,215 @@ TEST_F(URITemplateRouterViewTest,
   const sourcemeta::core::URITemplateRouterView view{blob.data(), blob.size()};
   EXPECT_ROUTER_MATCH(view, "/list", 0, 0, captures);
   EXPECT_TRUE(captures.empty());
+}
+
+// A greedy capture reached while walking the base path answers for the whole
+// of what follows, so there is nothing left for the path to disagree with
+TEST_F(URITemplateRouterViewTest,
+       describes_base_path_reaching_a_greedy_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/{+rest}", "op_rest", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path_};
+  EXPECT_TRUE(restored.describes("/anything", "/x/y"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_path_reaching_a_greedy_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/{+rest}", "op_rest", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path_};
+  EXPECT_TRUE(restored.describes("/x/y"));
+}
+
+// Nothing of the path is read, so what answers is whether the router stands
+// for anything at all, which a variable at its root does
+TEST_F(URITemplateRouterViewTest,
+       describes_an_empty_path_against_a_root_holding_only_a_variable) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/{id}", "op_id", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path_};
+  EXPECT_TRUE(restored.describes(""));
+}
+
+// An empty segment is no name, so nothing but a literal of its own can stand
+// for it and a variable does not
+TEST_F(URITemplateRouterViewTest,
+       describes_an_empty_segment_with_only_a_variable_to_offer) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/{id}", "op_id", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path_);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path_};
+  EXPECT_FALSE(restored.describes("//"));
+}
+
+// The offset an entry names is read against the blob area that follows the
+// entries, so one that reaches past what the data holds names no blob
+TEST(corrupt_argument_blob_offset_past_the_blob_area) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+// A blob opens with the count of the arguments it holds, so one too short to
+// carry that count holds nothing
+TEST(corrupt_argument_blob_shorter_than_its_count) {
+  auto bytes{corrupt_router_core(0x50, 0x50)};
+  bytes.insert(bytes.end(), {0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x00, 0x00, 0x00});
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  bool argument_fired{false};
+  view.arguments(
+      1, [&argument_fired](
+             const std::string_view,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &) {
+        argument_fired = true;
+      });
+  EXPECT_FALSE(argument_fired);
+}
+
+// The literal children of a node are a run of the node table, so a run that
+// reaches past the nodes the data holds names none of them
+TEST(corrupt_describe_literal_child_run_past_the_nodes) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 0, 5, 0xFFFFFFFF,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0)},
+      "")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_FALSE(view.describes("/x"));
+}
+
+// A node names its variable through a run of the string table, so a run that
+// reaches past the table names no variable
+TEST(corrupt_describe_variable_string_past_the_table) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
+       corrupt_node(0, 100, 0xFFFFFFFF, 0, 0xFFFFFFFF,
+                    sourcemeta::core::URITemplateRouter::NodeType::Variable,
+                    0)},
+      "")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_FALSE(view.describes("/x"));
+}
+
+TEST(corrupt_match_variable_string_past_the_table) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
+       corrupt_node(0, 100, 0xFFFFFFFF, 0, 0xFFFFFFFF,
+                    sourcemeta::core::URITemplateRouter::NodeType::Variable,
+                    0)},
+      "")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_ROUTER_MATCH(view, "/x", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+// A variable node that names itself as its own variable child walks forever
+// over a long enough path, which the index that a match reports cannot carry.
+// The node carries a handler of its own, so a walk that read past the index it
+// can report would answer with that handler and with one capture too many
+TEST(corrupt_match_variable_cycle_past_the_reportable_index) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
+       corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
+                    sourcemeta::core::URITemplateRouter::NodeType::Variable,
+                    7)},
+      "")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  const auto path{repeated_path(
+      "b", sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES + 1)};
+  EXPECT_ROUTER_MATCH(view, path, 0, 0, captures);
+  EXPECT_EQ(captures.size(),
+            sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES);
+}
+
+// The node a path settles on may name a variable child of its own, which a
+// child index reaching past the node table does not
+TEST(corrupt_match_final_variable_child_past_the_nodes) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 1, 1, 0xFFFFFFFF,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
+       corrupt_node(0, 1, 0xFFFFFFFF, 0, 500,
+                    sourcemeta::core::URITemplateRouter::NodeType::Literal, 0)},
+      "a")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_ROUTER_MATCH(view, "/a", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(corrupt_match_optional_expansion_string_past_the_table) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 1, 1, 0xFFFFFFFF,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
+       corrupt_node(0, 1, 0xFFFFFFFF, 0, 2,
+                    sourcemeta::core::URITemplateRouter::NodeType::Literal, 0),
+       corrupt_node(
+           0, 100, 0xFFFFFFFF, 0, 0xFFFFFFFF,
+           sourcemeta::core::URITemplateRouter::NodeType::OptionalExpansion,
+           0)},
+      "a")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  EXPECT_ROUTER_MATCH(view, "/a", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+// The optional capture at the end of a walk still takes an index of its own,
+// which a cycle may already have spent. It carries a handler of its own, so a
+// walk that took the capture anyway would answer with that handler and with
+// one capture too many
+TEST(corrupt_match_optional_expansion_past_the_reportable_index) {
+  const auto bytes{corrupt_router_trie(
+      {corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
+                    sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
+       corrupt_node(0, 0, 2, 1, 1,
+                    sourcemeta::core::URITemplateRouter::NodeType::Variable, 0),
+       corrupt_node(0, 1, 0xFFFFFFFF, 0, 3,
+                    sourcemeta::core::URITemplateRouter::NodeType::Literal, 0),
+       corrupt_node(
+           0, 0, 0xFFFFFFFF, 0, 0xFFFFFFFF,
+           sourcemeta::core::URITemplateRouter::NodeType::OptionalExpansion,
+           7)},
+      "a")};
+  const sourcemeta::core::URITemplateRouterView view{bytes.data(),
+                                                     bytes.size()};
+  const auto path{
+      repeated_path("b",
+                    sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES) +
+      "/a"};
+  EXPECT_ROUTER_MATCH(view, path, 0, 0, captures);
+  EXPECT_EQ(captures.size(),
+            sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES);
 }
