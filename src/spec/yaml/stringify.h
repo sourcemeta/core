@@ -1,8 +1,6 @@
 #ifndef SOURCEMETA_CORE_YAML_STRINGIFY_H_
 #define SOURCEMETA_CORE_YAML_STRINGIFY_H_
 
-#include "exhaustive.h"
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/text.h>
@@ -555,7 +553,15 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
         // as what one stands for cannot be written back on the one line a key
         // takes, so these never name a key that was read
         case YAMLRoundTrip::ScalarStyle::Literal:
-          SOURCEMETA_CORE_YAML_LAST_CASE(YAMLRoundTrip::ScalarStyle::Folded)
+          // Clang keeps an arm for the value that never arrives and counts
+          // it as one that nothing took, so the last enumerator is written as
+          // the default there, while the compilers reading a case label are
+          // the ones holding this switch to naming them all
+#if defined(__clang__)
+        default:
+#else
+        case YAMLRoundTrip::ScalarStyle::Folded:
+#endif
           break;
       }
     }
@@ -659,7 +665,15 @@ inline auto write_inline_value(OutputStream &stream, const JSON &value,
         write_flow_mapping(stream, value, roundtrip, anchors, pointer);
       }
       break;
-      SOURCEMETA_CORE_YAML_LAST_CASE(JSON::Type::Array)
+      // Clang keeps an arm for the value that never arrives and counts it as
+      // one that nothing took, so the last enumerator is written as the
+      // default there, while the compilers reading a case label are the ones
+      // holding this switch to naming them all
+#if defined(__clang__)
+    default:
+#else
+    case JSON::Type::Array:
+#endif
       if (value.empty()) {
         stream.write("[]", 2);
         break;

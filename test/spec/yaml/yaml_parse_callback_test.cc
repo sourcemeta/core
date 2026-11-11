@@ -741,3 +741,15 @@ TEST(block_mapping_anchored_empty_key_alias_is_announced) {
   EXPECT_TRACE(4, Post, Null, 2, 5, Root, 0, "");
   EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
 }
+
+// A callback that holds nothing is one the walk has to answer for without
+// announcing anything, which holds for the pair an anchored key files for a
+// later alias to replay as much as for anything else
+TEST(anchored_key_with_a_callback_that_holds_nothing) {
+  sourcemeta::core::JSON output{nullptr};
+  sourcemeta::core::parse_yaml("&k a: 1\nb: *k", output, nullptr);
+  EXPECT_TRUE(output.is_object());
+  EXPECT_EQ(output.size(), 2);
+  EXPECT_EQ(output.at("a").to_integer(), 1);
+  EXPECT_EQ(output.at("b").to_string(), "a");
+}

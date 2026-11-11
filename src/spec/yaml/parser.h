@@ -1,7 +1,6 @@
 #ifndef SOURCEMETA_CORE_YAML_PARSER_H_
 #define SOURCEMETA_CORE_YAML_PARSER_H_
 
-#include "exhaustive.h"
 #include "lexer.h"
 
 #include <sourcemeta/core/json.h>
@@ -47,7 +46,15 @@ inline auto to_roundtrip_chomping(const BlockChomping chomping)
       return YAMLRoundTrip::Chomping::Clip;
     case BlockChomping::Strip:
       return YAMLRoundTrip::Chomping::Strip;
-      SOURCEMETA_CORE_YAML_LAST_CASE(BlockChomping::Keep)
+      // Clang keeps an arm for the value that never arrives and counts it as
+      // one that nothing took, so the last enumerator is written as the
+      // default there, while the compilers reading a case label are the ones
+      // holding this switch to naming them all
+#if defined(__clang__)
+    default:
+#else
+    case BlockChomping::Keep:
+#endif
       return YAMLRoundTrip::Chomping::Keep;
   }
 
@@ -2775,7 +2782,15 @@ private:
       case ScalarStyle::Literal:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Literal;
         break;
-        SOURCEMETA_CORE_YAML_LAST_CASE(ScalarStyle::Folded)
+        // Clang keeps an arm for the value that never arrives and counts it as
+        // one that nothing took, so the last enumerator is written as the
+        // default there, while the compilers reading a case label are the ones
+        // holding this switch to naming them all
+#if defined(__clang__)
+      default:
+#else
+      case ScalarStyle::Folded:
+#endif
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Folded;
         break;
     }
@@ -2839,7 +2854,15 @@ private:
       // written with together, and writing it back without all three carries a
       // different key than the one that was read
       case ScalarStyle::Literal:
-        SOURCEMETA_CORE_YAML_LAST_CASE(ScalarStyle::Folded)
+        // Clang keeps an arm for the value that never arrives and counts it as
+        // one that nothing took, so the last enumerator is written as the
+        // default there, while the compilers reading a case label are the ones
+        // holding this switch to naming them all
+#if defined(__clang__)
+      default:
+#else
+      case ScalarStyle::Folded:
+#endif
         break;
     }
     // A key is written back without the indicator that can open an explicit
