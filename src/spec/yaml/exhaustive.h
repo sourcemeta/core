@@ -1,14 +1,19 @@
 #ifndef SOURCEMETA_CORE_YAML_EXHAUSTIVE_H_
 #define SOURCEMETA_CORE_YAML_EXHAUSTIVE_H_
 
-// A switch that names every enumerator of its type needs no default, and the
-// compilers that cannot see that the end of such a function is unreachable are
-// told so after it. Clang keeps an arm for the value that never arrives and
-// counts it as one that nothing took, so there the last enumerator is written
-// as the default instead, which leaves the switch no arm to spare. The
-// enumerator stays named in the macro so that the compilers still reading a
-// case label are the ones holding the switch to naming them all, which is what
-// `-Wswitch` does for the builds that are not measuring coverage
+// A switch that names every enumerator of its type needs no default. Clang
+// keeps an arm for the value that never arrives all the same, and counts it as
+// one that nothing took, so there the last enumerator is written as the
+// default instead, which leaves the switch no arm to spare.
+//
+// That costs `-Wswitch` on clang, which no longer has a case label to find
+// missing, so an enumerator added to one of these types is caught by the GCC
+// and MSVC builds rather than by a local one. Both read the case label this
+// expands to for them and turn the warning into an error, which the
+// enumerator named here is what gives them to miss. Telling the two apart by
+// anything narrower would mean the sources knowing which build is measuring
+// coverage, which the build deliberately keeps to itself.
+//
 // The label carries its own colon so that nothing reading the source has a
 // stray one to make sense of
 #if defined(__clang__)

@@ -661,13 +661,69 @@ private:
     return stream.str();
   }
 
-  auto record_anchored_key(const std::string &key_anchor, JSON &&key_value)
-      -> void {
+  // An alias stands for the node its anchor names, and announces itself by
+  // replaying what that node announced. A key is not announced as a node of
+  // its own, so the pair an alias to it replays is made here rather than taken
+  // from what reading the key announced
+  auto record_anchored_key(const std::string &key_anchor, JSON &&key_value,
+                           const Token &key_token) -> void {
+    std::vector<CallbackRecord> callbacks;
+    if ((this->callback_ != nullptr) && *this->callback_) {
+      const auto type{key_value.type()};
+      callbacks.push_back({.phase = JSON::ParsePhase::Pre,
+                           .type = type,
+                           .line = key_token.line,
+                           .column = key_token.column,
+                           .context = JSON::ParseContext::Root,
+                           .index = 0,
+                           .property = EMPTY_PROPERTY});
+      callbacks.push_back({.phase = JSON::ParsePhase::Post,
+                           .type = type,
+                           .line = key_token.line,
+                           .column = key_token.column,
+                           .context = JSON::ParseContext::Root,
+                           .index = 0,
+                           .property = EMPTY_PROPERTY});
+    }
+
     const auto key_expanded_weight{this->count_expanded_weight(key_value)};
     this->anchors_.insert_or_assign(
         key_anchor, AnchoredValue{.value = std::move(key_value),
-                                  .callbacks = {},
+                                  .callbacks = std::move(callbacks),
                                   .expanded_weight = key_expanded_weight});
+  }
+
+  // YAML 1.2.2 Section 10.3.2 resolves a node that holds nothing to null,
+  // which a tag may make stand for something else
+  static auto empty_node(const std::optional<std::string> &tag) -> JSON {
+    if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
+      return JSON{std::string{}};
+    }
+
+    return JSON{nullptr};
+  }
+
+  // YAML 1.2.2 Section 7.1: an alias node in key position stands for the value
+  // of the anchor it names, which is already resolved and so must not be
+  // resolved a second time. Production 159 writes such a node on its own, as
+  // what it stands for carries its own properties, so an anchor standing
+  // before one names nothing
+  auto resolve_alias_key(const Token &token,
+                         const std::optional<std::string> &key_anchor)
+      -> std::string {
+    if (key_anchor.has_value()) [[unlikely]] {
+      throw YAMLParseError{"Cannot anchor an alias node", token.line,
+                           token.column};
+    }
+
+    const std::string alias_name{token.value};
+    const auto iterator{this->anchors_.find(alias_name)};
+    if (iterator == this->anchors_.end()) [[unlikely]] {
+      throw YAMLUnknownAnchorError{alias_name, token.line, token.column};
+    }
+
+    return this->json_to_key_string(iterator->second.value, token.line,
+                                    token.column);
   }
 
   // YAML 1.2.2 Section 7.1: an anchor on a key names that key for later
@@ -677,16 +733,20 @@ private:
                          const std::optional<std::string> &key_tag) -> void {
     if (key_anchor.has_value()) {
       this->record_anchored_key(key_anchor.value(),
-                                this->resolve_scalar_node(key_token, key_tag));
+                                this->resolve_scalar_node(key_token, key_tag),
+                                key_token);
     }
   }
 
   // YAML 1.2.2 production 106 writes the empty node wherever a node is called
-  // for, so an anchor on a key that holds nothing names that empty node
-  auto record_empty_key_anchor(const std::optional<std::string> &key_anchor)
-      -> void {
+  // for, so an anchor on a key that holds nothing names that empty node, which
+  // a tag may make stand for something other than null
+  auto record_empty_key_anchor(const std::optional<std::string> &key_anchor,
+                               const std::optional<std::string> &key_tag,
+                               const Token &key_token) -> void {
     if (key_anchor.has_value()) {
-      this->record_anchored_key(key_anchor.value(), JSON{nullptr});
+      this->record_anchored_key(key_anchor.value(), empty_node(key_tag),
+                                key_token);
     }
   }
 
@@ -789,12 +849,7 @@ private:
       if (next.type == TokenType::StreamEnd ||
           next.type == TokenType::DocumentEnd ||
           next.type == TokenType::DocumentStart) {
-        JSON empty_value{nullptr};
-        if (tag.has_value()) {
-          if (tag.value() == "tag:yaml.org,2002:str") {
-            empty_value = JSON{std::string{}};
-          }
-        }
+        auto empty_value{empty_node(tag)};
         this->pending_tokens_.push_back(next);
         // An empty node that carries an anchor is still a node, so it is
         // announced and filed the same way as one ending any other place
@@ -827,10 +882,7 @@ private:
           current_token.type == TokenType::Scalar &&
           indentation_of(current_token) <= this->lexer_->block_indent()) {
         this->pending_tokens_.push_back(current_token);
-        JSON empty_value{nullptr};
-        if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
-          empty_value = JSON{std::string{}};
-        }
+        auto empty_value{empty_node(tag)};
         if (anchor_name.has_value()) {
           this->register_anchored_empty(anchor_name.value(), empty_value, token,
                                         context, index, property,
@@ -859,10 +911,7 @@ private:
                                                  : entry_indent < block_indent};
         if (belongs_to_an_enclosing_collection) {
           this->pending_tokens_.push_back(current_token);
-          JSON empty_value{nullptr};
-          if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
-            empty_value = JSON{std::string{}};
-          }
+          auto empty_value{empty_node(tag)};
           if (anchor_name.has_value()) {
             this->register_anchored_empty(anchor_name.value(), empty_value,
                                           token, context, index, property,
@@ -884,10 +933,7 @@ private:
     if (current_token.type == TokenType::FlowEntry ||
         current_token.type == TokenType::MappingEnd ||
         current_token.type == TokenType::SequenceEnd) {
-      JSON empty_value{nullptr};
-      if (tag.has_value() && tag.value() == "tag:yaml.org,2002:str") {
-        empty_value = JSON{std::string{}};
-      }
+      auto empty_value{empty_node(tag)};
       this->pending_tokens_.push_back(current_token);
       // An empty node that carries an anchor is still a node, so it is
       // announced and filed the same way as one ending any other place is
@@ -972,14 +1018,10 @@ private:
           if (anchor_name.has_value() && anchor_line == current_token.line) {
             // The anchor names the resolved key node, so that aliasing it
             // yields the very same member name rather than the raw text
-            JSON key_value{this->resolve_scalar_node(current_token, tag)};
             this->recording_anchor_ = false;
-            this->anchors_.insert_or_assign(
+            this->record_anchored_key(
                 std::string{anchor_name.value()},
-                AnchoredValue{
-                    .value = key_value,
-                    .callbacks = std::move(this->current_anchor_callbacks_),
-                    .expanded_weight = this->count_expanded_weight(key_value)});
+                this->resolve_scalar_node(current_token, tag), current_token);
             this->current_anchor_callbacks_.clear();
             anchor_name.reset();
           }
@@ -1022,7 +1064,7 @@ private:
             anchor_line == current_token.line) {
           this->recording_anchor_ = false;
           this->record_anchored_key(std::string{anchor_name.value()},
-                                    JSON{nullptr});
+                                    empty_node(tag), token);
           this->current_anchor_callbacks_.clear();
           anchor_name.reset();
         }
@@ -1422,21 +1464,11 @@ private:
 
         this->record_key_anchor(key_anchor, key_token, key_tag);
       } else if (key_token.type == TokenType::Alias) {
-        // YAML 1.2.2 Section 7.1: an alias node in key position stands for the
-        // value of the anchor it names, which is already resolved and so must
-        // not be resolved a second time
-        const std::string alias_name{key_token.value};
-        const auto iterator{this->anchors_.find(alias_name)};
-        if (iterator == this->anchors_.end()) [[unlikely]] {
-          throw YAMLUnknownAnchorError{alias_name, key_token.line,
-                                       key_token.column};
-        }
-        key = this->json_to_key_string(iterator->second.value, key_token.line,
-                                       key_token.column);
+        key = this->resolve_alias_key(key_token, key_anchor);
       } else if (key_token.type == TokenType::BlockMappingValue ||
                  (explicit_key && (key_token.type == TokenType::FlowEntry ||
                                    key_token.type == TokenType::MappingEnd))) {
-        this->record_empty_key_anchor(key_anchor);
+        this->record_empty_key_anchor(key_anchor, key_tag, key_token);
       } else if (key_token.type == TokenType::SequenceStart ||
                  key_token.type == TokenType::MappingStart) {
         // RFC 8259 Section 4: an object member name is a string, so a mapping
@@ -1612,10 +1644,13 @@ private:
           key_string = this->resolve_scalar_key(token, key_tag);
           this->record_key_anchor(key_anchor, token, key_tag);
           token = this->next_token();
+        } else if (token.type == TokenType::Alias) {
+          key_string = this->resolve_alias_key(token, key_anchor);
+          token = this->next_token();
         } else if (token.type == TokenType::BlockMappingValue ||
                    token.type == TokenType::SequenceEnd ||
                    token.type == TokenType::FlowEntry) {
-          this->record_empty_key_anchor(key_anchor);
+          this->record_empty_key_anchor(key_anchor, key_tag, token);
         } else {
           const auto explicit_key_line{token.line};
           const auto explicit_key_column{token.column};
@@ -1854,7 +1889,7 @@ private:
       if (explicit_key && token.column <= base_column &&
           (token.type == TokenType::Scalar || token.type == TokenType::Alias)) {
         note_implicit_key(seen_keys, key, token);
-        this->record_empty_key_anchor(key_anchor);
+        this->record_empty_key_anchor(key_anchor, key_tag, token);
         result.assign(key, JSON{nullptr});
         continue;
       }
@@ -1884,7 +1919,7 @@ private:
         // opens an entry, with an empty key and no value
         if (explicit_key) {
           note_implicit_key(seen_keys, key, token);
-          this->record_empty_key_anchor(key_anchor);
+          this->record_empty_key_anchor(key_anchor, key_tag, token);
           result.assign(key, JSON{nullptr});
           // Another indicator standing here opens the next entry
           if (token.type == TokenType::BlockMappingKey) {
@@ -1938,17 +1973,8 @@ private:
       }
 
       // YAML 1.2.2 Section 7.1: an alias node in key position stands for the
-      // value of the anchor it names, which is already resolved and so must not
-      // be resolved a second time
       if (token.type == TokenType::Alias) {
-        const std::string alias_name{token.value};
-        const auto iterator{this->anchors_.find(alias_name)};
-        if (iterator == this->anchors_.end()) [[unlikely]] {
-          throw YAMLUnknownAnchorError{alias_name, token.line, token.column};
-        }
-
-        key = this->json_to_key_string(iterator->second.value, token.line,
-                                       token.column);
+        key = this->resolve_alias_key(token, key_anchor);
         key_present = true;
         current_key_line = token.line;
         current_key_column = token.column;
@@ -1969,7 +1995,7 @@ private:
 
       if (token.type == TokenType::BlockMappingValue) {
         if (!key_present) {
-          this->record_empty_key_anchor(key_anchor);
+          this->record_empty_key_anchor(key_anchor, key_tag, token);
         }
 
         auto next{this->next_token()};
@@ -2315,23 +2341,14 @@ private:
             (next.type == TokenType::Scalar || next.type == TokenType::Alias)) {
           key.clear();
           note_implicit_key(seen_keys, key, next);
-          this->record_empty_key_anchor(explicit_key_anchor);
+          this->record_empty_key_anchor(explicit_key_anchor, explicit_key_tag,
+                                        next);
           result.assign(key, JSON{nullptr});
           continue;
         }
 
         if (next.type == TokenType::Alias) {
-          // YAML 1.2.2 Section 7.1: an alias node in key position stands for
-          // the value of the anchor it names, which is already resolved and so
-          // must not be resolved a second time
-          const std::string alias_name{next.value};
-          const auto iterator{this->anchors_.find(alias_name)};
-          if (iterator == this->anchors_.end()) [[unlikely]] {
-            throw YAMLUnknownAnchorError{alias_name, next.line, next.column};
-          }
-
-          key = this->json_to_key_string(iterator->second.value, next.line,
-                                         next.column);
+          key = this->resolve_alias_key(next, explicit_key_anchor);
         } else if (next.type == TokenType::BlockMappingValue) {
           // YAML 1.2.2 production 192 writes an entry as
           // `( ns-s-block-map-implicit-key | e-node )
@@ -2339,7 +2356,8 @@ private:
           // after its indicator is the empty node, and the value indicator
           // standing here opens the value rather than naming the key
           key.clear();
-          this->record_empty_key_anchor(explicit_key_anchor);
+          this->record_empty_key_anchor(explicit_key_anchor, explicit_key_tag,
+                                        next);
           this->pending_tokens_.push_back(next);
         } else if (next.type == TokenType::SequenceStart ||
                    next.type == TokenType::MappingStart ||
@@ -2362,7 +2380,8 @@ private:
           // own still opens an entry, with an empty key and no value
           key.clear();
           note_implicit_key(seen_keys, key, next);
-          this->record_empty_key_anchor(explicit_key_anchor);
+          this->record_empty_key_anchor(explicit_key_anchor, explicit_key_tag,
+                                        next);
           result.assign(key, JSON{nullptr});
 
           // Another indicator standing here opens the next entry
@@ -2455,7 +2474,8 @@ private:
       }
 
       if (key_carries_properties && next.type != TokenType::Scalar &&
-          next.type != TokenType::BlockMappingValue) {
+          next.type != TokenType::BlockMappingValue &&
+          next.type != TokenType::Alias) {
         continue;
       }
 
@@ -2463,13 +2483,7 @@ private:
         if (effective_column != base_column) {
           break;
         }
-        const std::string alias_name{next.value};
-        const auto iterator{this->anchors_.find(alias_name)};
-        if (iterator == this->anchors_.end()) [[unlikely]] {
-          throw YAMLUnknownAnchorError{alias_name, next.line, next.column};
-        }
-        key = this->json_to_key_string(iterator->second.value, next.line,
-                                       next.column);
+        key = this->resolve_alias_key(next, subsequent_key_anchor);
         key_line = next.line;
         key_column = next.column;
 
@@ -2527,7 +2541,8 @@ private:
 
         this->record_inline_comment_for_key(key);
         key.clear();
-        this->record_empty_key_anchor(subsequent_key_anchor);
+        this->record_empty_key_anchor(subsequent_key_anchor, subsequent_key_tag,
+                                      next);
         key_line = next.line;
         key_column = next.column;
 

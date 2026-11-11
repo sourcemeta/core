@@ -6881,14 +6881,15 @@ TEST(block_mapping_entries_with_nothing_on_either_side) {
 // Example 7.17 separates one value from its key, leaves another value out and
 // leaves one key out
 TEST(flow_mapping_separate_values) {
-  const std::string input{
-      "{\nunquoted : \"separate\",\nhttp://foo.com,\nomitted value:,\n}"};
+  const std::string input{"{\nunquoted : \"separate\",\nhttp://foo.com,\n"
+                          "omitted value:,\n: omitted key,\n}"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_object());
-  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.size(), 4);
   EXPECT_EQ(result.at("unquoted").to_string(), "separate");
   EXPECT_TRUE(result.at("http://foo.com").is_null());
   EXPECT_TRUE(result.at("omitted value").is_null());
+  EXPECT_EQ(result.at("").to_string(), "omitted key");
 }
 
 TEST(block_sequence_of_tagged_empty_nodes) {
@@ -7368,4 +7369,176 @@ TEST(multi_document_alias_key_with_no_value_before_a_document_end) {
   EXPECT_EQ(second.to_string(), "x");
 
   EXPECT_EQ(stream.peek(), EOF);
+}
+
+// YAML 1.2.2 production 159 writes an alias node on its own, as what it stands
+// for carries its own properties, so an anchor standing before one names
+// nothing. The four walks that read a key have to answer for that alike
+TEST(flow_mapping_anchored_alias_key) {
+  const std::string input{"{a: &v 1, &x *v : b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 14);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_anchored_explicit_alias_key) {
+  const std::string input{"{a: &v 1, ? &x *v : b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 16);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_anchored_explicit_alias_pair_key) {
+  const std::string input{"[&v q, ? &x *v : b]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 13);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_anchored_alias_key) {
+  const std::string input{"? &v q\n: 1\n&x *v : b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_anchored_explicit_alias_key_after_another_entry) {
+  const std::string input{"a: &v 1\n? &x *v\n: b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 6);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_anchored_alias_key_after_another_entry) {
+  const std::string input{"a: &v 1\n&x *v : b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Cannot anchor an alias node");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Production 150 reads a single pair of a flow sequence as a mapping whether
+// the key carries the explicit indicator or not, so an alias names the key of
+// one as readily as of the other
+TEST(flow_sequence_explicit_alias_pair_key) {
+  const auto result{sourcemeta::core::parse_yaml("[&v q, ? *v : b]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).to_string(), "q");
+  EXPECT_EQ(result.at(1).size(), 1);
+  EXPECT_EQ(result.at(1).at("q").to_string(), "b");
+}
+
+TEST(flow_sequence_alias_pair_key) {
+  const auto result{sourcemeta::core::parse_yaml("[&v q, *v : b]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).to_string(), "q");
+  EXPECT_EQ(result.at(1).size(), 1);
+  EXPECT_EQ(result.at(1).at("q").to_string(), "b");
+}
+
+// YAML 1.2.2 Section 10.3.2 resolves a node that holds nothing to null, which
+// a tag may make stand for something else, so an anchor on an empty key names
+// what the tag leaves that key as
+TEST(flow_mapping_anchored_tagged_empty_key_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("{? &x !!str : b, c: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "");
+}
+
+TEST(flow_mapping_anchored_empty_key_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("{? &x : b, c: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+TEST(block_mapping_anchored_tagged_empty_key_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("&x !!str : b\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "");
+}
+
+TEST(block_mapping_anchored_tagged_empty_explicit_key_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("? &x !!str\n: b\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "");
+}
+
+TEST(block_mapping_anchored_tagged_empty_key_aliased_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n&x !!str : b\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "");
+}
+
+TEST(
+    block_mapping_anchored_tagged_empty_explicit_key_aliased_after_another_entry) {
+  const auto result{
+      sourcemeta::core::parse_yaml("a: 1\n? &x !!str\n: b\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "");
+}
+
+TEST(flow_sequence_anchored_tagged_empty_explicit_pair_key_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("[? &x !!str : b, *x]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at("").to_string(), "b");
+  EXPECT_EQ(result.at(1).to_string(), "");
 }

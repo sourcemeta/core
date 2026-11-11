@@ -520,12 +520,14 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
   if (roundtrip != nullptr) {
     const auto quoted_match{roundtrip->key_quoted_contents.find(pointer)};
     if (quoted_match != roundtrip->key_quoted_contents.end()) {
+      // Reading a key records the text it was quoted with together with the
+      // style it was read under, but metadata that was built rather than read
+      // may hold the one without the other, which leaves the quote the key is
+      // written back with to be settled here
       const auto style_match{roundtrip->key_styles.find(pointer)};
-      // The text a key was quoted with is only ever recorded together with the
-      // style it was read under, so one is never held without the other
-      assert(style_match != roundtrip->key_styles.end());
-      const auto quote_char{style_match->second ==
-                                    YAMLRoundTrip::ScalarStyle::SingleQuoted
+      const auto quote_char{style_match != roundtrip->key_styles.end() &&
+                                    style_match->second ==
+                                        YAMLRoundTrip::ScalarStyle::SingleQuoted
                                 ? '\''
                                 : '"'};
       stream.put(quote_char);

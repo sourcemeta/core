@@ -1125,12 +1125,9 @@ TEST(string_quoting_keeps_a_multi_byte_character_as_it_stands) {
   EXPECT_EQ(stream.str(), "\"#\xC3\xA9\"\n");
 }
 
-// The metadata a round-trip carries is public, so a document may be written
-// against one that was built rather than read, which records only some of what
-// reading a document records
-
 // Only a flow collection is recorded while reading, as a block collection is
-// what the writer falls back to, but one that says so is written as one
+// what the writer falls back to, so metadata that was built rather than read
+// is what says so, and it is written as one
 TEST(roundtrip_block_collection_style) {
   const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
   sourcemeta::core::YAMLRoundTrip roundtrip;
@@ -1344,4 +1341,16 @@ TEST(roundtrip_key_recorded_as_a_folded_block_scalar) {
   std::ostringstream stream;
   sourcemeta::core::stringify_yaml(document, stream, roundtrip);
   EXPECT_EQ(stream.str(), "a: 1\n");
+}
+
+// Reading a key records the text it was quoted with together with the style it
+// was read under, and metadata holding the one without the other still has to
+// settle on a quote to write the key back with
+TEST(roundtrip_quoted_key_content_without_a_recorded_style) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({"a":1})JSON")};
+  sourcemeta::core::YAMLRoundTrip roundtrip;
+  roundtrip.key_quoted_contents[sourcemeta::core::Pointer{"a"}] = "a";
+  std::ostringstream stream;
+  sourcemeta::core::stringify_yaml(document, stream, roundtrip);
+  EXPECT_EQ(stream.str(), "\"a\": 1\n");
 }
