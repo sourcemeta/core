@@ -5855,20 +5855,24 @@ TEST(corrupt_match_variable_string_past_the_table) {
 }
 
 // A variable node that names itself as its own variable child walks forever
-// over a long enough path, which the index that a match reports cannot carry
+// over a long enough path, which the index that a match reports cannot carry.
+// The node carries a handler of its own, so a walk that read past the index it
+// can report would answer with that handler and with one capture too many
 TEST(corrupt_match_variable_cycle_past_the_reportable_index) {
   const auto bytes{corrupt_router_trie(
       {corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
                     sourcemeta::core::URITemplateRouter::NodeType::Root, 0),
        corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
                     sourcemeta::core::URITemplateRouter::NodeType::Variable,
-                    0)},
+                    7)},
       "")};
   const sourcemeta::core::URITemplateRouterView view{bytes.data(),
                                                      bytes.size()};
   const auto path{repeated_path(
       "b", sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES + 1)};
   EXPECT_ROUTER_MATCH(view, path, 0, 0, captures);
+  EXPECT_EQ(captures.size(),
+            sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES);
 }
 
 // The node a path settles on may name a variable child of its own, which a
@@ -5904,7 +5908,9 @@ TEST(corrupt_match_optional_expansion_string_past_the_table) {
 }
 
 // The optional capture at the end of a walk still takes an index of its own,
-// which a cycle may already have spent
+// which a cycle may already have spent. It carries a handler of its own, so a
+// walk that took the capture anyway would answer with that handler and with
+// one capture too many
 TEST(corrupt_match_optional_expansion_past_the_reportable_index) {
   const auto bytes{corrupt_router_trie(
       {corrupt_node(0, 0, 0xFFFFFFFF, 0, 1,
@@ -5916,7 +5922,7 @@ TEST(corrupt_match_optional_expansion_past_the_reportable_index) {
        corrupt_node(
            0, 0, 0xFFFFFFFF, 0, 0xFFFFFFFF,
            sourcemeta::core::URITemplateRouter::NodeType::OptionalExpansion,
-           0)},
+           7)},
       "a")};
   const sourcemeta::core::URITemplateRouterView view{bytes.data(),
                                                      bytes.size()};
@@ -5925,4 +5931,6 @@ TEST(corrupt_match_optional_expansion_past_the_reportable_index) {
                     sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES) +
       "/a"};
   EXPECT_ROUTER_MATCH(view, path, 0, 0, captures);
+  EXPECT_EQ(captures.size(),
+            sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES);
 }

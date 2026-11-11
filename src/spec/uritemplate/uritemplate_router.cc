@@ -3,11 +3,12 @@
 
 #include "helpers.h"
 
-#include <algorithm> // std::ranges::lower_bound, std::ranges::find_if
-#include <cassert>   // assert
-#include <cstdint>   // std::uint8_t
-#include <limits>    // std::numeric_limits
-#include <tuple>     // std::get, std::make_tuple
+#include <algorithm> // std::ranges::lower_bound, std::ranges::find_if, std::ranges::count
+#include <cassert> // assert
+#include <cstdint> // std::uint8_t
+#include <limits>  // std::numeric_limits
+#include <tuple>   // std::get, std::make_tuple
+#include <utility> // std::cmp_greater
 
 namespace sourcemeta::core {
 
@@ -309,6 +310,17 @@ auto URITemplateRouter::add(const std::string_view uri_template,
                                                uri_template};
   }
 
+  // Every expression the template holds becomes a variable of its own, and the
+  // index a match reports can tell no more of them apart than the ceiling
+  // names. Counting them before anything is written is what keeps a refusal
+  // from leaving a prefix of the template standing in the trie, which nothing
+  // would answer to and which would still be described
+  if (std::cmp_greater(std::ranges::count(uri_template, '{'),
+                       URITEMPLATE_ROUTER_MAXIMUM_VARIABLES)) {
+    throw URITemplateRouterInvalidSegmentError{
+        "Too many variables in the template", uri_template};
+  }
+
   Node *current = nullptr;
   if (!this->base_path_.empty()) {
     const char *base_position = this->base_path_.data() + 1;
@@ -370,7 +382,6 @@ auto URITemplateRouter::add(const std::string_view uri_template,
   }
 
   bool absorbed = false;
-  std::size_t variables = 0;
   const char *position = uri_template.data();
   const char *const end = position + uri_template.size();
 
@@ -516,12 +527,6 @@ auto URITemplateRouter::add(const std::string_view uri_template,
       if (is_expansion_type(type) && position < end) {
         throw URITemplateRouterInvalidSegmentError{
             "Expansion operator must be the last segment", expression};
-      }
-
-      variables += 1;
-      if (variables > URITEMPLATE_ROUTER_MAXIMUM_VARIABLES) {
-        throw URITemplateRouterInvalidSegmentError{
-            "Too many variables in the template", expression};
       }
 
       auto &variable =

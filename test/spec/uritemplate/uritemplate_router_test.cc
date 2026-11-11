@@ -52,27 +52,32 @@ auto path_of_segments(const std::size_t count) -> std::string {
 } // namespace
 
 // The index that the match callback reports is an 8 bit number, so a template
-// of more variables than it can tell apart cannot be reported on at all
+// of more variables than it can tell apart cannot be reported on at all.
+// A router holds views into the template it was given, so the string has to
+// outlive every use of it
 TEST(variables_up_to_the_maximum) {
+  const auto uri_template{template_of_variables(
+      sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES)};
+  const auto path{
+      path_of_segments(sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES)};
   sourcemeta::core::URITemplateRouter router;
-  router.add(template_of_variables(
-                 sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES),
-             "op_many", 1);
-  EXPECT_ROUTER_MATCH(
-      router,
-      path_of_segments(sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES),
-      1, 0, captures);
+  router.add(uri_template, "op_many", 1);
+  EXPECT_ROUTER_MATCH(router, path, 1, 0, captures);
   EXPECT_EQ(captures.size(),
             sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES);
 }
 
+// The count is read before anything is written, so a refusal leaves no part of
+// the template standing in the trie for anything else to find
 TEST(variables_past_the_maximum) {
+  const auto uri_template{template_of_variables(
+      sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES + 1)};
   sourcemeta::core::URITemplateRouter router;
-  EXPECT_ROUTER_SEGMENT_ERROR(
-      router,
-      template_of_variables(
-          sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES + 1),
-      1, "{v256}");
+  EXPECT_ROUTER_SEGMENT_ERROR(router, uri_template, 1, uri_template);
+  EXPECT_FALSE(router.describes("/v0"));
+  EXPECT_FALSE(router.describes(""));
+  EXPECT_ROUTER_MATCH(router, "/v0", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(single_literal_route) {
