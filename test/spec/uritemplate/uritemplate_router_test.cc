@@ -24,6 +24,57 @@
     FAIL();                                                                    \
   }
 
+namespace {
+
+// A template of the given number of single-segment variables, and a path of
+// the same number of segments for it to match
+auto template_of_variables(const std::size_t count) -> std::string {
+  std::string result;
+  for (std::size_t index = 0; index < count; index++) {
+    result += "/{v";
+    result += std::to_string(index);
+    result += '}';
+  }
+
+  return result;
+}
+
+auto path_of_segments(const std::size_t count) -> std::string {
+  std::string result;
+  for (std::size_t index = 0; index < count; index++) {
+    result += "/s";
+    result += std::to_string(index);
+  }
+
+  return result;
+}
+
+} // namespace
+
+// The index that the match callback reports is an 8 bit number, so a template
+// of more variables than it can tell apart cannot be reported on at all
+TEST(variables_up_to_the_maximum) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add(template_of_variables(
+                 sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES),
+             "op_many", 1);
+  EXPECT_ROUTER_MATCH(
+      router,
+      path_of_segments(sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES),
+      1, 0, captures);
+  EXPECT_EQ(captures.size(),
+            sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES);
+}
+
+TEST(variables_past_the_maximum) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(
+      router,
+      template_of_variables(
+          sourcemeta::core::URITEMPLATE_ROUTER_MAXIMUM_VARIABLES + 1),
+      1, "{v256}");
+}
+
 TEST(single_literal_route) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
@@ -3301,4 +3352,62 @@ TEST(add_rejects_a_literal_variable_literal_segment) {
   } catch (...) {
     FAIL();
   }
+}
+
+// RFC 6570 Section 2.2 writes `op-reserve = "=" / "," / "!" / "@" / "|"`,
+// which the specification keeps for future extensions, so this router refuses
+// every one of them rather than guessing at a meaning
+TEST(reserved_operator_equals) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{=x}", 1, "{=x}");
+}
+
+TEST(reserved_operator_comma) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{,x}", 1, "{,x}");
+}
+
+TEST(reserved_operator_exclamation) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{!x}", 1, "{!x}");
+}
+
+TEST(reserved_operator_at_sign) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{@x}", 1, "{@x}");
+}
+
+TEST(reserved_operator_pipe) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/{|x}", 1, "{|x}");
+}
+
+// A greedy capture reached while walking the base path answers for the whole
+// of what follows, so there is nothing left for the path to disagree with
+TEST(describes_base_path_reaching_a_greedy_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{+rest}", "op_rest", 1);
+  EXPECT_TRUE(router.describes("/anything", "/x/y"));
+}
+
+TEST(describes_path_reaching_a_greedy_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{+rest}", "op_rest", 1);
+  EXPECT_TRUE(router.describes("/x/y"));
+}
+
+// Nothing of the path is read, so what answers is whether the router stands
+// for anything at all, which a variable at its root does
+TEST(describes_an_empty_path_against_a_root_holding_only_a_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{id}", "op_id", 1);
+  EXPECT_TRUE(router.describes(""));
+}
+
+// An empty segment is no name, so nothing but a literal of its own can stand
+// for it and a variable does not
+TEST(describes_an_empty_segment_with_only_a_variable_to_offer) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{id}", "op_id", 1);
+  EXPECT_FALSE(router.describes("//"));
 }

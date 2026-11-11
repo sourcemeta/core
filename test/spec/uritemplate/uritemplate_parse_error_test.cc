@@ -231,3 +231,39 @@ TEST(query_expansion_with_nothing_after_the_operator) {
 TEST(query_continuation_expansion_with_nothing_after_the_operator) {
   EXPECT_URITEMPLATE_PARSE_ERROR("{&", 3);
 }
+
+// RFC 6570 Section 2.3 writes a name as `varchar *( ["."] varchar )`, so a dot
+// has to be followed by another name character and running out of input leaves
+// it with none
+TEST(dot_at_the_end_of_the_input) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{var.", 6);
+}
+
+// RFC 6570 Section 2.4.1 writes the prefix as `":" max-length`, so the colon
+// has to be followed by the length
+TEST(prefix_with_nothing_after_the_colon) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{var:", 6);
+}
+
+TEST(prefix_read_to_the_end_of_the_input) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{var:1", 1);
+}
+
+TEST(prefix_of_four_digits_read_to_the_end_of_the_input) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("{var:9999", 1);
+}
+
+// RFC 6570 Section 2.1 writes a literal over the characters RFC 3987
+// Section 2.2 defines, so a byte that decodes to no character at all is none
+// of them
+TEST(literal_with_a_lone_continuation_byte) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("a\x80", 2);
+}
+
+TEST(literal_with_a_truncated_two_byte_sequence) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("a\xC3", 2);
+}
+
+TEST(literal_with_a_truncated_three_byte_sequence) {
+  EXPECT_URITEMPLATE_PARSE_ERROR("\xE2\x82", 1);
+}

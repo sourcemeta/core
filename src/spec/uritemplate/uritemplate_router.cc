@@ -370,10 +370,13 @@ auto URITemplateRouter::add(const std::string_view uri_template,
   }
 
   bool absorbed = false;
+  std::size_t variables = 0;
   const char *position = uri_template.data();
   const char *const end = position + uri_template.size();
 
-  if (position < end && *position == '/') {
+  // An empty template is answered for above, so there is always a character
+  // here to look at
+  if (*position == '/') {
     ++position;
   }
 
@@ -412,23 +415,21 @@ auto URITemplateRouter::add(const std::string_view uri_template,
 
       NodeType type = NodeType::Variable;
       bool path_segment_operator = false;
-      if (*position == '+') {
-        type = NodeType::Expansion;
+      if (is_operator(*position)) {
+        if (*position == '+') {
+          type = NodeType::Expansion;
+        } else if (*position == '/') {
+          path_segment_operator = true;
+        } else {
+          throw URITemplateRouterInvalidSegmentError{
+              "Unsupported URI Template operator", expression};
+        }
+
         ++position;
         if (position >= end || *position == '}') {
           throw URITemplateRouterInvalidSegmentError{"Empty variable name",
                                                      expression};
         }
-      } else if (*position == '/') {
-        path_segment_operator = true;
-        ++position;
-        if (position >= end || *position == '}') {
-          throw URITemplateRouterInvalidSegmentError{"Empty variable name",
-                                                     expression};
-        }
-      } else if (is_operator(*position) && *position != '+') {
-        throw URITemplateRouterInvalidSegmentError{
-            "Unsupported URI Template operator", expression};
       } else if (is_reserved_operator(*position)) {
         throw URITemplateRouterInvalidSegmentError{
             "Reserved URI Template operator", expression};
@@ -517,6 +518,12 @@ auto URITemplateRouter::add(const std::string_view uri_template,
             "Expansion operator must be the last segment", expression};
       }
 
+      variables += 1;
+      if (variables > URITEMPLATE_ROUTER_MAXIMUM_VARIABLES) {
+        throw URITemplateRouterInvalidSegmentError{
+            "Too many variables in the template", expression};
+      }
+
       auto &variable =
           (current != nullptr) ? current->variable : this->root_.variable;
       auto *result =
@@ -578,7 +585,10 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     ++position;
   }
 
-  if (!absorbed && current != nullptr) {
+  // Every way out of the walk above either absorbed the template into a node
+  // that already stood for it or settled on a node of its own
+  assert(absorbed || current != nullptr);
+  if (!absorbed) {
     const auto previous_identifier = current->identifier;
     if (previous_identifier == 0) {
       this->entries_.emplace_back(identifier, context, uri_template);
@@ -622,24 +632,27 @@ auto URITemplateRouter::describes(
     const std::string_view base_path) const noexcept -> bool {
   const Node *current = nullptr;
 
+  // Reaching the end of a fragment settles nothing on its own, so only the
+  // other two answers are read here and the walk carries on below
   if (!base_path.empty()) {
-    switch (walk_describe_fragment(current, this->root_, base_path)) {
-      case DescribeWalk::NoMatch:
-        return false;
-      case DescribeWalk::Captured:
-        return true;
-      case DescribeWalk::Reached:
-        break;
+    const auto base_walk{
+        walk_describe_fragment(current, this->root_, base_path)};
+    if (base_walk == DescribeWalk::NoMatch) {
+      return false;
+    }
+
+    if (base_walk == DescribeWalk::Captured) {
+      return true;
     }
   }
 
-  switch (walk_describe_fragment(current, this->root_, path)) {
-    case DescribeWalk::NoMatch:
-      return false;
-    case DescribeWalk::Captured:
-      return true;
-    case DescribeWalk::Reached:
-      break;
+  const auto walk{walk_describe_fragment(current, this->root_, path)};
+  if (walk == DescribeWalk::NoMatch) {
+    return false;
+  }
+
+  if (walk == DescribeWalk::Captured) {
+    return true;
   }
 
   if (current == nullptr) {

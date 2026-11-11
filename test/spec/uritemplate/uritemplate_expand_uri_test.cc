@@ -988,3 +988,1057 @@ TEST(list_explode_query_promising_more_than_it_gives) {
 
   EXPECT_EQ(result, "?list=a");
 }
+
+// RFC 6570 Section 3.2.1 holds a zero-length string to be a defined value, so
+// a list member that is one takes its place among the others and the name that
+// precedes them still takes the "=" that separates it from them
+TEST(list_no_explode_with_an_empty_first_member_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?list=,x");
+}
+
+TEST(list_no_explode_with_an_empty_first_member_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ";list=,x");
+}
+
+TEST(list_no_explode_with_an_empty_first_member_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ",x");
+}
+
+// RFC 6570 Section 2.4.1: "Prefix modifiers are not applicable to variables
+// that have composite values", and an associative array is one whether or not
+// it holds more than a single pair
+TEST(prefix_on_an_associative_array_of_one_pair) {
+  const sourcemeta::core::URITemplate uri_template{"{var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 6570 Section 3.2.1 writes an exploded pair as the name, "=" and the
+// value, except that an empty value under an operator with no `ifemp` of its
+// own leaves the name standing alone
+TEST(associative_array_explode_with_an_empty_value_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?a=");
+}
+
+TEST(associative_array_explode_with_an_empty_value_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ";a");
+}
+
+TEST(associative_array_explode_with_an_empty_value_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "a");
+}
+
+TEST(list_explode_with_empty_members_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?list*}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          return std::make_tuple(std::string_view{""}, std::nullopt,
+                                 call_count == 1);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?list=&list=");
+}
+
+TEST(list_explode_with_empty_members_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;list*}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          return std::make_tuple(std::string_view{""}, std::nullopt,
+                                 call_count == 1);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ";list;list");
+}
+
+// A caller that says more values follow and then names none leaves what was
+// already written standing, as there is nothing further to join to it
+TEST(list_whose_continuation_names_no_value_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "a");
+}
+
+TEST(list_whose_continuation_names_no_value_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?list=a");
+}
+
+TEST(list_explode_whose_continuation_names_no_value_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/list*}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "/a");
+}
+
+// RFC 6570 Section 3.2.1: an undefined variable contributes nothing, which a
+// container answers for by not holding the name at all
+TEST(container_without_one_of_the_names) {
+  const sourcemeta::core::URITemplate uri_template{"{a}{b}"};
+  const std::map<std::string, std::string> variables{{"a", "1"}};
+  EXPECT_EQ(uri_template.expand(variables), "1");
+}
+
+TEST(container_with_none_of_the_names) {
+  const sourcemeta::core::URITemplate uri_template{"{a}"};
+  const std::map<std::string, std::string> variables{{"z", "1"}};
+  EXPECT_EQ(uri_template.expand(variables), "");
+}
+
+// RFC 6570 Section 2.4.1: "Prefix modifiers are not applicable to variables
+// that have composite values", which holds for every expansion type
+
+TEST(prefix_on_an_associative_array_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_an_associative_array_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"},
+                                   std::string_view{"key"}, false);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// RFC 6570 Section 3.2.1 writes an exploded pair as the name, "=" and the
+// value, except that an empty value under an operator that names no `ifemp`
+// leaves the name standing alone
+
+TEST(associative_array_explode_with_an_empty_value_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "a");
+}
+
+TEST(associative_array_explode_with_an_empty_value_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "#a");
+}
+
+TEST(associative_array_explode_with_an_empty_value_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ".a");
+}
+
+TEST(associative_array_explode_with_an_empty_value_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "/a");
+}
+
+TEST(associative_array_explode_with_an_empty_value_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "&a=");
+}
+
+// RFC 6570 Section 3.2.1 holds a zero-length string to be a defined value, so
+// a list member that is one takes its place among the others
+
+TEST(list_no_explode_with_an_empty_first_member_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ",x");
+}
+
+TEST(list_no_explode_with_an_empty_first_member_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "#,x");
+}
+
+TEST(list_no_explode_with_an_empty_first_member_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ".,x");
+}
+
+TEST(list_no_explode_with_an_empty_first_member_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "/,x");
+}
+
+TEST(list_no_explode_with_an_empty_first_member_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{""}, std::nullopt, true);
+          }
+          return std::make_tuple(std::string_view{"x"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "&list=,x");
+}
+
+// A caller that says more values follow and then names none leaves what was
+// already written standing
+
+TEST(list_whose_continuation_names_no_value_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "a");
+}
+
+TEST(list_whose_continuation_names_no_value_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "#a");
+}
+
+TEST(list_whose_continuation_names_no_value_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ".a");
+}
+
+TEST(list_whose_continuation_names_no_value_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "/a");
+}
+
+TEST(list_whose_continuation_names_no_value_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ";list=a");
+}
+
+TEST(list_whose_continuation_names_no_value_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&list}"};
+  std::size_t call_count = 0;
+  const auto result = uri_template.expand(
+      [&call_count](
+          const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "list") {
+          call_count++;
+          if (call_count == 1) {
+            return std::make_tuple(std::string_view{"a"}, std::nullopt, true);
+          }
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "&list=a");
+}
+
+// RFC 6570 Section 3.2.1: "if a variable is undefined, it is ignored", so an
+// expression naming only undefined variables contributes nothing
+
+TEST(undefined_variable_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(undefined_variable_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&var}"};
+  const auto result =
+      uri_template.expand([](const std::string_view) { return std::nullopt; });
+
+  EXPECT_EQ(result, "");
+}
+
+// RFC 6570 Section 2.4.1: "Prefix modifiers are not applicable to variables
+// that have composite values", which a list is as much as an associative
+// array is
+
+TEST(prefix_on_a_list_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(prefix_on_a_list_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&var:3}"};
+  try {
+    [[maybe_unused]] const auto result = uri_template.expand(
+        [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+          if (name == "var") {
+            return std::make_tuple(std::string_view{"value"}, std::nullopt,
+                                   true);
+          }
+          return std::nullopt;
+        });
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateExpansionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Prefix modifier cannot be applied to composite values");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The prefix counts characters rather than bytes, and a percent sign that
+// introduces no triplet is a character of its own rather than the first of
+// three (RFC 6570 Section 2.4.1)
+TEST(prefix_over_a_percent_sign_that_introduces_no_triplet) {
+  const sourcemeta::core::URITemplate uri_template{"{var:2}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{"a%4z"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "a%25");
+}
+
+TEST(prefix_over_a_percent_sign_with_one_hexadecimal_digit_left) {
+  const sourcemeta::core::URITemplate uri_template{"{var:3}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{"%4"}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "%254");
+}
+
+// RFC 6570 Section 3.2.1: "if a variable is undefined, it is ignored", which a
+// container answers for by not holding the name
+TEST(unordered_map_without_the_name) {
+  const sourcemeta::core::URITemplate uri_template{"{a}{b}"};
+  const std::unordered_map<std::string, std::string> variables{{"a", "1"}};
+  EXPECT_EQ(uri_template.expand(variables), "1");
+}
+
+// RFC 6570 Section 3.2.1 holds a zero-length string to be a defined value, so
+// the expansion stands even though the value writes nothing, which is what the
+// operator's own `ifemp` answers for
+
+TEST(single_empty_value_simple) {
+  const sourcemeta::core::URITemplate uri_template{"{var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(single_empty_value_reserved) {
+  const sourcemeta::core::URITemplate uri_template{"{+var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "");
+}
+
+TEST(single_empty_value_fragment) {
+  const sourcemeta::core::URITemplate uri_template{"{#var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "#");
+}
+
+TEST(single_empty_value_label) {
+  const sourcemeta::core::URITemplate uri_template{"{.var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ".");
+}
+
+TEST(single_empty_value_path) {
+  const sourcemeta::core::URITemplate uri_template{"{/var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "/");
+}
+
+TEST(single_empty_value_path_parameter) {
+  const sourcemeta::core::URITemplate uri_template{"{;var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, ";var");
+}
+
+TEST(single_empty_value_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "?var=");
+}
+
+TEST(single_empty_value_query_continuation) {
+  const sourcemeta::core::URITemplate uri_template{"{&var}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "var") {
+          return std::make_tuple(std::string_view{""}, std::nullopt, false);
+        }
+        return std::nullopt;
+      });
+
+  EXPECT_EQ(result, "&var=");
+}
