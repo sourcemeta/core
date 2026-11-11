@@ -6148,3 +6148,235 @@ TEST(flow_mapping_key_with_no_separator_or_value) {
 TEST(flow_mapping_last_key_with_no_separator_or_value) {
   EXPECT_EQ(roundtrip("{a: 1, b}\n"), "{a: 1, b: }\n");
 }
+
+// Round-trip metadata describes the one document it was read from, so the
+// marker that ends a document is read past rather than taken for content
+TEST(document_end_marker_alone) {
+  EXPECT_EQ(roundtrip("a: 1\n...\n"), "a: 1\n...\n");
+}
+
+TEST(repeated_document_end_markers) {
+  EXPECT_EQ(roundtrip("a: 1\n...\n...\n"), "a: 1\n...\n");
+}
+
+// A tab is the one control character a single-quoted scalar may carry, so a
+// value holding one is still written back in that style
+TEST(single_quoted_scalar_holding_a_tab) {
+  EXPECT_EQ(roundtrip("a: 'x\ty'\n"), "a: 'x\ty'\n");
+}
+
+// YAML 1.2.2 Section 8.1.1.1 reads the content indentation of a block scalar
+// off its first non-empty line, so content of nothing but empty lines offers
+// none to read. Clip chomping leaves such content the empty string, which is
+// written back as a block scalar holding nothing, and reads back the same
+TEST(literal_block_scalar_of_empty_lines_only) {
+  EXPECT_TRUE(
+      sourcemeta::core::parse_yaml("a: |\n\n\n").at("a").to_string().empty());
+  EXPECT_EQ(roundtrip("a: |\n\n\n"), "a: |\n");
+  EXPECT_EQ(roundtrip("a: |\n"), "a: |\n");
+}
+
+TEST(literal_block_scalar_with_an_indicator_before_the_chomping) {
+  EXPECT_EQ(roundtrip("a: |2-\n    x\n"), "a: |2-\n    x\n");
+}
+
+TEST(folded_block_scalar_that_strips) {
+  EXPECT_EQ(roundtrip("a: >-\n  x\n"), "a: >-\n  x\n");
+}
+
+TEST(double_quoted_scalar_ending_in_a_space) {
+  EXPECT_EQ(roundtrip("a: \"x \"\n"), "a: \"x \"\n");
+}
+
+TEST(single_quoted_scalar_holding_a_comment_indicator) {
+  EXPECT_EQ(roundtrip("a: 'a#b'\n"), "a: 'a#b'\n");
+}
+
+TEST(literal_block_scalar_that_keeps) {
+  EXPECT_EQ(roundtrip("a: |+\n  x\n\n"), "a: |+\n  x\n\n");
+}
+
+// YAML 1.2.2 Section 7.1 lets a node property stand on a node that is empty,
+// which at the top of a document is the document's own node
+TEST(root_anchor_on_an_empty_node) { EXPECT_EQ(roundtrip("&a\n"), ""); }
+
+TEST(root_tag_on_an_empty_node) {
+  EXPECT_EQ(roundtrip("!!str\n"), "!!str \"\"\n");
+}
+
+TEST(root_anchor_on_an_empty_node_after_a_document_start) {
+  EXPECT_EQ(roundtrip("--- &a\n"), "--- &a\n");
+}
+
+TEST(root_anchor_and_tag_on_an_empty_node) {
+  EXPECT_EQ(roundtrip("&a !!str\n"), "&a !!str \"\"\n");
+}
+
+// Metadata describes the document it was read from, so a node added since
+// then has no style recorded for it and is written in the default one
+TEST(stringify_a_sequence_added_after_reading) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: [1, 2]\n", metadata)};
+  document.assign("b", sourcemeta::core::parse_json("[3]"));
+  EXPECT_EQ(stringify(document, metadata), "a: [1, 2]\nb:\n  - 3\n");
+}
+
+TEST(stringify_a_mapping_added_after_reading) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: 1\n", metadata)};
+  document.assign("b", sourcemeta::core::parse_json("{\"c\": 2}"));
+  EXPECT_EQ(stringify(document, metadata), "a: 1\nb:\n  c: 2\n");
+}
+
+TEST(stringify_a_block_sequence_entry_added_after_reading) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a:\n  - 1\n", metadata)};
+  document.at("a").push_back(sourcemeta::core::parse_json("null"));
+  EXPECT_EQ(stringify(document, metadata), "a:\n  - 1\n  -\n");
+}
+
+TEST(stringify_a_flow_sequence_entry_added_after_reading) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: [1]\n", metadata)};
+  document.at("a").push_back(sourcemeta::core::parse_json("null"));
+  EXPECT_EQ(stringify(document, metadata), "a: [1, null]\n");
+}
+
+// A style recorded for a node describes the value that was read there, so a
+// value put in its place keeps the style only where the style still fits it
+TEST(stringify_a_single_quoted_scalar_whose_value_changed) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: 'x'\n", metadata)};
+  document.assign("a", sourcemeta::core::parse_json(R"("y")"));
+  EXPECT_EQ(stringify(document, metadata), "a: 'y'\n");
+}
+
+// A tag names the type of what it was read on, so one recorded for a string
+// says nothing about a number put in its place and is left out
+TEST(stringify_a_tagged_scalar_whose_type_changed) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: !!str x\n", metadata)};
+  document.assign("a", sourcemeta::core::parse_json("5"));
+  EXPECT_EQ(stringify(document, metadata), "a: 5\n");
+}
+
+TEST(stringify_a_flow_sequence_whose_size_changed) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: [1, 2]\n", metadata)};
+  document.assign("a", sourcemeta::core::parse_json("[1]"));
+  EXPECT_EQ(stringify(document, metadata), "a: [1]\n");
+}
+
+// A key added since the document was read has no style recorded for it, and
+// takes quoting where what it spells needs it
+TEST(stringify_a_key_added_after_reading_that_needs_quoting) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: 1\n", metadata)};
+  const std::string key{"needs: quoting"};
+  document.assign(key, sourcemeta::core::parse_json("1"));
+  EXPECT_EQ(stringify(document, metadata), "a: 1\n\"needs: quoting\": 1\n");
+}
+
+TEST(stringify_a_block_scalar_whose_value_changed) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: |\n  x\n", metadata)};
+  document.assign("a", sourcemeta::core::parse_json(R"("z\n")"));
+  EXPECT_EQ(stringify(document, metadata), "a: |\n  z\n");
+}
+
+// A plain scalar cannot carry a trailing space, as reading one back would
+// drop it, so a value that ends in one takes quoting instead
+TEST(stringify_a_plain_scalar_whose_value_gained_a_trailing_space) {
+  sourcemeta::core::YAMLRoundTrip metadata;
+  auto document{sourcemeta::core::parse_yaml("a: x\n", metadata)};
+  document.assign("a", sourcemeta::core::parse_json(R"("x ")"));
+  EXPECT_EQ(stringify(document, metadata), "a: \"x \"\n");
+}
+
+// A tab is the one control character a single-quoted scalar may carry, which
+// holds for a key as much as for a value
+TEST(single_quoted_key_holding_a_tab) {
+  EXPECT_EQ(roundtrip("'a\tb': 1\n"), "'a\tb': 1\n");
+}
+
+// YAML 1.2.2 Section 8.1.1.1 reads the content indentation of a block scalar
+// off its first non-empty line, so content of nothing but line breaks offers
+// none and the indicator has to be written out for it to read back
+TEST(kept_block_scalar_of_line_breaks_only) {
+  EXPECT_EQ(roundtrip("a: |+\n\n\n"), "a: |+2\n\n\n");
+}
+
+TEST(kept_block_scalar_with_trailing_line_breaks) {
+  EXPECT_EQ(roundtrip("a: |+\n  x\n\n\n"), "a: |+\n  x\n\n\n");
+}
+
+// YAML 1.2.2 production 158 holds an implicit key of a block mapping to one
+// line, while a flow mapping lets one span lines. Such a key is recorded under
+// the style it was read with but not under the text, as writing the text back
+// would put a line break inside a key that nothing marks as explicit, so it is
+// written out afresh on one line
+TEST(flow_mapping_single_quoted_key_spanning_two_lines) {
+  EXPECT_EQ(roundtrip("{'a\n  b': 1}\n"), "{'a b': 1}\n");
+}
+
+TEST(flow_mapping_double_quoted_key_spanning_two_lines) {
+  EXPECT_EQ(roundtrip("{\"a\n  b\": 1}\n"), "{\"a b\": 1}\n");
+}
+
+TEST(flow_mapping_single_quoted_key_spanning_two_lines_holding_a_tab) {
+  EXPECT_EQ(roundtrip("{'a\tb\n  c': 1}\n"), "{'a\tb c': 1}\n");
+}
+
+TEST(flow_mapping_single_quoted_key_on_one_line) {
+  EXPECT_EQ(roundtrip("{'a b': 1}\n"), "{'a b': 1}\n");
+}
+
+// A separator that no space follows is written back the way it was read, which
+// holds for one closing an entry whose value was left out as much as for one
+// closing an entry that carries a value
+TEST(flow_mapping_compact_separator_after_a_value_that_was_left_out) {
+  EXPECT_EQ(roundtrip("{a: ,b: 1}\n"), "{a: ,b: 1}\n");
+}
+
+// An explicit key indicator is presentation that the entry it opens does not
+// need once the key is known, so the entry is written back without it
+TEST(flow_mapping_explicit_key_is_written_without_the_indicator) {
+  EXPECT_EQ(roundtrip("{? a : b}\n"), "{a: b}\n");
+}
+
+TEST(flow_sequence_explicit_pair_is_written_as_a_mapping) {
+  EXPECT_EQ(roundtrip("[? a : b]\n"), "[{a: b}]\n");
+}
+
+TEST(flow_mapping_explicit_key_indicator_alone_is_written_as_an_empty_key) {
+  EXPECT_EQ(roundtrip("{? }\n"), "{\"\": }\n");
+}
+
+TEST(flow_sequence_pair_with_no_key_is_written_as_a_mapping) {
+  EXPECT_EQ(roundtrip("[ : ]\n"), "[ {\"\": } ]\n");
+}
+
+TEST(block_mapping_explicit_key_indicator_alone_is_written_as_an_empty_key) {
+  EXPECT_EQ(roundtrip("?\na: 1\n"), "\"\":\na: 1\n");
+}
+
+// An anchor on a node that holds nothing is kept, and what it names is written
+// out so that the anchor has a node to stand on
+TEST(flow_sequence_anchored_empty_entry_is_written_with_its_anchor) {
+  EXPECT_EQ(roundtrip("[ &a ]\n"), "[ &a null ]\n");
+}
+
+TEST(flow_mapping_anchored_empty_value_is_written_with_its_anchor) {
+  EXPECT_EQ(roundtrip("{a: &x , b: 1}\n"), "{a: &x, b: 1}\n");
+}
+
+// YAML 1.2.2 Section 8.2.1 leaves a block sequence that is the value of a
+// mapping key free to sit at the indentation of that key rather than one level
+// further in, which is written back the way it was read
+TEST(unindented_sequence_under_a_mapping_key) {
+  EXPECT_EQ(roundtrip("a:\n- 1\n"), "a:\n- 1\n");
+}
+
+TEST(indented_sequence_under_a_mapping_key) {
+  EXPECT_EQ(roundtrip("a:\n  - 1\n"), "a:\n  - 1\n");
+}

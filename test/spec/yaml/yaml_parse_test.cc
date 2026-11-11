@@ -2271,6 +2271,69 @@ TEST(block_explicit_flow_mapping_key_is_rejected) {
   }
 }
 
+// A mapping that opens with a plain key reads its later entries through a
+// different walk than one that opens with an explicit key, and the two have to
+// answer for the same document the same way
+TEST(block_plain_key_then_empty_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n?\n: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.defines("a"));
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_EQ(result.at("").to_integer(), 2);
+}
+
+TEST(block_explicit_key_then_empty_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("? a\n: 1\n?\n: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.defines("a"));
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.defines(""));
+  EXPECT_EQ(result.at("").to_integer(), 2);
+}
+
+TEST(block_plain_key_then_flow_sequence_explicit_key_is_rejected) {
+  const std::string input{"a: 1\n? [b]\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_plain_key_then_flow_mapping_explicit_key_is_rejected) {
+  const std::string input{"a: 1\n? {b: c}\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_plain_key_then_block_sequence_explicit_key_is_rejected) {
+  const std::string input{"a: 1\n?\n  - b\n: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+  } catch (...) {
+    FAIL();
+  }
+}
+
 TEST(block_explicit_block_sequence_key_is_rejected) {
   const std::string input{"?\n  - a\n  - b\n: value"};
   try {
@@ -3209,19 +3272,30 @@ TEST(leading_colon_value_indicator_duplicate_at_the_end_of_a_document) {
   }
 }
 
-// A value indicator that turns out to open an explicit key commits nothing, so
-// the empty key it looked like must not be marked as one the mapping has seen.
-// The trailing indicator is what shows it: a mapping that had marked the empty
-// key would turn this one down as a duplicate, where what it names is the one
-// entry of the mapping whose key is empty
-TEST(leading_colon_value_indicator_before_an_explicit_key_is_not_seen) {
-  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n: c\n")};
+// YAML 1.2.2 production 194 writes the value of an entry as the indicator
+// followed by either a node or nothing at all, so an indicator with nothing on
+// either side is a whole entry rather than the opening of the explicit one
+// after it, and a second such entry names the same empty key
+TEST(leading_colon_value_indicator_opens_an_entry_of_its_own) {
+  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b\n")};
   EXPECT_TRUE(result.is_object());
   EXPECT_EQ(result.size(), 2);
-  EXPECT_TRUE(result.defines("a"));
-  EXPECT_EQ(result.at("a"), sourcemeta::core::JSON{"b"});
-  EXPECT_TRUE(result.defines(""));
-  EXPECT_EQ(result.at(""), sourcemeta::core::JSON{"c"});
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("a").to_string(), "b");
+}
+
+TEST(leading_colon_value_indicator_before_a_second_entry_with_no_key) {
+  const std::string input{":\n? a\n: b\n: c\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+    EXPECT_EQ(error.line(), 4);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
 }
 
 // What a copy occupies is counted in bytes, where the logical length counts
@@ -4917,7 +4991,7 @@ TEST(yaml_unterminated_flow_mapping_after_an_explicit_key) {
         sourcemeta::core::parse_yaml(std::string{"{? a"})};
     FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
-    EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+    EXPECT_STREQ(error.what(), "Unexpected end of input in flow mapping");
   } catch (...) {
     FAIL();
   }
@@ -5723,4 +5797,1575 @@ TEST(read_yaml_reporting_a_file_that_does_not_parse) {
   } catch (const sourcemeta::core::YAMLFileParseError &error) {
     EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
   }
+}
+
+// YAML 1.2.2 production 192 writes an entry as
+// `( ns-s-block-map-implicit-key | e-node ) c-l-block-map-implicit-value`, so
+// an explicit key whose value is left out takes the empty node for it
+TEST(block_plain_key_then_explicit_key_without_a_value) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(block_plain_key_then_two_explicit_keys_where_the_first_has_no_value) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n? c\n: 3")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+  EXPECT_EQ(result.at("c").to_integer(), 3);
+}
+
+TEST(block_plain_key_then_explicit_key_without_a_value_before_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n...\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(block_plain_key_then_explicit_key_without_a_value_before_document_start) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n---\nc: 3")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(block_plain_key_then_explicit_entry_then_explicit_key_without_a_value) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n: 2\n? c")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+// YAML 1.2.2 production 188 writes an explicit key as the indicator followed
+// by a node, which production 106 leaves free to hold nothing, so the
+// indicator on its own still opens an entry whose key and value are both
+// empty, as the trailing entry of Example 7.16 shows. The walk that opens on a
+// plain key has to answer for that the same way as the one that opens on an
+// explicit key
+TEST(block_explicit_key_indicator_alone) {
+  const auto result{sourcemeta::core::parse_yaml("?")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+TEST(block_plain_key_then_explicit_key_indicator_alone) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n?")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+TEST(block_explicit_entry_then_explicit_key_indicator_alone) {
+  const auto result{sourcemeta::core::parse_yaml("? a\n: 1\n?")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+TEST(block_explicit_key_indicator_alone_twice) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"?\n?"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_plain_key_then_explicit_key_indicator_alone_twice) {
+  try {
+    [[maybe_unused]] const auto result{
+        sourcemeta::core::parse_yaml(std::string{"a: 1\n?\n?"})};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_plain_key_then_explicit_key_indicator_before_document_start) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n?\n---\nb: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+TEST(block_plain_key_then_explicit_key_indicator_before_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n?\n...\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+// YAML 1.2.2 Section 8.2.2 holds every entry of a block mapping to the same
+// indentation, so an entry at a lesser one belongs to whatever encloses the
+// mapping. A nested mapping answers for that the same way whether it opens on
+// a plain key or on an explicit one
+TEST(block_nested_mapping_opening_on_a_plain_key_ends_at_a_dedented_key) {
+  const auto result{sourcemeta::core::parse_yaml("o:\n  a: 1\nb: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("o").size(), 1);
+  EXPECT_EQ(result.at("o").at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+TEST(block_nested_mapping_opening_on_an_explicit_key_ends_at_a_dedented_key) {
+  const auto result{sourcemeta::core::parse_yaml("o:\n  ? a\n  : 1\nb: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("o").size(), 1);
+  EXPECT_EQ(result.at("o").at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+TEST(
+    block_nested_mapping_opening_on_an_explicit_key_ends_at_a_dedented_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("o:\n  ? a\n  : 1\n? b\n: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("o").size(), 1);
+  EXPECT_EQ(result.at("o").at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+TEST(
+    block_nested_mapping_opening_on_a_plain_key_ends_at_a_dedented_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("o:\n  a: 1\n? b\n: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("o").size(), 1);
+  EXPECT_EQ(result.at("o").at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+TEST(block_nested_mapping_keeps_the_explicit_entries_at_its_own_indentation) {
+  const auto result{
+      sourcemeta::core::parse_yaml("o:\n  ? a\n  : 1\n  ? c\n  : 3\nb: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("o").size(), 2);
+  EXPECT_EQ(result.at("o").at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("o").at("c").to_integer(), 3);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+// YAML 1.2.2 production 192 takes the empty node for a value that is left out,
+// which an explicit key may do wherever the mapping ends
+TEST(block_plain_key_then_explicit_entry_with_a_separator_and_no_value) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n:")};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(block_plain_key_then_explicit_entry_with_no_value_before_document_end) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n:\n...\n")};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(block_plain_key_then_explicit_entry_with_no_value_before_document_start) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n:\n---\nc: 1")};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(block_plain_key_then_explicit_entry_with_no_value_before_another_key) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n:\n? c\n: 2")};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+  EXPECT_EQ(result.at("c").to_integer(), 2);
+}
+
+TEST(block_plain_key_then_explicit_entry_with_no_value_before_a_separator) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? b\n:\n: 2")};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("b").is_null());
+  EXPECT_EQ(result.at("").to_integer(), 2);
+}
+
+// RFC 8259 Section 4 needs a string for a member name, and a tag standing
+// without a scalar beside it names no key, so the empty node answers for it
+TEST(block_plain_key_then_a_tag_with_no_scalar) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n!!str\n: 2")};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("").to_integer(), 2);
+}
+
+// YAML 1.2.2 Section 7.1: an alias in key position stands for the value of the
+// anchor it names, and the entry it opens may still leave its value out
+TEST(block_alias_key_with_a_separator_and_no_value) {
+  const auto result{sourcemeta::core::parse_yaml("first: &k v\nb: 1\n*k :")};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("first").to_string(), "v");
+  EXPECT_EQ(result.at("b").to_integer(), 1);
+  EXPECT_TRUE(result.at("v").is_null());
+}
+
+TEST(block_alias_key_with_no_value_before_document_end) {
+  const auto result{
+      sourcemeta::core::parse_yaml("first: &k v\nb: 1\n*k :\n...\n")};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("first").to_string(), "v");
+  EXPECT_EQ(result.at("b").to_integer(), 1);
+  EXPECT_TRUE(result.at("v").is_null());
+}
+
+// YAML 1.2.2 production 140 writes a flow mapping over entries separated by
+// commas, so one standing before the close names no further entry
+TEST(flow_mapping_with_a_trailing_comma) {
+  const auto result{sourcemeta::core::parse_yaml("{a: b,}")};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+}
+
+// YAML 1.2.2 production 150 reads a single pair of a flow sequence as a
+// mapping, whose value may be left out
+TEST(flow_sequence_explicit_pair_without_a_value) {
+  const auto result{sourcemeta::core::parse_yaml("[? a : ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).at("a").is_null());
+}
+
+TEST(flow_sequence_explicit_pair_without_a_value_before_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("[? a : , b]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).at("a").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "b");
+}
+
+// YAML 1.2.2 production 142 writes an entry of a flow mapping with an optional
+// explicit key indicator, after which Section 7.4.2 leaves the rest of the
+// entry free to be left out altogether
+TEST(flow_mapping_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("{? a : b}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+}
+
+// Example 7.16 reads an explicit entry, an implicit entry and an entry that is
+// nothing but the indicator from the one flow mapping
+TEST(flow_mapping_explicit_and_implicit_entries) {
+  const auto result{sourcemeta::core::parse_yaml(
+      "{\n? explicit: entry,\nimplicit: entry,\n?\n}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("explicit").to_string(), "entry");
+  EXPECT_EQ(result.at("implicit").to_string(), "entry");
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+// Example 7.3 leaves the value of one entry and the key of the next empty
+TEST(flow_mapping_completely_empty_nodes) {
+  const auto result{sourcemeta::core::parse_yaml("{\n  ? foo :,\n  : bar,\n}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("foo").is_null());
+  EXPECT_EQ(result.at("").to_string(), "bar");
+}
+
+TEST(flow_mapping_explicit_key_without_a_value) {
+  const auto result{sourcemeta::core::parse_yaml("{? a :}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at("a").is_null());
+}
+
+TEST(flow_mapping_explicit_key_indicator_alone) {
+  const auto result{sourcemeta::core::parse_yaml("{? }")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+TEST(flow_mapping_explicit_key_indicator_before_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("{? , a: 1}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+}
+
+// Production 142 reads the indicator as one only where no non-space character
+// follows it
+TEST(flow_mapping_explicit_key_indicator_followed_by_content) {
+  const std::string input{"{?}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid plain scalar start in flow context");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_duplicate_explicit_key) {
+  const std::string input{"{? a : 1, a: 2}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "a");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 11);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 7.1 reads an alias node in key position as the value of
+// the anchor it names
+TEST(flow_mapping_alias_key) {
+  const auto result{sourcemeta::core::parse_yaml("{a: &x v, *x : b}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "v");
+  EXPECT_EQ(result.at("v").to_string(), "b");
+}
+
+TEST(flow_mapping_explicit_alias_key) {
+  const auto result{sourcemeta::core::parse_yaml("{a: &x v, ? *x : b}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "v");
+  EXPECT_EQ(result.at("v").to_string(), "b");
+}
+
+TEST(flow_mapping_alias_key_referencing_no_anchor) {
+  const std::string input{"{*x : b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "x");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_anchored_key) {
+  const auto result{sourcemeta::core::parse_yaml("{&x a : b, c: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "a");
+}
+
+TEST(flow_mapping_anchored_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("{? &x a : b, c: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+  EXPECT_EQ(result.at("c").to_string(), "a");
+}
+
+TEST(flow_mapping_anchored_empty_key) {
+  const auto result{sourcemeta::core::parse_yaml("{&x : b, c: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+TEST(flow_mapping_anchored_empty_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("{? &x : b, c: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+TEST(flow_mapping_tagged_explicit_key) {
+  const auto result{sourcemeta::core::parse_yaml("{? !!int 1 : b}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("1").to_string(), "b");
+}
+
+TEST(flow_mapping_explicit_collection_key) {
+  const std::string input{"{? [a] : b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_sequence_key) {
+  const std::string input{"{[a]: b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_mapping_key) {
+  const std::string input{"{{a: 1}:b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 production 161 writes a flow node as node properties followed by
+// either content or nothing at all
+TEST(flow_sequence_anchored_empty_entry) {
+  const auto result{sourcemeta::core::parse_yaml("[ &a ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).is_null());
+}
+
+TEST(flow_sequence_anchored_empty_entry_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("[ &a , *a ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_null());
+  EXPECT_TRUE(result.at(1).is_null());
+}
+
+TEST(flow_sequence_anchored_tagged_empty_entry_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("[ &a !!str , *a ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).to_string(), "");
+  EXPECT_EQ(result.at(1).to_string(), "");
+}
+
+TEST(flow_sequence_tagged_empty_entry) {
+  const auto result{sourcemeta::core::parse_yaml("[ !!str ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).to_string(), "");
+}
+
+TEST(flow_mapping_anchored_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml("{a: &x , b: 1}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("a").is_null());
+  EXPECT_EQ(result.at("b").to_integer(), 1);
+}
+
+TEST(flow_mapping_anchored_empty_value_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("{a: &x , b: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("a").is_null());
+  EXPECT_TRUE(result.at("b").is_null());
+}
+
+TEST(flow_mapping_anchored_tagged_empty_value_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("{a: &x !!str , b: *x}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "");
+  EXPECT_EQ(result.at("b").to_string(), "");
+}
+
+// YAML 1.2.2 production 150 reads a single pair of a flow sequence as a
+// mapping, whose key and value production 143 leaves free to hold nothing
+TEST(flow_sequence_explicit_pair_indicator_alone) {
+  const auto result{sourcemeta::core::parse_yaml("[? ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+}
+
+TEST(flow_sequence_explicit_pair_indicator_before_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("[? , a]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "a");
+}
+
+TEST(flow_sequence_explicit_pair_with_an_empty_key_and_value) {
+  const auto result{sourcemeta::core::parse_yaml("[? :]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+}
+
+// Production 146 writes a pair whose key is left out as the value indicator
+// alone, and production 147 leaves the value after it free to be empty too
+TEST(flow_sequence_pair_with_no_key_or_value) {
+  const auto result{sourcemeta::core::parse_yaml("[ : ]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+}
+
+TEST(flow_sequence_pair_with_no_key_before_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("[ : , a]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "a");
+}
+
+TEST(flow_sequence_anchored_explicit_pair_key) {
+  const auto result{sourcemeta::core::parse_yaml("[? &x a : b, *x]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at("a").to_string(), "b");
+  EXPECT_EQ(result.at(1).to_string(), "a");
+}
+
+TEST(flow_sequence_anchored_empty_explicit_pair_key) {
+  const auto result{sourcemeta::core::parse_yaml("[? &x : b, *x]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at("").to_string(), "b");
+  EXPECT_TRUE(result.at(1).is_null());
+}
+
+TEST(flow_sequence_tagged_explicit_pair_key) {
+  const auto result{sourcemeta::core::parse_yaml("[? !!int 1 : b]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at("1").to_string(), "b");
+}
+
+TEST(flow_sequence_pair_sequence_key) {
+  const std::string input{"[ [a]: b ]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Example 7.21 writes the value of a JSON-like key next to the indicator, which
+// production 155 lets be a flow collection
+TEST(flow_sequence_pair_mapping_key_with_an_adjacent_value) {
+  const std::string input{"[ {JSON: like}:adjacent ]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_pair_quoted_key_with_an_adjacent_value) {
+  const std::string input{R"([ "JSON like":adjacent ])"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at("JSON like").to_string(), "adjacent");
+}
+
+// Production 154 holds the key of a pair carrying no indicator to a plain
+// scalar or an alias, so a pair cannot itself be one
+TEST(flow_sequence_pair_key_cannot_be_another_pair) {
+  const std::string input{"[a: b: c]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 6);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_entry_without_a_separator) {
+  const std::string input{"[a [b]]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Missing comma in flow sequence");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A plain key is not JSON-like, so the colon inside it is content rather than
+// an indicator standing next to its value
+TEST(flow_mapping_plain_key_holding_a_colon) {
+  const auto result{sourcemeta::core::parse_yaml("{a:b}")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at("a:b").is_null());
+}
+
+// YAML 1.2.2 production 193 reads node properties standing before a value
+// indicator as the implicit key of the entry, which the mapping is then read
+// against rather than against where the indicator stands
+TEST(block_mapping_tagged_empty_key_then_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("!!null : a\nb: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "a");
+  EXPECT_EQ(result.at("b").to_integer(), 1);
+}
+
+TEST(block_mapping_tagged_empty_key_in_a_sequence_entry) {
+  const auto result{sourcemeta::core::parse_yaml("-\n  !!null : a\n  b: 1")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).size(), 2);
+  EXPECT_EQ(result.at(0).at("").to_string(), "a");
+  EXPECT_EQ(result.at(0).at("b").to_integer(), 1);
+}
+
+TEST(block_mapping_tagged_empty_key_as_a_value) {
+  const auto result{sourcemeta::core::parse_yaml("x:\n  !!null : a\n  b: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("x").size(), 2);
+  EXPECT_EQ(result.at("x").at("").to_string(), "a");
+  EXPECT_EQ(result.at("x").at("b").to_integer(), 1);
+}
+
+TEST(block_mapping_tagged_empty_key_twice) {
+  const std::string input{"-\n  !!null : a\n  !!null : b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_anchored_empty_key) {
+  const auto result{sourcemeta::core::parse_yaml("&x : b\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+TEST(block_mapping_anchored_empty_key_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n&x : b\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("").to_string(), "b");
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+TEST(block_mapping_tagged_empty_key_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n!!str : b")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("").to_string(), "b");
+}
+
+TEST(block_mapping_anchored_key_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n&x b: c\nd: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_string(), "c");
+  EXPECT_EQ(result.at("d").to_string(), "b");
+}
+
+TEST(block_mapping_anchored_and_tagged_key_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n&x !!str b: c\nd: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_string(), "c");
+  EXPECT_EQ(result.at("d").to_string(), "b");
+}
+
+TEST(block_mapping_explicit_anchored_key_with_an_anchored_value) {
+  const auto result{sourcemeta::core::parse_yaml("? &a a\n: &b b\n: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+  EXPECT_EQ(result.at("").to_integer(), 1);
+}
+
+TEST(block_mapping_explicit_anchored_key_aliased_in_a_later_key) {
+  const auto result{sourcemeta::core::parse_yaml("? &a a\n: &b b\n: *a")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+  EXPECT_EQ(result.at("").to_string(), "a");
+}
+
+TEST(block_mapping_explicit_tagged_key_after_another_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n? !!int 2\n: 3")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("2").to_integer(), 3);
+}
+
+TEST(block_mapping_explicit_anchored_and_tagged_key_after_another_entry) {
+  const auto result{
+      sourcemeta::core::parse_yaml("a: 1\n? &x !!str b\n: 2\nc: *x")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+  EXPECT_EQ(result.at("c").to_string(), "b");
+}
+
+TEST(block_mapping_explicit_key_indicator_alone_in_a_sequence_entry) {
+  const auto result{sourcemeta::core::parse_yaml("-\n  ? &d\n-\n  a")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "a");
+}
+
+TEST(block_mapping_explicit_anchored_key_indicator_alone_aliased) {
+  const auto result{sourcemeta::core::parse_yaml("? &d\nc: *d")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_TRUE(result.at("c").is_null());
+}
+
+// YAML 1.2.2 production 190 reads the key of an explicit entry as a node
+// indented further than the mapping, so a key standing at the indentation of
+// the mapping itself opens the next entry instead
+TEST(block_mapping_explicit_key_indicator_then_a_key_at_the_indentation) {
+  const auto result{sourcemeta::core::parse_yaml("?\na: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+}
+
+TEST(
+    block_mapping_explicit_key_indicator_then_a_key_at_the_indentation_after_an_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n?\nb: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+TEST(block_mapping_explicit_key_indicator_then_another_explicit_entry) {
+  const auto result{sourcemeta::core::parse_yaml("?\n? b\n: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+TEST(
+    block_mapping_explicit_key_indicator_then_another_explicit_entry_after_an_entry) {
+  const auto result{sourcemeta::core::parse_yaml("a: 1\n?\n? b\n: 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("b").to_integer(), 2);
+}
+
+// YAML 1.2.2 production 191 writes the value of an explicit entry with the
+// indicator standing at the indentation of the mapping, which follows a line
+// break, so an indicator beside the key leaves that key reading as the compact
+// mapping of production 195
+TEST(block_mapping_explicit_compact_mapping_key) {
+  const std::string input{"? earth: blue\n: moon"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_explicit_compact_mapping_key_without_a_value) {
+  const std::string input{"? a : b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_explicit_compact_mapping_key_after_another_entry) {
+  const std::string input{"a: 1\n? b: c\n: d"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A colon that no space follows is content of the plain scalar rather than the
+// indicator of a compact mapping
+TEST(block_mapping_explicit_key_holding_a_colon) {
+  const auto result{sourcemeta::core::parse_yaml("? a:b\n: c")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a:b").to_string(), "c");
+}
+
+TEST(block_mapping_explicit_block_scalar_key) {
+  const auto result{sourcemeta::core::parse_yaml("? |\n  text\n: value")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("text\n").to_string(), "value");
+}
+
+// YAML 1.2.2 production 201 reads the block sequence that is the value of a
+// mapping entry one indentation level further out than the mapping, so a
+// sequence standing at the indentation of the mapping is the key it opens
+TEST(block_mapping_explicit_sequence_key_at_the_indentation) {
+  const std::string input{"?\n- a\n- b\n:\n- c\n- d"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_explicit_sequence_key_indented) {
+  const std::string input{"? - a\n: b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_explicit_sequence_key_after_another_entry) {
+  const std::string input{"a: 1\n? - x\n: y"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A flow collection standing before a value indicator is the implicit key of a
+// block mapping entry, which RFC 8259 Section 4 cannot hold as a member name
+TEST(block_mapping_flow_sequence_key) {
+  const std::string input{"[flow]: block"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 7);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_flow_mapping_key) {
+  const std::string input{"{a: 1}: block"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 7);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_flow_sequence_key_in_a_sequence_entry) {
+  const std::string input{"- [flow]: block"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 9);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_flow_sequence_key_as_a_value) {
+  const std::string input{"k:\n  [flow]: block"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 9);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_flow_sequence_followed_by_a_comment) {
+  const auto result{sourcemeta::core::parse_yaml("[a] # c: d")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0).to_string(), "a");
+}
+
+TEST(block_mapping_flow_sequence_then_an_entry_with_no_key) {
+  const auto result{sourcemeta::core::parse_yaml("k: [a]\n: b")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at("k").size(), 1);
+  EXPECT_EQ(result.at("k").at(0).to_string(), "a");
+  EXPECT_EQ(result.at("").to_string(), "b");
+}
+
+// Production 201 reads a sequence at the indentation of the mapping as the
+// value of its entry, so one standing before that belongs to whatever encloses
+// the mapping even where node properties left the value empty
+TEST(block_sequence_entry_after_a_tagged_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml("-\n  b: !!str\n- x")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at("b").to_string(), "");
+  EXPECT_EQ(result.at(1).to_string(), "x");
+}
+
+TEST(block_sequence_entry_after_an_anchored_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml("-\n  b: &y\n- x")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("b").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "x");
+}
+
+TEST(block_sequence_entry_after_an_empty_value) {
+  const auto result{sourcemeta::core::parse_yaml("-\n  b:\n- x")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_TRUE(result.at(0).at("b").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "x");
+}
+
+TEST(block_mapping_two_entries_with_no_key) {
+  const std::string input{": a\n: b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_value_indicator_alone) {
+  const auto result{sourcemeta::core::parse_yaml(":\n\n\n")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+}
+
+TEST(block_mapping_entries_with_nothing_on_either_side) {
+  const std::string input{
+      "plain key: in-line value\n: # Both empty\n\"quoted key\":\n- entry"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("plain key").to_string(), "in-line value");
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("quoted key").size(), 1);
+  EXPECT_EQ(result.at("quoted key").at(0).to_string(), "entry");
+}
+
+// Example 7.17 separates one value from its key, leaves another value out and
+// leaves one key out
+TEST(flow_mapping_separate_values) {
+  const std::string input{
+      "{\nunquoted : \"separate\",\nhttp://foo.com,\nomitted value:,\n}"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("unquoted").to_string(), "separate");
+  EXPECT_TRUE(result.at("http://foo.com").is_null());
+  EXPECT_TRUE(result.at("omitted value").is_null());
+}
+
+TEST(block_sequence_of_tagged_empty_nodes) {
+  const std::string input{
+      "- !!str\n-\n  !!null : a\n  b: !!str\n- !!str : !!null"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at(0).to_string(), "");
+  EXPECT_EQ(result.at(1).size(), 2);
+  EXPECT_EQ(result.at(1).at("").to_string(), "a");
+  EXPECT_EQ(result.at(1).at("b").to_string(), "");
+  EXPECT_EQ(result.at(2).size(), 1);
+  EXPECT_TRUE(result.at(2).at("").is_null());
+}
+
+TEST(block_sequence_of_anchored_empty_nodes) {
+  const std::string input{"- &a\n- a\n-\n  &a : a\n  b: &b\n-\n  &c : &a\n-\n "
+                          " ? &d\n-\n  ? &e\n  : &a"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 6);
+  EXPECT_TRUE(result.at(0).is_null());
+  EXPECT_EQ(result.at(1).to_string(), "a");
+  EXPECT_EQ(result.at(2).size(), 2);
+  EXPECT_EQ(result.at(2).at("").to_string(), "a");
+  EXPECT_TRUE(result.at(2).at("b").is_null());
+  EXPECT_EQ(result.at(3).size(), 1);
+  EXPECT_TRUE(result.at(3).at("").is_null());
+  EXPECT_EQ(result.at(4).size(), 1);
+  EXPECT_TRUE(result.at(4).at("").is_null());
+  EXPECT_EQ(result.at(5).size(), 1);
+  EXPECT_TRUE(result.at(5).at("").is_null());
+}
+
+TEST(block_mapping_compact_mapping_as_an_explicit_key_in_a_sequence_entry) {
+  const std::string input{"- sun: yellow\n- ? earth: blue\n  : moon: white"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 5);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_pairs_with_no_key) {
+  const auto result{
+      sourcemeta::core::parse_yaml("- [ : empty key ]\n- [: another empty]")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at(0).size(), 1);
+  EXPECT_EQ(result.at(0).at(0).at("").to_string(), "empty key");
+  EXPECT_EQ(result.at(1).size(), 1);
+  EXPECT_EQ(result.at(1).at(0).size(), 1);
+  EXPECT_EQ(result.at(1).at(0).at("").to_string(), "another empty");
+}
+
+TEST(block_mapping_anchored_flow_sequence_key) {
+  const std::string input{"---\n&mapping\n&key [ &item a, b, c ]: value"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 23);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_anchored_collection_key) {
+  const std::string input{"{ &a [a, &b b]: *b, *a : [c, *b, d]}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 6);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_collection_key_beside_a_scalar_entry) {
+  const std::string input{"{a: [b, c], [d, e]: f}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 13);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_nested_collection_keys) {
+  const std::string input{"---\n[\n  [ a, [ [[b,c]]: d, e]]: 23\n]"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Mapping key cannot be a collection");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 10);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(multi_document_entries_with_no_key) {
+  const std::string input{
+      "---\nkey: value\n: empty key\n---\n{\n key: value, : empty key\n}\n"
+      "---\n# empty key and value\n:\n---\n# empty key and value\n:\n"};
+  std::istringstream stream{input};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_object());
+  EXPECT_EQ(first.size(), 2);
+  EXPECT_EQ(first.at("key").to_string(), "value");
+  EXPECT_EQ(first.at("").to_string(), "empty key");
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(second.is_object());
+  EXPECT_EQ(second.size(), 2);
+  EXPECT_EQ(second.at("key").to_string(), "value");
+  EXPECT_EQ(second.at("").to_string(), "empty key");
+
+  const auto third{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(third.is_object());
+  EXPECT_EQ(third.size(), 1);
+  EXPECT_TRUE(third.at("").is_null());
+
+  const auto fourth{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(fourth.is_object());
+  EXPECT_EQ(fourth.size(), 1);
+  EXPECT_TRUE(fourth.at("").is_null());
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(flow_mapping_input_ending_after_the_explicit_key_indicator) {
+  const std::string input{"{? "};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected end of input in flow mapping");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_explicit_key_indicator_twice) {
+  const std::string input{"{? ? a : b}"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Expected scalar key in mapping");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_sequence_input_ending_after_an_explicit_key_property) {
+  const std::string input{"[? &x"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected end after explicit key in flow");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 0);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_explicit_alias_key_at_the_indentation) {
+  const auto result{sourcemeta::core::parse_yaml("? x\n: &v 1\n?\n*v : 2")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("x").to_integer(), 1);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("1").to_integer(), 2);
+}
+
+TEST(block_mapping_explicit_alias_key_at_the_indentation_after_an_entry) {
+  const auto result{
+      sourcemeta::core::parse_yaml("a: 1\n? x\n: &v 2\n?\n*v : 3")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 4);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+  EXPECT_EQ(result.at("x").to_integer(), 2);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("2").to_integer(), 3);
+}
+
+TEST(block_mapping_value_indicator_alone_before_an_explicit_entry) {
+  const auto result{sourcemeta::core::parse_yaml(":\n? a\n: b")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("").is_null());
+  EXPECT_EQ(result.at("a").to_string(), "b");
+}
+
+TEST(block_mapping_value_indicator_alone_twice) {
+  const std::string input{":\n: a"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLDuplicateKeyError &error) {
+    EXPECT_EQ(error.key(), "");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 production 197 reads the flow node that is the value of a mapping
+// entry indented further than the mapping, so a scalar standing at that
+// indentation is not that value, whether node properties precede it or not
+TEST(block_mapping_dedented_scalar_after_an_anchored_empty_value) {
+  const std::string input{"a: &x\nb"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_dedented_scalar_after_a_tagged_empty_value) {
+  const std::string input{"a: !!str\nb"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_dedented_scalar_after_an_anchored_empty_nested_value) {
+  const std::string input{"x:\n  a: &v\n  b"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_indented_scalar_after_an_anchored_value) {
+  const auto result{sourcemeta::core::parse_yaml("a: &x\n  b")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").to_string(), "b");
+}
+
+TEST(block_mapping_dedented_scalar_after_an_empty_value) {
+  const std::string input{"a:\nb"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Unexpected content after document");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_sequence_after_a_tag_on_the_same_line) {
+  const std::string input{"!!str - a"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Block sequence after node property must start on a new line");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 7);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_sequence_after_an_anchor_on_the_same_line) {
+  const std::string input{"&x - a"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Block sequence after node property must start on a new line");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 4);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// An anchor on the line a mapping opens on names the empty key of that entry,
+// where one on a line of its own names the mapping the entries make up
+TEST(block_mapping_anchor_before_an_explicit_key_on_a_later_line) {
+  const auto result{sourcemeta::core::parse_yaml("&x\n? a\n: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("a").to_integer(), 1);
+}
+
+TEST(block_mapping_anchor_before_a_value_indicator_on_a_later_line) {
+  const auto result{sourcemeta::core::parse_yaml("&x\n: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at("").to_integer(), 1);
+}
+
+TEST(
+    block_mapping_explicit_key_indicator_alone_before_a_dedented_sequence_entry) {
+  const auto result{sourcemeta::core::parse_yaml("-\n  a: 1\n  ? &d\n- x")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0).size(), 2);
+  EXPECT_EQ(result.at(0).at("a").to_integer(), 1);
+  EXPECT_TRUE(result.at(0).at("").is_null());
+  EXPECT_EQ(result.at(1).to_string(), "x");
+}
+
+TEST(block_mapping_explicit_key_with_no_value_before_another_explicit_entry) {
+  const auto result{sourcemeta::core::parse_yaml("? a\n:\n? b\n: 1")};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at("a").is_null());
+  EXPECT_EQ(result.at("b").to_integer(), 1);
+}
+
+// YAML 1.2.2 Section 6.7 restricts an implicit key to a single line, and the
+// document start marker holds the first line, so node properties there leave
+// no room for the key they would decorate
+TEST(block_mapping_tagged_implicit_key_on_the_document_start_line) {
+  const std::string input{"--- !!str a: 1"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Node properties before implicit mapping key on "
+                               "document start line");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 11);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(block_mapping_continuation_after_the_document_start_line) {
+  const std::string input{"--- a: 1\nb: 2"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Block mapping continuation after document start line");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(multi_document_entry_with_no_value_before_a_document_start) {
+  std::istringstream stream{"a: 1\nb:\n---\nc: 2"};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_object());
+  EXPECT_EQ(first.size(), 2);
+  EXPECT_EQ(first.at("a").to_integer(), 1);
+  EXPECT_TRUE(first.at("b").is_null());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(second.is_object());
+  EXPECT_EQ(second.size(), 1);
+  EXPECT_EQ(second.at("c").to_integer(), 2);
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(multi_document_explicit_entry_with_no_value_before_a_document_start) {
+  std::istringstream stream{"? a\n: 1\n? b\n:\n---\nc"};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_object());
+  EXPECT_EQ(first.size(), 2);
+  EXPECT_EQ(first.at("a").to_integer(), 1);
+  EXPECT_TRUE(first.at("b").is_null());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second.to_string(), "c");
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+// YAML 1.2.2 Section 8.2.1 leaves the value of a sequence entry free to be
+// empty, which the entry standing after it or the end of the stream shows
+TEST(block_sequence_entry_with_no_value_between_two_entries) {
+  const auto result{sourcemeta::core::parse_yaml("- a\n-\n- b")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at(0).to_string(), "a");
+  EXPECT_TRUE(result.at(1).is_null());
+  EXPECT_EQ(result.at(2).to_string(), "b");
+}
+
+TEST(block_sequence_of_entries_with_no_value) {
+  const auto result{sourcemeta::core::parse_yaml("-\n-")};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_null());
+  EXPECT_TRUE(result.at(1).is_null());
+}
+
+// YAML 1.2.2 production 194 leaves the value of an entry free to be empty, so
+// an alias key whose value is left out still names an entry, and a document
+// boundary standing there closes the mapping
+TEST(multi_document_alias_key_with_no_value_before_a_document_start) {
+  std::istringstream stream{"a: &v 1\n*v :\n---\nx"};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_object());
+  EXPECT_EQ(first.size(), 2);
+  EXPECT_EQ(first.at("a").to_integer(), 1);
+  EXPECT_TRUE(first.at("1").is_null());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second.to_string(), "x");
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(multi_document_alias_key_with_no_value_before_a_document_end) {
+  std::istringstream stream{"a: &v 1\n*v :\n...\nx"};
+
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_TRUE(first.is_object());
+  EXPECT_EQ(first.size(), 2);
+  EXPECT_EQ(first.at("a").to_integer(), 1);
+  EXPECT_TRUE(first.at("1").is_null());
+
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second.to_string(), "x");
+
+  EXPECT_EQ(stream.peek(), EOF);
 }

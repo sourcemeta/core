@@ -663,3 +663,32 @@ TEST(callback_hears_nothing_of_the_documents_after_the_first) {
   EXPECT_TRACE(1, Post, String, 1, 1, Root, 0, "");
   EXPECT_EQ(document, sourcemeta::core::JSON{"a"});
 }
+
+// An alias replays the records of the node it names, with the first of them
+// announced where the alias stands rather than where the anchor does. A
+// sequence entry is named by its index, which the replay has to carry over
+TEST(sequence_alias_pre_post_balance) {
+  const auto *const input{"- &node foo\n- *node"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Array, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, String, 1, 9, Index, 0, "");
+  EXPECT_TRACE(2, Post, String, 1, 11, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 1, 9, Index, 1, "");
+  EXPECT_TRACE(4, Post, String, 2, 7, Root, 0, "");
+  EXPECT_TRACE(5, Post, Array, 3, 0, Root, 0, "");
+}
+
+// A pair of a flow sequence names its value by the key of the pair, which
+// carries no position of its own, so the replay keeps the one it was given
+TEST(flow_sequence_pair_alias_pre_post_balance) {
+  const auto *const input{"a: &node foo\nb: [? k : *node]"};
+  PARSE_YAML_WITH_TRACES(document, input, 8);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "a");
+  EXPECT_TRACE(2, Post, String, 1, 12, Root, 0, "");
+  EXPECT_TRACE(3, Pre, Array, 2, 1, Property, 0, "b");
+  EXPECT_TRACE(4, Pre, String, 1, 1, Property, 0, "k");
+  EXPECT_TRACE(5, Post, String, 2, 15, Root, 0, "");
+  EXPECT_TRACE(6, Post, Array, 2, 16, Root, 0, "");
+  EXPECT_TRACE(7, Post, Object, 3, 0, Root, 0, "");
+}

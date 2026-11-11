@@ -1,6 +1,8 @@
 #ifndef SOURCEMETA_CORE_YAML_STRINGIFY_H_
 #define SOURCEMETA_CORE_YAML_STRINGIFY_H_
 
+#include "exhaustive.h"
+
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/text.h>
@@ -152,8 +154,8 @@ inline auto needs_quoting(const std::string &value) -> bool {
       return true;
     }
 
-    if (character == ' ' && index + 1 < value.size() &&
-        value[index + 1] == '#') {
+    assert(character != ' ' || index + 1 < value.size());
+    if (character == ' ' && value[index + 1] == '#') {
       return true;
     }
   }
@@ -301,15 +303,11 @@ inline auto matches_recorded_value(const YAMLRoundTrip::NodeStyle &style,
 inline auto block_detection_fails(const std::string &value) -> bool {
   std::size_t position{0};
   while (position < value.size()) {
+    // A line that reaches the end of the content holds a character of it, as
+    // the walk stops where the content does
     const auto line_end{value.find('\n', position)};
-    const auto length{line_end == std::string::npos ? value.size() - position
-                                                    : line_end - position};
-    if (length > 0) {
+    if (line_end != position) {
       return value[position] == ' ';
-    }
-
-    if (line_end == std::string::npos) {
-      break;
     }
 
     position = line_end + 1;
@@ -368,9 +366,11 @@ inline auto folding_preserves(const std::string &value) -> bool {
 // document still holds the value it was read from
 inline auto block_scalar_content(const YAMLRoundTrip::NodeStyle &style,
                                  const JSON &value) -> const std::string & {
-  return style.block_content.has_value() && matches_recorded_value(style, value)
-             ? style.block_content.value()
-             : value.to_string();
+  if (style.block_content.has_value() && matches_recorded_value(style, value)) {
+    return style.block_content.value();
+  }
+
+  return value.to_string();
 }
 
 inline auto find_anchor(const AnchorValues &anchors,
@@ -521,9 +521,11 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
     const auto quoted_match{roundtrip->key_quoted_contents.find(pointer)};
     if (quoted_match != roundtrip->key_quoted_contents.end()) {
       const auto style_match{roundtrip->key_styles.find(pointer)};
-      const auto quote_char{style_match != roundtrip->key_styles.end() &&
-                                    style_match->second ==
-                                        YAMLRoundTrip::ScalarStyle::SingleQuoted
+      // The text a key was quoted with is only ever recorded together with the
+      // style it was read under, so one is never held without the other
+      assert(style_match != roundtrip->key_styles.end());
+      const auto quote_char{style_match->second ==
+                                    YAMLRoundTrip::ScalarStyle::SingleQuoted
                                 ? '\''
                                 : '"'};
       stream.put(quote_char);
@@ -547,7 +549,11 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
         case YAMLRoundTrip::ScalarStyle::DoubleQuoted:
           write_double_quoted(stream, key);
           return;
-        default:
+        // A key read as a block scalar is recorded under no style of its own,
+        // as what one stands for cannot be written back on the one line a key
+        // takes, so these never name a key that was read
+        case YAMLRoundTrip::ScalarStyle::Literal:
+          SOURCEMETA_CORE_YAML_LAST_CASE(YAMLRoundTrip::ScalarStyle::Folded)
           break;
       }
     }
@@ -651,12 +657,13 @@ inline auto write_inline_value(OutputStream &stream, const JSON &value,
         write_flow_mapping(stream, value, roundtrip, anchors, pointer);
       }
       break;
-    case JSON::Type::Array:
+      SOURCEMETA_CORE_YAML_LAST_CASE(JSON::Type::Array)
       if (value.empty()) {
         stream.write("[]", 2);
-      } else {
-        write_flow_sequence(stream, value, roundtrip, anchors, pointer);
+        break;
       }
+
+      write_flow_sequence(stream, value, roundtrip, anchors, pointer);
       break;
   }
 }
@@ -857,13 +864,15 @@ inline auto write_node(OutputStream &stream, const JSON &value,
   // content that is written with one but sits too far in has to give up on
   // block style and be quoted instead. An indicator goes out whenever the
   // content defeats detection and also whenever the document asked for one of
-  // its own, so both have to be weighed here, not just the first
+  // its own, so both have to be weighed here, not just the first. A nesting
+  // width of zero is read as one, so the narrowest layout still leaves a digit
+  assert(block_indicator >= 1);
   const bool block_style{
       (node_style != nullptr) && value.is_string() &&
       node_style->scalar.has_value() &&
       (node_style->scalar.value() == YAMLRoundTrip::ScalarStyle::Literal ||
        node_style->scalar.value() == YAMLRoundTrip::ScalarStyle::Folded) &&
-      ((block_indicator >= 1 && block_indicator <= 9) ||
+      (block_indicator <= 9 ||
        (node_style->explicit_indent == 0 &&
         !block_detection_fails(block_scalar_content(*node_style, value))))};
 

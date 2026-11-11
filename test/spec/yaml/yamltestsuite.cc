@@ -117,7 +117,13 @@ auto run_yaml_test_case(const std::filesystem::path &test_directory,
 auto register_yaml_test_case(const std::filesystem::path &test_directory,
                              const std::string &test_name) -> void {
   // A case that carries an "error" marker must be rejected even when a sample
-  // "in.json" is also present, so the marker takes precedence
+  // "in.json" is also present, so the marker takes precedence.
+  //
+  // A case that carries neither is one the suite holds no JSON for, because
+  // what it reads has keys that RFC 8259 Section 4 cannot hold as member
+  // names. Whether each of those is read or rejected is a decision of this
+  // module rather than of the suite, so they are spelled out one by one in the
+  // unit tests instead of being measured against a value here
   YAMLTestType type;
   if (std::filesystem::exists(test_directory / "error")) {
     type = YAMLTestType::Error;
