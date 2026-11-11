@@ -1221,9 +1221,6 @@ TEST(container_with_none_of_the_names) {
   EXPECT_EQ(uri_template.expand(variables), "");
 }
 
-// RFC 6570 Section 2.4.1: "Prefix modifiers are not applicable to variables
-// that have composite values", which holds for every expansion type
-
 TEST(prefix_on_an_associative_array_simple) {
   const sourcemeta::core::URITemplate uri_template{"{var:3}"};
   try {
@@ -1384,10 +1381,6 @@ TEST(prefix_on_an_associative_array_query_continuation) {
   }
 }
 
-// RFC 6570 Section 3.2.1 writes an exploded pair as the name, "=" and the
-// value, except that an empty value under an operator that names no `ifemp`
-// leaves the name standing alone
-
 TEST(associative_array_explode_with_an_empty_value_reserved) {
   const sourcemeta::core::URITemplate uri_template{"{+keys*}"};
   const auto result = uri_template.expand(
@@ -1457,9 +1450,6 @@ TEST(associative_array_explode_with_an_empty_value_query_continuation) {
 
   EXPECT_EQ(result, "&a=");
 }
-
-// RFC 6570 Section 3.2.1 holds a zero-length string to be a defined value, so
-// a list member that is one takes its place among the others
 
 TEST(list_no_explode_with_an_empty_first_member_reserved) {
   const sourcemeta::core::URITemplate uri_template{"{+list}"};
@@ -1555,9 +1545,6 @@ TEST(list_no_explode_with_an_empty_first_member_query_continuation) {
 
   EXPECT_EQ(result, "&list=,x");
 }
-
-// A caller that says more values follow and then names none leaves what was
-// already written standing
 
 TEST(list_whose_continuation_names_no_value_reserved) {
   const sourcemeta::core::URITemplate uri_template{"{+list}"};
@@ -1667,9 +1654,6 @@ TEST(list_whose_continuation_names_no_value_query_continuation) {
   EXPECT_EQ(result, "&list=a");
 }
 
-// RFC 6570 Section 3.2.1: "if a variable is undefined, it is ignored", so an
-// expression naming only undefined variables contributes nothing
-
 TEST(undefined_variable_simple) {
   const sourcemeta::core::URITemplate uri_template{"{var}"};
   const auto result =
@@ -1733,10 +1717,6 @@ TEST(undefined_variable_query_continuation) {
 
   EXPECT_EQ(result, "");
 }
-
-// RFC 6570 Section 2.4.1: "Prefix modifiers are not applicable to variables
-// that have composite values", which a list is as much as an associative
-// array is
 
 TEST(prefix_on_a_list_simple) {
   const sourcemeta::core::URITemplate uri_template{"{var:3}"};
@@ -1934,10 +1914,6 @@ TEST(unordered_map_without_the_name) {
   const std::unordered_map<std::string, std::string> variables{{"a", "1"}};
   EXPECT_EQ(uri_template.expand(variables), "1");
 }
-
-// RFC 6570 Section 3.2.1 holds a zero-length string to be a defined value, so
-// the expansion stands even though the value writes nothing, which is what the
-// operator's own `ifemp` answers for
 
 TEST(single_empty_value_simple) {
   const sourcemeta::core::URITemplate uri_template{"{var}"};
