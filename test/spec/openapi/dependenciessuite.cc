@@ -38,7 +38,8 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIResolutionError",
                                                  "OpenAPIError"};
 
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "type", "message", "identifier", "limit", "base", "location"};
+    "type", "message",  "identifier", "limit",
+    "base", "location", "keyword",    "dialect"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 using Asked = std::vector<sourcemeta::core::JSON::String>;
@@ -188,6 +189,8 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
   EXPECT_EQ(error.defines("location"),
             carries_base || type == "SchemaReferenceError" ||
                 type == "SchemaDialectImpossibleError");
+  EXPECT_EQ(error.defines("keyword"), type == "SchemaDialectImpossibleError");
+  EXPECT_EQ(error.defines("dialect"), type == "SchemaDialectImpossibleError");
 }
 
 auto check_error(const sourcemeta::core::JSON &test,
@@ -249,7 +252,11 @@ auto check_error(const sourcemeta::core::JSON &test,
           collect(test, schema_resolver, resolver, base, reported)};
       FAIL();
     } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+      // A declaration that asserts the conditions under which it could not
+      // have been written, so both halves of it are read back
       EXPECT_STREQ(error.what(), message.c_str());
+      EXPECT_EQ(error.keyword(), expected.at("keyword").to_string());
+      EXPECT_EQ(error.dialect(), expected.at("dialect").to_string());
       EXPECT_EQ(sourcemeta::core::to_string(error.location()),
                 expected.at("location").to_string());
     }
