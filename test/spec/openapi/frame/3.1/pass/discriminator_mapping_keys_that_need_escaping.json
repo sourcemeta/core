@@ -170,18 +170,21 @@
         "pointer": "/components/schemas/Pet/discriminator/mapping/404",
         "destination": "https://example.com/openapi.json#/components/schemas/Cat",
         "scope": "https://example.com/openapi.json",
+        "byName": false,
         "dangling": false
       },
       {
         "pointer": "/components/schemas/Pet/discriminator/mapping/a~1b",
         "destination": "https://example.com/openapi.json#/components/schemas/Cat",
         "scope": "https://example.com/openapi.json",
+        "byName": false,
         "dangling": false
       },
       {
         "pointer": "/components/schemas/Pet/discriminator/mapping/a~0b",
         "destination": "https://example.com/openapi.json#/components/schemas/Cat",
         "scope": "https://example.com/openapi.json",
+        "byName": false,
         "dangling": false
       }
     ]

@@ -339,6 +339,12 @@ public:
     /// schema declares for the URI form, and the description itself for the
     /// name form
     JSON::String scope;
+    /// Whether it named that schema by the name of a component rather than by
+    /// a URI reference. Section 4.8.25 calls a value that holds up as either
+    /// of those ambiguous and leaves the choice to the implementation, so this
+    /// is the reading framing settled on. Nothing else here reports it, as a
+    /// name and a fragment that name the one component resolve alike
+    bool by_name{false};
     /// Whether that destination is no schema the frame holds, which counts a
     /// position that the schemas record without a schema of its own as nowhere
     /// to land

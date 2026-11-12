@@ -169,12 +169,14 @@
         "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
         "destination": "https://example.com/openapi.json#/components/schemas/Cat",
         "scope": "https://example.com/openapi.json",
+        "byName": false,
         "dangling": false
       },
       {
         "pointer": "/components/schemas/Pet/discriminator/defaultMapping",
         "destination": "https://example.com/openapi.json#/components/schemas/Cat",
         "scope": "https://example.com/openapi.json",
+        "byName": false,
         "dangling": false
       }
     ]
