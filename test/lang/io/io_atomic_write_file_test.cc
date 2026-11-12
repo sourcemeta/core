@@ -3,12 +3,7 @@
 
 #include <barrier>   // std::barrier
 #include <exception> // std::exception_ptr, std::current_exception
-#include <mutex>     // std::mutex, std::scoped_lock
 #include <thread>    // std::jthread
-
-#if !defined(_WIN32)
-#include <unistd.h> // pathconf, _PC_NAME_MAX
-#endif
 
 #include <array>        // std::array
 #include <cstddef>      // std::byte
@@ -21,6 +16,12 @@
 #include <string>       // std::string
 #include <string_view>  // std::string_view
 #include <system_error> // std::error_code
+
+#if defined(_WIN32)
+#include <windows.h> // ERROR_SHARING_VIOLATION
+#else
+#include <unistd.h> // pathconf, _PC_NAME_MAX
+#endif
 
 class IOAtomicWriteFileTest {
 protected:
@@ -288,8 +289,8 @@ TEST_F(IOAtomicWriteFileTest, concurrent_writers_publish_one_complete_value) {
   const std::array<std::string, 2> contents{
       {std::string(8192, 'a'), std::string(8192, 'b')}};
   std::barrier ready{2};
-  std::exception_ptr error;
-  std::mutex error_mutex;
+  std::array<std::exception_ptr, 2> errors{};
+  std::array<bool, 2> committed{{false, false}};
   auto write = [&](const std::size_t index) {
     bool entered{false};
     try {
@@ -298,21 +299,44 @@ TEST_F(IOAtomicWriteFileTest, concurrent_writers_publish_one_complete_value) {
         ready.arrive_and_wait();
         stream << contents[index];
       });
+      committed[index] = true;
     } catch (...) {
       if (!entered) {
         ready.arrive_and_drop();
       }
-      std::scoped_lock lock{error_mutex};
-      error = std::current_exception();
+      errors[index] = std::current_exception();
     }
   };
   {
     std::jthread first{write, 0uz};
     std::jthread second{write, 1uz};
   }
-  EXPECT_FALSE(static_cast<bool>(error));
+  EXPECT_TRUE(committed[0] || committed[1]);
+  for (const auto &error : errors) {
+#if defined(_WIN32)
+    // Windows may refuse an overlapping replacement even though its peer
+    // published successfully. Check that only the destination rename failed.
+    if (error) {
+      try {
+        std::rethrow_exception(error);
+      } catch (const std::filesystem::filesystem_error &failure) {
+        EXPECT_EQ(failure.path2(), path);
+        EXPECT_EQ(failure.path1().parent_path(), path.parent_path());
+        EXPECT_TRUE(failure.path1().filename().string().starts_with(
+            path.filename().string() + ".tmp."));
+        const std::error_code sharing_violation{ERROR_SHARING_VIOLATION,
+                                                std::system_category()};
+        EXPECT_TRUE(failure.code() == std::errc::permission_denied ||
+                    failure.code() == sharing_violation);
+      }
+    }
+#else
+    EXPECT_FALSE(static_cast<bool>(error));
+#endif
+  }
   const auto actual{sourcemeta::core::read_file_to_string(path)};
-  EXPECT_TRUE(actual == contents[0] || actual == contents[1]);
+  EXPECT_TRUE((committed[0] && actual == contents[0]) ||
+              (committed[1] && actual == contents[1]));
   this->expect_no_staging(path);
 }
 
