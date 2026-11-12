@@ -1636,3 +1636,60 @@ TEST(is_float_parsed_past_the_float_significand) {
   const auto document{sourcemeta::core::parse_json("16777217")};
   EXPECT_FALSE(document.is_float());
 }
+
+TEST(less_than_integer_and_real_past_the_exact_range) {
+  // IEEE 754 holds an integer exactly only within the 53-bit significand of a
+  // binary64, so one past that is ordered without ever being converted
+  const sourcemeta::core::JSON integer{
+      static_cast<sourcemeta::core::JSON::Integer>(9007199254740993)};
+  const sourcemeta::core::JSON real{1.0};
+  EXPECT_FALSE(integer < real);
+  EXPECT_TRUE(real < integer);
+}
+
+TEST(less_than_integer_and_real_past_the_exact_range_negative) {
+  const sourcemeta::core::JSON integer{
+      static_cast<sourcemeta::core::JSON::Integer>(-9007199254740993)};
+  const sourcemeta::core::JSON real{1.0};
+  EXPECT_TRUE(integer < real);
+  EXPECT_FALSE(real < integer);
+}
+
+TEST(less_than_real_and_decimal_that_is_not_integral) {
+  const sourcemeta::core::JSON real{1.0};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"1.5"}};
+  EXPECT_TRUE(real < decimal);
+  EXPECT_FALSE(decimal < real);
+}
+
+TEST(less_than_real_and_decimal_past_what_an_integer_holds) {
+  const sourcemeta::core::JSON real{1.0};
+  const sourcemeta::core::JSON decimal{
+      sourcemeta::core::Decimal{"99999999999999999999999999"}};
+  EXPECT_TRUE(real < decimal);
+  EXPECT_FALSE(decimal < real);
+}
+
+TEST(divisible_by_integer_real_true_below_double_precision) {
+  const sourcemeta::core::JSON dividend{std::int64_t{-9007199254740993}};
+  EXPECT_TRUE(dividend.is_integer());
+  const sourcemeta::core::JSON divisor{3.0};
+  EXPECT_TRUE(divisor.is_real());
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_integer_real_false_below_double_precision) {
+  const sourcemeta::core::JSON dividend{std::int64_t{-9007199254740993}};
+  EXPECT_TRUE(dividend.is_integer());
+  const sourcemeta::core::JSON divisor{2.0};
+  EXPECT_TRUE(divisor.is_real());
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(divisible_by_real_integer_below_double_precision) {
+  const sourcemeta::core::JSON dividend{1.5};
+  EXPECT_TRUE(dividend.is_real());
+  const sourcemeta::core::JSON divisor{std::int64_t{-9007199254740993}};
+  EXPECT_TRUE(divisor.is_integer());
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}

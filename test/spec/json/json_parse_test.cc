@@ -2,6 +2,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstdint> // std::uint64_t
 #include <sstream>
 #include <string>
 
@@ -2005,4 +2006,90 @@ TEST(trailing_carriage_return_after_a_document) {
   const auto document{sourcemeta::core::parse_json("1\r")};
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 1);
+}
+
+TEST(integer_five_at_the_top_level) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_EQ(sourcemeta::core::parse_json("5").to_integer(), 5);
+  EXPECT_EQ(sourcemeta::core::parse_json("5", line, column).to_integer(), 5);
+}
+
+TEST(integer_six_at_the_top_level) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_EQ(sourcemeta::core::parse_json("6").to_integer(), 6);
+  EXPECT_EQ(sourcemeta::core::parse_json("6", line, column).to_integer(), 6);
+}
+
+TEST(integer_seven_at_the_top_level) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_EQ(sourcemeta::core::parse_json("7").to_integer(), 7);
+  EXPECT_EQ(sourcemeta::core::parse_json("7", line, column).to_integer(), 7);
+}
+
+TEST(integer_eight_at_the_top_level) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_EQ(sourcemeta::core::parse_json("8").to_integer(), 8);
+  EXPECT_EQ(sourcemeta::core::parse_json("8", line, column).to_integer(), 8);
+}
+
+TEST(integers_five_to_eight_within_an_array) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  const auto document{sourcemeta::core::parse_json("[ 5, 6, 7, 8 ]")};
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 4);
+  EXPECT_EQ(document.at(0).to_integer(), 5);
+  EXPECT_EQ(document.at(1).to_integer(), 6);
+  EXPECT_EQ(document.at(2).to_integer(), 7);
+  EXPECT_EQ(document.at(3).to_integer(), 8);
+  const auto counted{
+      sourcemeta::core::parse_json("[ 5, 6, 7, 8 ]", line, column)};
+  EXPECT_EQ(counted.size(), 4);
+}
+
+TEST(integers_five_to_eight_within_an_object) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  const auto *const input{R"JSON({ "a": 5, "b": 6, "c": 7, "d": 8 })JSON"};
+  const auto document{sourcemeta::core::parse_json(input)};
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.at("a").to_integer(), 5);
+  EXPECT_EQ(document.at("b").to_integer(), 6);
+  EXPECT_EQ(document.at("c").to_integer(), 7);
+  EXPECT_EQ(document.at("d").to_integer(), 8);
+  const auto counted{sourcemeta::core::parse_json(input, line, column)};
+  EXPECT_EQ(counted.size(), 4);
+}
+
+TEST(real_with_a_fraction_of_only_zeros) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  const auto document{sourcemeta::core::parse_json("0.000")};
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 0.0);
+  const auto counted{sourcemeta::core::parse_json("0.000", line, column)};
+  EXPECT_TRUE(counted.is_real());
+}
+
+TEST(number_with_a_leading_zero_and_a_significant_fraction) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  // A fraction no double holds exactly is kept as it was written rather than
+  // rounded into one
+  const auto document{sourcemeta::core::parse_json("0.0025")};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal().to_string(), "0.0025");
+  const auto counted{sourcemeta::core::parse_json("0.0025", line, column)};
+  EXPECT_TRUE(counted.is_decimal());
+}
+
+TEST(integer_zero_at_the_end_of_the_input) {
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_EQ(sourcemeta::core::parse_json("0").to_integer(), 0);
+  EXPECT_EQ(sourcemeta::core::parse_json("0", line, column).to_integer(), 0);
 }

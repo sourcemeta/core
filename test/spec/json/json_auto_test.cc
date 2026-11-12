@@ -1411,3 +1411,1181 @@ TEST(from_json_map_with_callback_non_object_fails) {
       })};
   EXPECT_FALSE(result.has_value());
 }
+
+TEST(from_json_size_type_out_of_range) {
+  const sourcemeta::core::JSON document{-1};
+  const auto result{sourcemeta::core::from_json<std::size_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_unsigned_long_long_out_of_range) {
+  const sourcemeta::core::JSON document{-1};
+  const auto result{sourcemeta::core::from_json<unsigned long long>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_bitset_16_invalid) {
+  const sourcemeta::core::JSON document{"foo"};
+  const auto result{sourcemeta::core::from_json<std::bitset<16>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_bitset_32_invalid) {
+  const sourcemeta::core::JSON document{"foo"};
+  const auto result{sourcemeta::core::from_json<std::bitset<32>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_bitset_64_invalid) {
+  const sourcemeta::core::JSON document{"foo"};
+  const auto result{sourcemeta::core::from_json<std::bitset<64>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_json_type_invalid) {
+  const sourcemeta::core::JSON document{"foo"};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Type>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_integer_present) {
+  const sourcemeta::core::JSON document{5};
+  const auto result{sourcemeta::core::from_json<std::optional<int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().has_value());
+  EXPECT_EQ(result.value().value(), 5);
+}
+
+TEST(from_json_optional_decimal_invalid) {
+  const sourcemeta::core::JSON document{true};
+  const auto result{
+      sourcemeta::core::from_json<std::optional<sourcemeta::core::Decimal>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_string_invalid) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::optional<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_size_type_invalid) {
+  const sourcemeta::core::JSON document{true};
+  const auto result{
+      sourcemeta::core::from_json<std::optional<std::size_t>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_map_null) {
+  const sourcemeta::core::JSON document{nullptr};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::map<std::string, std::size_t>>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(result.value().has_value());
+}
+
+TEST(from_json_optional_map_invalid) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::map<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_pair_null) {
+  const sourcemeta::core::JSON document{nullptr};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::pair<std::string, std::size_t>>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(result.value().has_value());
+}
+
+TEST(from_json_optional_pair_invalid) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::pair<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_vector_of_tuples_null) {
+  const sourcemeta::core::JSON document{nullptr};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::vector<std::tuple<std::string, std::size_t>>>>(
+      document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(result.value().has_value());
+}
+
+TEST(from_json_optional_vector_of_tuples_invalid) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::vector<std::tuple<std::string, std::size_t>>>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_tuple_invalid) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<std::optional<
+      std::tuple<unsigned long long, unsigned long long, unsigned long long>>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_optional_variant_invalid) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::optional<std::variant<std::string, int>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_set_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::set<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_set_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::set<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_unordered_set_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::unordered_set<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_unordered_set_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::unordered_set<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_strings_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_strings_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_decimals_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<sourcemeta::core::Decimal>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_decimals_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ true ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<sourcemeta::core::Decimal>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_paths_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<std::filesystem::path>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_paths_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<std::filesystem::path>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_integers_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  const auto result{sourcemeta::core::from_json<std::vector<int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().size(), 2);
+  EXPECT_EQ(result.value().at(0), 1);
+  EXPECT_EQ(result.value().at(1), 2);
+}
+
+TEST(from_json_vector_of_integers_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1, true ]")};
+  const auto result{sourcemeta::core::from_json<std::vector<int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_booleans_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ true, 1 ]")};
+  const auto result{sourcemeta::core::from_json<std::vector<bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_integers_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_integers_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": true })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_size_types_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_size_types_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": true })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_booleans_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_booleans_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_integers_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<std::pair<int, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_integers_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json("[ 1, true ]")};
+  const auto result{sourcemeta::core::from_json<std::pair<int, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_boolean_and_integer_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json("[ true ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<bool, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_boolean_and_integer_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ true, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<bool, int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().first);
+  EXPECT_EQ(result.value().second, 1);
+}
+
+TEST(from_json_pair_of_string_and_size_type_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_size_type_with_an_invalid_first) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_one_integer_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<std::tuple<int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_one_integer_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ true ]")};
+  const auto result{sourcemeta::core::from_json<std::tuple<int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_one_string_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::string>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_string_and_size_type_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_three_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::string, std::size_t, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json("[ 0 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_without_an_index) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "0", 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_with_an_index_out_of_range) {
+  const auto document{sourcemeta::core::parse_json("[ 2, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, "x" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_second_alternative) {
+  const auto document{sourcemeta::core::parse_json("[ 1, true ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 1);
+  EXPECT_TRUE(std::get<bool>(result.value()));
+}
+
+TEST(from_json_int8_out_of_range) {
+  const sourcemeta::core::JSON document{200};
+  const auto result{sourcemeta::core::from_json<std::int8_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_uint8_out_of_range) {
+  const sourcemeta::core::JSON document{300};
+  const auto result{sourcemeta::core::from_json<std::uint8_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_with_a_callback_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<std::vector<int>>(
+      document, [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return item.is_integer() ? std::optional<int>{1} : std::nullopt;
+      })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_with_a_callback_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  const auto result{sourcemeta::core::from_json<std::vector<int>>(
+      document, [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return item.is_integer() ? std::optional<int>{1} : std::nullopt;
+      })};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().size(), 2);
+}
+
+TEST(from_json_vector_with_a_callback_that_refuses_an_item) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, "x" ])JSON")};
+  const auto result{sourcemeta::core::from_json<std::vector<int>>(
+      document, [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return item.is_integer() ? std::optional<int>{1} : std::nullopt;
+      })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_with_a_callback_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<std::map<std::string, int>>(
+      document, [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return item.is_integer() ? std::optional<int>{1} : std::nullopt;
+      })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_with_a_callback_from_an_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto result{sourcemeta::core::from_json<std::map<std::string, int>>(
+      document, [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return item.is_integer() ? std::optional<int>{1} : std::nullopt;
+      })};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().size(), 1);
+}
+
+TEST(from_json_map_with_a_callback_that_refuses_a_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": "x" })JSON")};
+  const auto result{sourcemeta::core::from_json<std::map<std::string, int>>(
+      document, [](const sourcemeta::core::JSON &item) -> std::optional<int> {
+        return item.is_integer() ? std::optional<int>{1} : std::nullopt;
+      })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_decimals_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, sourcemeta::core::Decimal>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_decimals_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": true })JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, sourcemeta::core::Decimal>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_pairs_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::pair<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_pairs_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::pair<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_tuples_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::tuple<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_tuples_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::tuple<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_optionals_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::optional<sourcemeta::core::Decimal>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_optionals_with_an_invalid_item) {
+  const auto document{sourcemeta::core::parse_json("[ true ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::optional<sourcemeta::core::Decimal>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_size_type_and_boolean_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::size_t, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_size_type_and_boolean_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::size_t, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_size_type_and_boolean_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::size_t, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_three_unsigned_long_long_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::tuple<unsigned long long, unsigned long long, unsigned long long>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_with_an_index_out_of_range) {
+  const auto document{sourcemeta::core::parse_json("[ 2, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_second_alternative) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 5 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 1);
+  EXPECT_EQ(std::get<int>(result.value()), 5);
+}
+
+TEST(from_json_map_of_maps_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, std::map<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_maps_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, std::map<std::string, std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_pairs_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, std::pair<std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_pairs_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, std::pair<std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_optional_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<std::string, std::optional<std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_optional_with_an_invalid_first) {
+  const auto document{sourcemeta::core::parse_json("[ 1, null ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<std::string, std::optional<std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_three_with_an_optional_of_the_wrong_size) {
+  const auto document{sourcemeta::core::parse_json("[ 1, null ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::tuple<std::size_t, std::optional<std::size_t>, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_string_and_size_type_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_integer_and_boolean_first_alternative) {
+  const auto document{sourcemeta::core::parse_json("[ 0, 5 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 0);
+  EXPECT_EQ(std::get<int>(result.value()), 5);
+}
+
+TEST(from_json_variant_of_integer_and_boolean_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, "x" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<int, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_enum_and_string_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_enum_and_string_first_alternative) {
+  const auto document{sourcemeta::core::parse_json("[ 0, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 0);
+  EXPECT_TRUE(std::get<SampleEnum>(result.value()) == SampleEnum::Bar);
+}
+
+TEST(from_json_variant_of_enum_and_string_second_alternative) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, "x" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 1);
+  EXPECT_EQ(std::get<std::string>(result.value()), "x");
+}
+
+TEST(from_json_variant_of_enum_and_string_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_enum_and_string_with_an_index_out_of_range) {
+  const auto document{sourcemeta::core::parse_json("[ 2, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_three_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_three_first_alternative) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, "x" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 0);
+}
+
+TEST(from_json_variant_of_three_second_alternative) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 5 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 1);
+}
+
+TEST(from_json_variant_of_three_third_alternative) {
+  const auto document{sourcemeta::core::parse_json("[ 2, true ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().index(), 2);
+}
+
+TEST(from_json_variant_of_three_with_an_invalid_value) {
+  const auto document{sourcemeta::core::parse_json("[ 0, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_three_with_an_index_out_of_range) {
+  const auto document{sourcemeta::core::parse_json("[ 3, 1 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_json_optional_string_without_a_value) {
+  const std::optional<std::string> value{std::nullopt};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(from_json_vector_of_booleans_from_an_empty_array) {
+  const auto document{sourcemeta::core::parse_json("[]")};
+  const auto result{sourcemeta::core::from_json<std::vector<bool>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().empty());
+}
+
+TEST(from_json_tuple_of_one_integer_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 5 ]")};
+  const auto result{sourcemeta::core::from_json<std::tuple<int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(std::get<0>(result.value()), 5);
+}
+
+TEST(from_json_pair_of_type_and_size_type_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type, std::size_t>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_type_and_size_type_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, "x" ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type, std::size_t>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_type_and_size_type_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 0, 1 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type, std::size_t>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().second, 1);
+}
+
+TEST(from_json_nested_pair_of_types_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type,
+                std::pair<sourcemeta::core::JSON::Type, std::size_t>>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_nested_pair_of_types_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json("[ 0, 1 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type,
+                std::pair<sourcemeta::core::JSON::Type, std::size_t>>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_nested_pair_of_types_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 0, [ 1, 2 ] ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type,
+                std::pair<sourcemeta::core::JSON::Type, std::size_t>>>(
+      document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().second.second, 2);
+}
+
+TEST(from_json_unsigned_64_bit_from_a_string) {
+  const sourcemeta::core::JSON document{"x"};
+  const auto result{sourcemeta::core::from_json<std::uint64_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_unsigned_8_bit_from_a_string) {
+  const sourcemeta::core::JSON document{"x"};
+  const auto result{sourcemeta::core::from_json<std::uint8_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_signed_8_bit_from_a_string) {
+  const sourcemeta::core::JSON document{"x"};
+  const auto result{sourcemeta::core::from_json<std::int8_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_integer_past_the_target_range) {
+  const sourcemeta::core::JSON document{std::int64_t{3000000000}};
+  const auto result{sourcemeta::core::from_json<int>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_booleans_from_an_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": true })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, bool>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().size(), 1);
+  EXPECT_TRUE(result.value().at("a"));
+}
+
+TEST(from_json_map_of_integers_from_an_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 2 })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().size(), 1);
+  EXPECT_EQ(result.value().at("a"), 2);
+}
+
+TEST(from_json_pair_of_string_and_integer_from_an_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::string, int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().first, "a");
+  EXPECT_EQ(result.value().second, 1);
+}
+
+TEST(from_json_pair_of_integers_with_an_invalid_first) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1 ])JSON")};
+  const auto result{sourcemeta::core::from_json<std::pair<int, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_integers_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  const auto result{sourcemeta::core::from_json<std::pair<int, int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value().first, 1);
+  EXPECT_EQ(result.value().second, 2);
+}
+
+TEST(from_json_pair_of_boolean_and_integer_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<bool, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_boolean_and_integer_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ true, "x" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<bool, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_size_type_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1, 2 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_size_type_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", "b" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::string, std::size_t>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_size_type_and_boolean_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json("[ 1, true, 2 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::size_t, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_size_type_and_boolean_with_an_invalid_first) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", true ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::pair<std::size_t, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_type_and_size_type_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json("[ 0, 1, 2 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type, std::size_t>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_type_and_size_type_with_an_invalid_first) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1 ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type, std::size_t>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_nested_pair_of_types_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json("[ 0, [ 1, 2 ], 3 ]")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type,
+                std::pair<sourcemeta::core::JSON::Type, std::size_t>>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_nested_pair_of_types_with_an_invalid_first) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ "a", [ 1, 2 ] ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<sourcemeta::core::JSON::Type,
+                std::pair<sourcemeta::core::JSON::Type, std::size_t>>>(
+      document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_string_and_size_type_and_boolean_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::string, std::size_t, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_size_type_and_boolean_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<std::size_t, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_integers_from_an_array) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  const auto result{
+      sourcemeta::core::from_json<std::tuple<int, int>>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(std::get<0>(result.value()), 1);
+  EXPECT_EQ(std::get<1>(result.value()), 2);
+}
+
+TEST(to_json_optional_pair_without_a_value) {
+  const std::optional<std::pair<std::string, std::size_t>> value{std::nullopt};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(to_json_optional_map_without_a_value) {
+  const std::optional<std::map<std::string, std::size_t>> value{std::nullopt};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(from_json_variant_of_string_and_integer_and_boolean_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, "a", 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_and_boolean_without_an_index) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "0", "a" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_and_boolean_with_a_bad_integer) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, "a" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_and_boolean_with_a_bad_boolean) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 2, "a" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int, bool>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_string_and_integer_with_a_bad_integer) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, "a" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<std::string, int>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_enumeration_and_string_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, 1, 2 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_enumeration_and_string_without_an_index) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "0", 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_variant_of_enumeration_and_string_with_a_bad_enumeration) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, "a" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::variant<SampleEnum, std::string>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_variants_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<std::variant<std::string, int>>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_variants_with_an_invalid_element) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, "a" ] ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::vector<std::variant<std::string, int>>>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_three_element_tuples_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::tuple<std::string, std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_vector_of_three_element_tuples_with_an_invalid_element) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ "a", 1 ] ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::vector<std::tuple<std::string, std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_tuples_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, std::tuple<std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_tuples_with_an_invalid_value) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "a": [ 1 ] })JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::map<std::string, std::tuple<std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_string_and_pair_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::tuple<std::string, std::pair<std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_string_and_pair_from_a_longer_array) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ "a", [ 1, true ], 2 ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::tuple<std::string, std::pair<std::size_t, bool>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_tuple_of_size_type_and_optional_and_boolean_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<
+      std::tuple<std::size_t, std::optional<std::size_t>, bool>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(to_json_optional_vector_of_tuples_without_a_value) {
+  const std::optional<std::vector<std::tuple<std::string, std::size_t>>> value{
+      std::nullopt};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(from_json_vector_of_strings_with_a_callback_not_an_array) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{sourcemeta::core::from_json<std::vector<std::string>>(
+      document,
+      [](const sourcemeta::core::JSON &item) -> std::optional<std::string> {
+        return item.is_string() ? std::optional<std::string>{item.to_string()}
+                                : std::nullopt;
+      })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_size_types_with_a_callback_not_an_object) {
+  const sourcemeta::core::JSON document{1};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, std::size_t>>(
+          document,
+          [](const sourcemeta::core::JSON &item) -> std::optional<std::size_t> {
+            return item.is_integer() ? std::optional<std::size_t>{1}
+                                     : std::nullopt;
+          })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_map_of_size_types_with_a_callback_that_refuses_a_value) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "a": "b" })JSON")};
+  const auto result{
+      sourcemeta::core::from_json<std::map<std::string, std::size_t>>(
+          document,
+          [](const sourcemeta::core::JSON &item) -> std::optional<std::size_t> {
+            return item.is_integer() ? std::optional<std::size_t>{1}
+                                     : std::nullopt;
+          })};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_optional_from_a_longer_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1, 2 ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<std::string, std::optional<std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_pair_of_string_and_optional_with_an_invalid_second) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", "b" ])JSON")};
+  const auto result{sourcemeta::core::from_json<
+      std::pair<std::string, std::optional<std::size_t>>>(document)};
+  EXPECT_FALSE(result.has_value());
+}

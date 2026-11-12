@@ -2,7 +2,9 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstdint>
 #include <exception>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <string_view> // std::string_view
@@ -844,4 +846,59 @@ TEST(number_with_an_exponent_beyond_the_decimal_range) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
   }
+}
+
+TEST(string_input_with_a_second_document) {
+  EXPECT_PARSE_ERROR("[1][2]"sv, 1, 4);
+}
+
+TEST(string_input_with_trailing_garbage) { EXPECT_PARSE_ERROR("{} x"sv, 1, 4); }
+
+TEST(string_input_with_a_second_number) { EXPECT_PARSE_ERROR("1 2"sv, 1, 3); }
+
+TEST(string_input_with_an_extra_array_close) {
+  EXPECT_PARSE_ERROR("[1]]"sv, 1, 4);
+}
+
+TEST(string_input_past_a_tighter_bound) {
+  // The ceiling the tape imposes is what the default stands for, and a caller
+  // reading input it does not trust may hold it to less than that
+  try {
+    sourcemeta::core::parse_json("[ 1, 2, 3 ]"sv, 4);
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 0);
+  }
+}
+
+TEST(string_input_within_a_tighter_bound) {
+  const auto document{sourcemeta::core::parse_json("[ 1 ]"sv, 5)};
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 1);
+}
+
+TEST(stream_input_past_a_tighter_bound) {
+  std::istringstream input{"[ 1, 2, 3 ]"};
+  try {
+    sourcemeta::core::parse_json(input, 4);
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 0);
+  }
+}
+
+TEST(try_parse_input_past_a_tighter_bound) {
+  EXPECT_FALSE(
+      sourcemeta::core::try_parse_json("[ 1, 2, 3 ]"sv, 4).has_value());
+}
+
+TEST(try_parse_input_within_a_tighter_bound) {
+  EXPECT_TRUE(sourcemeta::core::try_parse_json("[ 1 ]"sv, 5).has_value());
+}
+
+TEST(the_default_bound_is_what_the_tape_can_address) {
+  EXPECT_EQ(sourcemeta::core::JSON_MAXIMUM_INPUT_BYTES,
+            std::numeric_limits<std::uint32_t>::max());
 }
