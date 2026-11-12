@@ -1,6 +1,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include <limits> // std::numeric_limits
+
 TEST(positive) {
   const sourcemeta::core::Decimal value{42};
   const sourcemeta::core::JSON document{value};
@@ -1314,4 +1316,111 @@ TEST(divisible_by_a_wide_exponent_gap_with_the_divisor_in_exponent_form) {
   const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e100"}};
   const sourcemeta::core::JSON divisor{sourcemeta::core::Decimal{"1e19"}};
   EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(addition_integer_integer_underflows) {
+  const sourcemeta::core::JSON value1{
+      std::numeric_limits<sourcemeta::core::JSON::Integer>::min()};
+  const sourcemeta::core::JSON value2{-1};
+  const sourcemeta::core::JSON result{value1 + value2};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "-9223372036854775809");
+}
+
+TEST(subtraction_integer_integer_overflows) {
+  const sourcemeta::core::JSON value1{
+      std::numeric_limits<sourcemeta::core::JSON::Integer>::max()};
+  const sourcemeta::core::JSON value2{-1};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "9223372036854775808");
+}
+
+TEST(subtraction_integer_integer_underflows) {
+  const sourcemeta::core::JSON value1{
+      std::numeric_limits<sourcemeta::core::JSON::Integer>::min()};
+  const sourcemeta::core::JSON value2{1};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "-9223372036854775809");
+}
+
+TEST(addition_integer_real) {
+  const sourcemeta::core::JSON value1{1};
+  const sourcemeta::core::JSON value2{1.5};
+  const sourcemeta::core::JSON result{value1 + value2};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 2.5);
+}
+
+TEST(addition_real_integer) {
+  const sourcemeta::core::JSON value1{1.5};
+  const sourcemeta::core::JSON value2{1};
+  const sourcemeta::core::JSON result{value1 + value2};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 2.5);
+}
+
+TEST(subtraction_integer_real) {
+  const sourcemeta::core::JSON value1{3};
+  const sourcemeta::core::JSON value2{1.5};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 1.5);
+}
+
+TEST(subtraction_real_integer) {
+  const sourcemeta::core::JSON value1{3.5};
+  const sourcemeta::core::JSON value2{1};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 2.5);
+}
+
+TEST(addition_real_real) {
+  const sourcemeta::core::JSON value1{1.25};
+  const sourcemeta::core::JSON value2{2.25};
+  const sourcemeta::core::JSON result{value1 + value2};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 3.5);
+}
+
+TEST(subtraction_real_real) {
+  const sourcemeta::core::JSON value1{3.75};
+  const sourcemeta::core::JSON value2{1.25};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 2.5);
+}
+
+TEST(addition_integer_integer_with_a_negative_that_fits) {
+  const sourcemeta::core::JSON value1{10};
+  const sourcemeta::core::JSON value2{-4};
+  const sourcemeta::core::JSON result{value1 + value2};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 6);
+}
+
+TEST(subtraction_integer_integer_with_a_negative_that_fits) {
+  const sourcemeta::core::JSON value1{10};
+  const sourcemeta::core::JSON value2{-4};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 14);
+}
+
+TEST(subtraction_integer_integer_with_a_positive_that_fits) {
+  const sourcemeta::core::JSON value1{10};
+  const sourcemeta::core::JSON value2{4};
+  const sourcemeta::core::JSON result{value1 - value2};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 6);
+}
+
+TEST(addition_integer_integer_with_a_positive_that_fits) {
+  const sourcemeta::core::JSON value1{10};
+  const sourcemeta::core::JSON value2{4};
+  const sourcemeta::core::JSON result{value1 + value2};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 14);
 }

@@ -1204,3 +1204,27 @@ TEST(embedded_metaschema_chain_reaching_something_that_is_no_schema) {
                  "Could not determine the base dialect of the schema");
   }
 }
+
+TEST(vocabularies_uri_without_an_index) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "0", 1 ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::SchemaVocabularies::URI>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(vocabularies_uri_with_an_unknown_vocabulary) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 0, "x" ])JSON")};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::SchemaVocabularies::URI>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(vocabularies_uri_with_a_non_string_name) {
+  const auto document{sourcemeta::core::parse_json("[ 1, 2 ]")};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::SchemaVocabularies::URI>(
+          document)};
+  EXPECT_FALSE(result.has_value());
+}

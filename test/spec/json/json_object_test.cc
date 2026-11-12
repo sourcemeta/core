@@ -12,6 +12,17 @@
 #include <type_traits>
 #include <utility>
 
+// A key of at most 31 bytes is hashed perfectly, so a collision takes two
+// longer keys that agree on their first 31 bytes and on the sum that settles
+// the leading byte, which is the size plus the first and last bytes. Thirty
+// one `a` then `X` is 32 bytes long and thirty one `a` then `bW` is 33, and
+// 32 + 97 + 88 is 33 + 97 + 87, so the two hash alike while naming different
+// properties
+// NOLINTBEGIN(cert-err58-cpp,bugprone-throwing-static-initialization)
+static const std::string COLLIDING_LEFT{std::string(31, 'a') + "X"};
+static const std::string COLLIDING_RIGHT{std::string(31, 'a') + "bW"};
+// NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
+
 TEST(general_traits) {
   EXPECT_TRUE(std::is_default_constructible_v<sourcemeta::core::JSON::Object>);
   EXPECT_TRUE(
@@ -2942,4 +2953,330 @@ TEST(erase_hash_string_view_a_long_key_against_an_unrelated_entry) {
                      absent_hash),
       1);
   EXPECT_TRUE(document.defines("zz"));
+}
+
+TEST(colliding_keys_hash_alike) {
+  EXPECT_NE(COLLIDING_LEFT, COLLIDING_RIGHT);
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT),
+            sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT));
+}
+
+TEST(colliding_keys_define_separately) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  document.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines(COLLIDING_LEFT));
+  EXPECT_TRUE(document.defines(COLLIDING_RIGHT));
+  EXPECT_EQ(document.at(COLLIDING_LEFT).to_integer(), 1);
+  EXPECT_EQ(document.at(COLLIDING_RIGHT).to_integer(), 2);
+}
+
+TEST(colliding_keys_try_at_separately) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  document.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  const auto *left{document.try_at(COLLIDING_LEFT)};
+  const auto *right{document.try_at(COLLIDING_RIGHT)};
+  EXPECT_TRUE(left != nullptr);
+  EXPECT_TRUE(right != nullptr);
+  EXPECT_EQ(left->to_integer(), 1);
+  EXPECT_EQ(right->to_integer(), 2);
+}
+
+TEST(colliding_key_that_the_object_lacks) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  EXPECT_FALSE(document.defines(COLLIDING_RIGHT));
+  EXPECT_TRUE(document.try_at(COLLIDING_RIGHT) == nullptr);
+}
+
+TEST(colliding_keys_erase_separately) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  document.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  document.erase(COLLIDING_LEFT);
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines(COLLIDING_LEFT));
+  EXPECT_TRUE(document.defines(COLLIDING_RIGHT));
+  EXPECT_EQ(document.at(COLLIDING_RIGHT).to_integer(), 2);
+}
+
+TEST(colliding_keys_assigned_before_one_another) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  document.try_assign_before(COLLIDING_LEFT, sourcemeta::core::JSON{1},
+                             COLLIDING_RIGHT);
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at(COLLIDING_LEFT).to_integer(), 1);
+  EXPECT_EQ(document.at(COLLIDING_RIGHT).to_integer(), 2);
+}
+
+TEST(colliding_keys_in_an_object_find) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  const auto &object{value.as_object()};
+  const auto left{object.find(
+      COLLIDING_LEFT, sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT))};
+  const auto right{object.find(
+      COLLIDING_RIGHT, sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT))};
+  EXPECT_TRUE(left != object.cend());
+  EXPECT_TRUE(right != object.cend());
+  EXPECT_EQ(left->second.to_integer(), 1);
+  EXPECT_EQ(right->second.to_integer(), 2);
+}
+
+TEST(try_at_with_a_hint_that_wraps_around) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("a", sourcemeta::core::JSON{1});
+  value.assign("b", sourcemeta::core::JSON{2});
+  value.assign("c", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  const auto *result{object.try_at(sourcemeta::core::JSON::String{"a"},
+                                   sourcemeta::core::JSON::Object::hash("a"),
+                                   start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+}
+
+TEST(try_at_with_a_hint_that_wraps_around_and_misses) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("a", sourcemeta::core::JSON{1});
+  value.assign("b", sourcemeta::core::JSON{2});
+  value.assign("c", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  EXPECT_TRUE(object.try_at(sourcemeta::core::JSON::String{"zz"},
+                            sourcemeta::core::JSON::Object::hash("zz"),
+                            start) == nullptr);
+}
+
+TEST(try_at_with_a_hint_that_wraps_around_on_a_view) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("a", sourcemeta::core::JSON{1});
+  value.assign("b", sourcemeta::core::JSON{2});
+  value.assign("c", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  const auto *result{object.try_at(
+      std::string_view{"a"}, sourcemeta::core::JSON::Object::hash("a"), start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 1);
+}
+
+TEST(try_at_colliding_keys_with_a_hint_that_wraps_around) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  value.assign("tail", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  const auto *result{object.try_at(
+      COLLIDING_LEFT, sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT),
+      start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+}
+
+TEST(try_at_colliding_keys_with_a_hint_that_wraps_around_and_misses) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  value.assign("tail", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  EXPECT_TRUE(
+      object.try_at(COLLIDING_RIGHT,
+                    sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT),
+                    start) == nullptr);
+}
+
+TEST(try_at_colliding_keys_with_a_hint_on_a_view) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
+  value.assign("tail", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  const auto *result{object.try_at(
+      std::string_view{COLLIDING_RIGHT},
+      sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT), start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 2);
+}
+
+TEST(less_than_where_a_key_only_the_other_holds_does_not_decide) {
+  // Objects of one size are ordered by the smallest key they differ at, and a
+  // key only one of them holds decides nothing when it comes after that one
+  auto left{sourcemeta::core::JSON::make_object()};
+  left.assign("a", sourcemeta::core::JSON{1});
+  left.assign("b", sourcemeta::core::JSON{1});
+  auto right{sourcemeta::core::JSON::make_object()};
+  right.assign("a", sourcemeta::core::JSON{1});
+  right.assign("c", sourcemeta::core::JSON{3});
+  EXPECT_TRUE(left < right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(less_than_where_a_key_only_the_other_holds_decides) {
+  auto left{sourcemeta::core::JSON::make_object()};
+  left.assign("b", sourcemeta::core::JSON{1});
+  left.assign("z", sourcemeta::core::JSON{9});
+  auto right{sourcemeta::core::JSON::make_object()};
+  right.assign("a", sourcemeta::core::JSON{0});
+  right.assign("b", sourcemeta::core::JSON{2});
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
+}
+
+TEST(less_than_orders_a_smaller_object_first) {
+  const auto left{sourcemeta::core::JSON::make_object()};
+  auto right{sourcemeta::core::JSON::make_object()};
+  right.assign("a", sourcemeta::core::JSON{1});
+  EXPECT_TRUE(left < right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(find_a_colliding_key_the_object_lacks_past_another_entry) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("tail", sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
+  const auto &object{value.as_object()};
+  EXPECT_TRUE(object.find(COLLIDING_RIGHT) == object.cend());
+}
+
+TEST(try_at_with_a_hint_whose_wrap_passes_another_key) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("a", sourcemeta::core::JSON{1});
+  value.assign("b", sourcemeta::core::JSON{2});
+  value.assign("c", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  const auto *result{object.try_at(sourcemeta::core::JSON::String{"b"},
+                                   sourcemeta::core::JSON::Object::hash("b"),
+                                   start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+}
+
+TEST(try_at_colliding_keys_whose_scan_passes_another_key) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("tail", sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
+  value.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+  const auto *result{object.try_at(
+      COLLIDING_RIGHT, sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT),
+      start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 3);
+  EXPECT_EQ(start, 3);
+}
+
+TEST(try_at_colliding_keys_whose_wrap_passes_another_key) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("tail", sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
+  value.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{3};
+  const auto *result{object.try_at(
+      COLLIDING_LEFT, sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT),
+      start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+}
+
+TEST(try_assign_before_a_colliding_key_past_another_entry) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("tail", sourcemeta::core::JSON{1});
+  document.try_assign_before(COLLIDING_LEFT, sourcemeta::core::JSON{2},
+                             COLLIDING_RIGHT);
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines(COLLIDING_LEFT));
+  EXPECT_EQ(document.at(COLLIDING_LEFT).to_integer(), 2);
+}
+
+TEST(find_a_colliding_key_the_object_lacks_on_a_view) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("tail", sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
+  const auto &object{value.as_object()};
+  EXPECT_TRUE(object.find(std::string_view{COLLIDING_RIGHT},
+                          sourcemeta::core::JSON::Object::hash(
+                              COLLIDING_RIGHT)) == object.cend());
+}
+
+TEST(find_a_colliding_key_on_a_view) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("tail", sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
+  const auto &object{value.as_object()};
+  const auto match{
+      object.find(std::string_view{COLLIDING_LEFT},
+                  sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT))};
+  EXPECT_TRUE(match != object.cend());
+  EXPECT_EQ(match->second.to_integer(), 2);
+}
+
+TEST(try_at_on_a_view_with_a_hint_whose_wrap_passes_another_key) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("a", sourcemeta::core::JSON{1});
+  value.assign("b", sourcemeta::core::JSON{2});
+  value.assign("c", sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{2};
+  const auto *result{object.try_at(
+      std::string_view{"b"}, sourcemeta::core::JSON::Object::hash("b"), start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+}
+
+TEST(try_at_on_a_view_whose_scan_passes_a_colliding_key) {
+  auto value{sourcemeta::core::JSON::make_object()};
+  value.assign("tail", sourcemeta::core::JSON{1});
+  value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
+  value.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{3});
+  const auto &object{value.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+  const auto *result{object.try_at(
+      std::string_view{COLLIDING_RIGHT},
+      sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT), start)};
+  EXPECT_TRUE(result != nullptr);
+  EXPECT_EQ(result->to_integer(), 3);
+  EXPECT_EQ(start, 3);
+}
+
+TEST(try_assign_before_a_suffix_colliding_with_an_entry) {
+  // The key is short enough to be hashed perfectly while the suffix collides
+  // with an entry the scan crosses on the way
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
+  document.try_assign_before("baz", sourcemeta::core::JSON{99},
+                             COLLIDING_RIGHT);
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.defines("baz"));
+  EXPECT_EQ(document.at("baz").to_integer(), 99);
+  EXPECT_EQ(document.at(COLLIDING_LEFT).to_integer(), 1);
+}
+
+TEST(less_than_where_a_repeated_key_leaves_no_difference) {
+  // The parser keeps a key named twice, so one object can hold as many entries
+  // as another while naming fewer keys, and then the first scan finds nothing
+  // to disagree on
+  const auto left{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "a": 1 })JSON")};
+  const auto right{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 2 })JSON")};
+  EXPECT_EQ(left.size(), 2);
+  EXPECT_EQ(right.size(), 2);
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
 }
