@@ -1,0 +1,47 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/near.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/near.json": {
+      "$id": "https://www.sourcemeta.com/near.json",
+      "properties": {
+        "far": {
+          "$ref": "https://www.sourcemeta.com/far.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/far.json": {
+      "$id": "https://www.sourcemeta.com/far.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/near.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/near.json",
+      "pointer": "/properties/far/$ref",
+      "destination": "https://www.sourcemeta.com/far.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 9,
+  "fetched": []
+}

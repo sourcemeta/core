@@ -14,8 +14,10 @@
 #include "security.h"
 
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <set>         // std::set
 #include <string_view> // std::string_view
+#include <utility>     // std::unreachable
 
 namespace sourcemeta::core {
 
@@ -67,7 +69,8 @@ openapi_resolved_security_scheme(const JSON &document, const JSON::String &base,
 
     remaining -= 1;
     const auto *reference{current->try_at("$ref", OPENAPI_HASH_REF)};
-    if (reference == nullptr || !reference->is_string()) {
+    assert(reference != nullptr);
+    if (!reference->is_string()) {
       return nullptr;
     }
 
@@ -171,6 +174,15 @@ inline auto openapi_is_component_key(const JSON::StringView key) noexcept
 // Operation Object, which is reached through the Path Item Object holding it
 inline auto openapi_component_container(const OpenAPIObjectKind kind) noexcept
     -> JSON::StringView {
+  assert(kind == OpenAPIObjectKind::Schema ||
+         kind == OpenAPIObjectKind::Response ||
+         kind == OpenAPIObjectKind::Parameter ||
+         kind == OpenAPIObjectKind::Example ||
+         kind == OpenAPIObjectKind::RequestBody ||
+         kind == OpenAPIObjectKind::Header || kind == OpenAPIObjectKind::Link ||
+         kind == OpenAPIObjectKind::Callbacks ||
+         kind == OpenAPIObjectKind::PathItem ||
+         kind == OpenAPIObjectKind::MediaType);
   switch (kind) {
     case OpenAPIObjectKind::Schema:
       return "schemas"sv;
@@ -184,18 +196,29 @@ inline auto openapi_component_container(const OpenAPIObjectKind kind) noexcept
       return "requestBodies"sv;
     case OpenAPIObjectKind::Header:
       return "headers"sv;
-    case OpenAPIObjectKind::SecurityScheme:
-      return "securitySchemes"sv;
     case OpenAPIObjectKind::Link:
       return "links"sv;
     case OpenAPIObjectKind::Callbacks:
       return "callbacks"sv;
     case OpenAPIObjectKind::PathItem:
       return "pathItems"sv;
-    case OpenAPIObjectKind::MediaType:
-      return "mediaTypes"sv;
+      // Clang keeps an arm for the kinds that never arrive and counts it as
+      // one that nothing took, so a kind that does arrive is written as the
+      // default there, while the compilers reading a case label are the ones
+      // holding this switch to naming them all. A Security Scheme Object is
+      // among the ones that never arrive, as the Components Object is the only
+      // place one ever sits, so a reference naming one names a component and
+      // is answered by the member that component already sits under
+#if defined(__clang__)
     default:
-      return {};
+#else
+    case OpenAPIObjectKind::MediaType:
+#endif
+      return "mediaTypes"sv;
+#if !defined(__clang__)
+    default:
+      std::unreachable();
+#endif
   }
 }
 

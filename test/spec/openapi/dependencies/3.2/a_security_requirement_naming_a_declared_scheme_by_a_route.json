@@ -1,0 +1,28 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "securitySchemes": {
+        "ApiKey": {
+          "type": "apiKey",
+          "name": "key",
+          "in": "header"
+        }
+      }
+    },
+    "security": [
+      {
+        "#/components/securitySchemes/ApiKey": []
+      }
+    ]
+  },
+  "schemaResolver": {},
+  "expected": [],
+  "locations": 6,
+  "fetched": []
+}

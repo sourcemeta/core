@@ -1,0 +1,15 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "$self": "http://[::1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "The OpenAPI Description self identifier must be a URI reference",
+    "location": "/$self"
+  }
+}

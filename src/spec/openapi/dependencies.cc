@@ -45,7 +45,8 @@ auto is_description(const JSON &document) -> bool {
   }
 
   const auto *version{document.try_at("openapi")};
-  return version != nullptr && version->is_string();
+  assert(version == nullptr || version->is_string());
+  return version != nullptr;
 }
 
 // A caller's resolver may run an allowance of its own, and running out of
@@ -216,11 +217,7 @@ auto declares_foreign_dialect(const JSON &document) -> bool {
     return false;
   }
 
-  const auto *declared{document.try_at("$schema")};
-  return declared != nullptr &&
-         !(declared->is_string() &&
-           declared->to_string() ==
-               openapi_dialect(OpenAPIVersion::OPENAPI_3_0));
+  return document.try_at("$schema") != nullptr;
 }
 
 auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
@@ -235,8 +232,9 @@ auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
   // kind into one names a place it has. A schema holds nothing of this
   // specification though, so a reference of this specification into one names
   // a place no schema can have, which the kinds below settle instead
-  return !(known->second.reached == Reached::Schema &&
-           reached == Reached::Description);
+  assert(known->second.reached != Reached::Schema ||
+         reached == Reached::Description);
+  return known->second.reached != Reached::Schema;
 }
 
 auto account(Walk &walk, const JSON::StringView uri, const Reached reached,
@@ -328,8 +326,8 @@ auto reject_foreign_hold(const Held &held, const Reached reached,
                          const OpenAPIVersion version,
                          const JSON::StringView origin, const Pointer &pointer)
     -> void {
-  if (reached == Reached::Schema && version == OpenAPIVersion::OPENAPI_3_0 &&
-      held.foreign_to_earliest) {
+  assert(reached == Reached::Schema);
+  if (version == OpenAPIVersion::OPENAPI_3_0 && held.foreign_to_earliest) {
     throw OpenAPIError{"A Schema Object of this revision must be written "
                        "against the OpenAPI 3.0 dialect",
                        JSON::String{origin}, pointer};
@@ -511,7 +509,8 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
   // is read against the one the description names, so reading any of them
   // takes that document
   const auto *dialect{document.try_at("jsonSchemaDialect")};
-  if (dialect != nullptr && dialect->is_string()) {
+  assert(dialect == nullptr || dialect->is_string());
+  if (dialect != nullptr) {
     // OpenAPI 3.1.1 Section 4.6 has every field that is a URI take a relative
     // reference, which resolves against the base of the document naming it
     // See https://spec.openapis.org/oas/v3.1.1.html
@@ -560,8 +559,8 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
   frame.schemas().for_each_unresolved_reference(
       [&walk, &origin, &version](const auto &pointer,
                                  const auto &reference) -> void {
-        if (!reference.base.empty() &&
-            !is_skippable_metaschema_reference(pointer, reference.base)) {
+        assert(!reference.base.empty());
+        if (!is_skippable_metaschema_reference(pointer, reference.base)) {
           report(walk, origin, to_pointer(pointer), reference.destination,
                  OpenAPIObjectKind::Schema, Reached::Schema, version.value());
         }
@@ -582,8 +581,8 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
 auto reject_foreign_dialect(const Walk &walk, const Fetched &entry,
                             const SchemaFrame &frame) -> void {
   const SchemaFrame::Paths paths{sourcemeta::core::EMPTY_WEAK_POINTER};
-  const auto foreign{openapi_schema_of_another_dialect(
-      entry.version, frame, paths, walk.schema_resolver)};
+  const auto foreign{openapi_schema_of_another_dialect(entry.version, frame,
+                                                       walk.schema_resolver)};
   if (foreign.has_value()) {
     throw OpenAPIError{"A Schema Object of this revision must be written "
                        "against the OpenAPI 3.0 dialect",
@@ -599,7 +598,8 @@ auto reject_foreign_dialect(const Walk &walk, const Fetched &entry,
 auto reject_foreign_declaration(const Fetched &entry,
                                 const JSON::StringView destination,
                                 const JSON &document) -> void {
-  if (entry.version != OpenAPIVersion::OPENAPI_3_0 || !document.is_object()) {
+  assert(entry.version != OpenAPIVersion::OPENAPI_3_0 || document.is_object());
+  if (entry.version != OpenAPIVersion::OPENAPI_3_0) {
     return;
   }
 
@@ -645,8 +645,8 @@ auto register_schema(Walk &walk, const Fetched &entry) -> void {
 
   // The identifier a document declares is the one it goes by, which is what
   // every other edge out of it is reported from
-  const auto &reported{frame->root().empty() ? entry.identifier
-                                             : frame->root()};
+  assert(!frame->root().empty());
+  const auto &reported{frame->root()};
   for (const auto &discriminator : sourcemeta::core::openapi_discriminators(
            entry.document, *frame, entry.identifier, walk.walker,
            walk.schema_resolver)) {
@@ -705,8 +705,8 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
               // of, so it is queued for that pass alone. Its own
               // closure is what that walk already reported, which is
               // why it is not read a second time
-              if (is_traversable(dependency.destination) &&
-                  holds_discriminator(dependency.document)) {
+              assert(is_traversable(dependency.destination));
+              if (holds_discriminator(dependency.document)) {
                 walk.schemas.emplace_back(
                     Fetched{.identifier = JSON::String{dependency.destination},
                             .document = dependency.document,

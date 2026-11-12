@@ -1282,3 +1282,98 @@ TEST(openapi_base_of_an_absolute_self_without_a_retrieval_uri) {
                                              sourcemeta::core::schema_resolver};
   EXPECT_EQ(frame.base(), "https://example.com/api");
 }
+
+TEST(openapi_base_of_a_self_that_is_not_a_uri_reference) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "http://[::1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::OpenAPIFrame frame{
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, "https://example.com/openapi.json"};
+    FAIL();
+  } catch (const sourcemeta::core::OpenAPIError &error) {
+    EXPECT_EQ(error.base(), "https://example.com/openapi.json");
+    EXPECT_EQ(error.location(), sourcemeta::core::Pointer{"$self"});
+  }
+}
+
+TEST(openapi_base_of_a_self_that_resolves_to_no_scheme) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  // A relative self identifier resolved against nothing names no scheme, so
+  // the document goes by what it was retrieved under after all
+  EXPECT_EQ(sourcemeta::core::openapi_base(document, ""), "");
+}
+
+TEST(openapi_base_of_a_self_with_a_port_beyond_what_a_port_can_be) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "$self": "http://example.com:99999999999/api",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  // RFC 3986 Section 3.2.3 writes a port as digits, which the check this
+  // field is held to admits however many there are, while reading one out
+  // holds it to what a port can be
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+}
+
+TEST(openapi_base_of_a_revision_that_reads_a_self_without_one) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.2.0",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  EXPECT_EQ(sourcemeta::core::openapi_base(document,
+                                           "https://example.com/openapi.json"),
+            "https://example.com/openapi.json");
+}
+
+TEST(any_object_that_nothing_answers) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_FALSE(frame.any_object([](const auto &, const auto &location) {
+    return location.type ==
+           sourcemeta::core::OpenAPIFrame::ObjectKind::Callbacks;
+  }));
+}
+
+TEST(any_object_that_a_later_place_answers) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "paths": {}
+  })JSON")};
+
+  const sourcemeta::core::OpenAPIFrame frame{document,
+                                             sourcemeta::core::schema_walker,
+                                             sourcemeta::core::schema_resolver};
+  EXPECT_TRUE(frame.any_object([](const auto &, const auto &location) {
+    return location.type == sourcemeta::core::OpenAPIFrame::ObjectKind::Paths;
+  }));
+}

@@ -1,0 +1,35 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Local": {
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "$ref": "other.json#/components/schemas/Missing"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "schemaResolver": {},
+  "error": {
+    "type": "OpenAPIReferenceError",
+    "message": "This reference must name an Object of the kind that the position it sits in expects",
+    "identifier": "https://example.com/other.json#/components/schemas/Missing",
+    "location": "/components/schemas/Local/$ref",
+    "base": "https://example.com/openapi.json"
+  }
+}
