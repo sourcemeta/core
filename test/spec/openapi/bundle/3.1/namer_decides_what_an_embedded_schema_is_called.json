@@ -1,0 +1,97 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "A pet"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/schemas/pet"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/schemas/pet": {
+      "$id": "https://example.com/schemas/pet",
+      "type": "object"
+    }
+  },
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "A pet"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/schemas/pet"
+        },
+        "suffix": {
+          "$id": "https://example.com/schemas/pet",
+          "type": "object",
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/schemas/pet",
+      "at": "/components/schemas/suffix"
+    }
+  ],
+  "reads": {},
+  "schemaReads": {
+    "https://example.com/schemas/pet": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ],
+  "namer": "suffix",
+  "named": [
+    {
+      "from": "https://example.com/schemas/pet",
+      "container": "schemas"
+    }
+  ]
+}

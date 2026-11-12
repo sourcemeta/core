@@ -1,0 +1,52 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "https://www.sourcemeta.com/other.json#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": 3.1,
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Pet": {
+            "description": "A pet"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1pets/get/responses/200/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "response"
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/other.json"
+  ],
+  "error": {
+    "type": "OpenAPIError",
+    "message": "The OpenAPI version must be a string"
+  }
+}

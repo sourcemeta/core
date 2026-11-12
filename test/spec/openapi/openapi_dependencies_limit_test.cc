@@ -96,3 +96,64 @@ TEST(a_limit_error_from_the_callback_keeps_its_own_allowance) {
     EXPECT_EQ(error.limit(), 7);
   }
 }
+
+static auto openapi_throwing_schema_resolver(std::string_view identifier)
+    -> sourcemeta::core::SchemaResolverResult {
+  if (identifier == "https://www.sourcemeta.com/dialect.json") {
+    throw sourcemeta::core::OpenAPIFrameLimitError{8};
+  }
+
+  return sourcemeta::core::schema_resolver(identifier);
+}
+
+TEST(an_openapi_limit_error_from_the_resolver_keeps_its_own_allowance) {
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "jsonSchemaDialect": "https://www.sourcemeta.com/dialect.json",
+    "components": { "schemas": { "Pet": { "type": "object" } } }
+  })JSON");
+
+  sourcemeta::core::OpenAPIDependencyOptions options;
+  options.max_locations = 100;
+
+  try {
+    [[maybe_unused]] const auto locations{
+        sourcemeta::core::openapi_dependencies(
+            document, sourcemeta::core::schema_walker,
+            openapi_throwing_schema_resolver, no_descriptions,
+            [](const auto &) -> void {}, options)};
+    FAIL();
+  } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
+    EXPECT_EQ(error.limit(), 8);
+  }
+}
+
+TEST(an_openapi_limit_error_from_the_callback_keeps_its_own_allowance) {
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "openapi": "3.1.1",
+    "info": { "title": "Example", "version": "1.0.0" },
+    "components": { "schemas": { "Pet": {
+      "$ref": "https://www.sourcemeta.com/a.json" } } }
+  })JSON");
+
+  sourcemeta::core::OpenAPIDependencyOptions options;
+  options.max_locations = 1000;
+
+  try {
+    [[maybe_unused]] const auto locations{
+        sourcemeta::core::openapi_dependencies(
+            document, sourcemeta::core::schema_walker, chain_schema_resolver,
+            no_descriptions,
+            [](const auto &dependency) -> void {
+              if (dependency.destination ==
+                  "https://www.sourcemeta.com/b.json") {
+                throw sourcemeta::core::OpenAPIFrameLimitError{8};
+              }
+            },
+            options)};
+    FAIL();
+  } catch (const sourcemeta::core::OpenAPIFrameLimitError &error) {
+    EXPECT_EQ(error.limit(), 8);
+  }
+}

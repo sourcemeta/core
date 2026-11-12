@@ -1,0 +1,36 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/pet.json"
+        },
+        "Paw": {
+          "$ref": "https://www.sourcemeta.com/pet.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/pet.json": {
+      "$id": "https://www.sourcemeta.com/pet.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Paw/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema"
+    }
+  ],
+  "locations": 9,
+  "fetched": []
+}

@@ -1,0 +1,50 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "https://www.sourcemeta.com/shared.json#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/shared.json": {
+      "openapi": "3.0.4",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "paths": {},
+      "components": {
+        "responses": {
+          "Pet": {
+            "description": "A pet"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/paths/~1pets/get/responses/200/$ref",
+      "destination": "https://www.sourcemeta.com/shared.json",
+      "kind": "response"
+    }
+  ],
+  "locations": 12,
+  "fetched": [
+    "https://www.sourcemeta.com/shared.json"
+  ]
+}

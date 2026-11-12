@@ -1,0 +1,21 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "securitySchemes": {
+        "Indirect": {
+          "$ref": ""
+        }
+      }
+    },
+    "paths": {}
+  },
+  "error": {
+    "message": "This reference must name a document that holds only what the reference expects",
+    "location": "/components/securitySchemes/Indirect/$ref"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "here",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "links": {
+                "first": {
+                  "operationRef": "other.json#/paths/~1shared/get"
+                },
+                "second": {
+                  "operationRef": "other.json#/paths/~1shared/delete"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/other.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "paths": {
+        "/shared": {
+          "get": {
+            "operationId": "listed",
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          },
+          "delete": {
+            "operationId": "removed",
+            "responses": {
+              "204": {
+                "description": "Gone"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "operationId": "here",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "links": {
+                "first": {
+                  "operationRef": "#/components/pathItems/shared/get"
+                },
+                "second": {
+                  "operationRef": "#/components/pathItems/shared/delete"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "pathItems": {
+        "shared": {
+          "get": {
+            "operationId": "listed",
+            "responses": {
+              "200": {
+                "description": "OK"
+              }
+            }
+          },
+          "delete": {
+            "operationId": "removed",
+            "responses": {
+              "204": {
+                "description": "Gone"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/other.json#/paths/~1shared",
+      "at": "/components/pathItems/shared"
+    }
+  ],
+  "reads": {
+    "https://example.com/other.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

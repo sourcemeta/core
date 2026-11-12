@@ -1,0 +1,114 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "contact": {
+        "name": "Support",
+        "url": "support",
+        "email": "support@example.com"
+      },
+      "license": {
+        "name": "MIT",
+        "url": "licence"
+      }
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "shared.json#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0",
+        "contact": {
+          "name": "Shared support",
+          "url": "team"
+        },
+        "license": {
+          "name": "Apache-2.0",
+          "url": "terms"
+        }
+      },
+      "components": {
+        "responses": {
+          "Pet": {
+            "description": "A pet"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0",
+      "contact": {
+        "name": "Support",
+        "url": "support",
+        "email": "support@example.com"
+      },
+      "license": {
+        "name": "MIT",
+        "url": "licence"
+      }
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Pet": {
+          "description": "A pet"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/Pet",
+      "at": "/components/responses/Pet"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

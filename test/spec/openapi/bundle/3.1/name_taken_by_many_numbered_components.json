@@ -1,0 +1,146 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "shared.json#/components/responses/Pet"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Pet": {
+          "description": "Pet"
+        },
+        "Pet_": {
+          "description": "Pet_"
+        },
+        "Pet_2": {
+          "description": "Pet_2"
+        },
+        "Pet_4": {
+          "description": "Pet_4"
+        },
+        "Pet_8": {
+          "description": "Pet_8"
+        },
+        "Pet_10": {
+          "description": "Pet_10"
+        },
+        "Zebra": {
+          "description": "Zebra"
+        },
+        "Pet_1x": {
+          "description": "Pet_1x"
+        },
+        "Pet_99": {
+          "description": "Pet_99"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "responses": {
+          "Pet": {
+            "description": "A pet"
+          }
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/pets": {
+        "get": {
+          "responses": {
+            "200": {
+              "$ref": "#/components/responses/Pet_1"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "responses": {
+        "Pet": {
+          "description": "Pet"
+        },
+        "Pet_": {
+          "description": "Pet_"
+        },
+        "Pet_2": {
+          "description": "Pet_2"
+        },
+        "Pet_4": {
+          "description": "Pet_4"
+        },
+        "Pet_8": {
+          "description": "Pet_8"
+        },
+        "Pet_10": {
+          "description": "Pet_10"
+        },
+        "Zebra": {
+          "description": "Zebra"
+        },
+        "Pet_1x": {
+          "description": "Pet_1x"
+        },
+        "Pet_99": {
+          "description": "Pet_99"
+        },
+        "Pet_1": {
+          "description": "A pet"
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/responses/Pet",
+      "at": "/components/responses/Pet_1"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": [
+    {
+      "type": "path",
+      "path": "/pets",
+      "method": "get",
+      "origin": "https://example.com/openapi.json#/paths/~1pets/get",
+      "endpoint": "https://example.com/openapi.json#/paths/~1pets",
+      "tags": [],
+      "servers": [],
+      "security": [],
+      "parameters": []
+    }
+  ]
+}

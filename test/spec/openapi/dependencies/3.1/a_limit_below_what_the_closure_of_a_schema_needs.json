@@ -1,0 +1,91 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/pet.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/pet.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/pet.json",
+      "properties": {
+        "paw": {
+          "$ref": "https://www.sourcemeta.com/paw.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/paw.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/paw.json",
+      "properties": {
+        "one": {
+          "type": "string"
+        },
+        "two": {
+          "type": "string"
+        },
+        "three": {
+          "type": "string"
+        },
+        "four": {
+          "type": "string"
+        },
+        "five": {
+          "type": "string"
+        },
+        "six": {
+          "type": "string"
+        },
+        "seven": {
+          "type": "string"
+        },
+        "eight": {
+          "type": "string"
+        },
+        "nine": {
+          "type": "string"
+        },
+        "ten": {
+          "type": "string"
+        },
+        "eleven": {
+          "type": "string"
+        },
+        "twelve": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "maxLocations": 15,
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/pet.json",
+      "pointer": "/properties/paw/$ref",
+      "destination": "https://www.sourcemeta.com/paw.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIFrameLimitError",
+    "message": "The OpenAPI Description exceeds the maximum number of locations that framing may register",
+    "limit": 15
+  }
+}
