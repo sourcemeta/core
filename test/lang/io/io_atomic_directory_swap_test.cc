@@ -179,6 +179,7 @@ class ReadOnlyAtomicParent {
 public:
   explicit ReadOnlyAtomicParent(const std::filesystem::path &path)
       : path_{path}, permissions_{std::filesystem::status(path).permissions()} {
+    std::ofstream{path_ / "permission-probe"} << "probe";
     std::filesystem::permissions(path_,
                                  std::filesystem::perms::owner_read |
                                      std::filesystem::perms::owner_exec,
@@ -187,6 +188,21 @@ public:
   ~ReadOnlyAtomicParent() {
     std::error_code error;
     std::filesystem::permissions(path_, permissions_, error);
+    std::filesystem::remove(path_ / "permission-probe", error);
+    std::filesystem::remove(path_ / "permission-renamed", error);
+    std::filesystem::remove(path_ / "permission-created", error);
+  }
+
+  // Privileged processes and some filesystems can bypass the requested bits.
+  [[nodiscard]] auto allows_modification() const -> bool {
+    std::error_code error;
+    std::filesystem::rename(path_ / "permission-probe",
+                            path_ / "permission-renamed", error);
+    if (!error) {
+      return true;
+    }
+    std::ofstream probe{path_ / "permission-created"};
+    return probe.is_open();
   }
 
 private:
@@ -206,6 +222,9 @@ TEST(permission_denied_when_original_absent_preserves_replacement) {
   sourcemeta::core::write_file(replacement / "keep", "replacement");
   {
     const ReadOnlyAtomicParent locked{parent};
+    if (locked.allows_modification()) {
+      return;
+    }
     try {
       sourcemeta::core::atomic_directory_swap(original, replacement);
       FAIL();
@@ -229,11 +248,21 @@ TEST(permission_denied_exchange_preserves_both_directories) {
   sourcemeta::core::write_file(replacement / "keep", "replacement");
   {
     const ReadOnlyAtomicParent locked{workspace.path()};
+    if (locked.allows_modification()) {
+      return;
+    }
     try {
       sourcemeta::core::atomic_directory_swap(original, replacement);
       FAIL();
+#if defined(__linux__) || defined(__APPLE__)
     } catch (const sourcemeta::core::IOFilePermissionError &error) {
       EXPECT_EQ(error.path(), original);
+#else
+      // The fallback first creates its swap staging directory in this parent.
+    } catch (const sourcemeta::core::IOFilesystemError &error) {
+      EXPECT_EQ(error.path(), workspace.path());
+      EXPECT_EQ(error.code(), std::errc::permission_denied);
+#endif
     }
   }
   EXPECT_EQ(sourcemeta::core::read_file_to_string(original / "keep"),

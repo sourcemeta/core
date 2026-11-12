@@ -176,6 +176,16 @@ TEST_F(IOAtomicWriteFileTest, read_only_parent_throws_permission_error) {
                                    std::filesystem::perms::owner_exec,
                                std::filesystem::perm_options::replace);
   const auto path{read_only_dir / "out.txt"};
+  const auto probe_path{read_only_dir / "probe.txt"};
+  std::ofstream probe{probe_path};
+  if (probe.is_open()) {
+    probe.close();
+    std::filesystem::remove(probe_path);
+    std::filesystem::permissions(read_only_dir,
+                                 std::filesystem::perms::owner_all,
+                                 std::filesystem::perm_options::add);
+    return;
+  }
 
   try {
     sourcemeta::core::atomic_write_file(path, "should fail");
@@ -233,7 +243,8 @@ TEST_F(IOAtomicWriteFileTest,
       stream.setstate(std::ios::badbit);
     });
     FAIL();
-  } catch (const std::ios_base::failure &) {
+  } catch (const std::ios_base::failure &error) {
+    EXPECT_TRUE(static_cast<bool>(error.code()));
   }
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "original");
   this->expect_no_staging(path);
@@ -264,7 +275,8 @@ TEST_F(IOAtomicWriteFileTest, staging_name_exceeding_filesystem_limit) {
     FAIL();
   } catch (const sourcemeta::core::IOFilePermissionError &) {
     FAIL();
-  } catch (const std::ios_base::failure &) {
+  } catch (const std::ios_base::failure &error) {
+    EXPECT_TRUE(static_cast<bool>(error.code()));
   }
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "original");
   this->expect_no_staging(path);
