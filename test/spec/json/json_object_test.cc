@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include <map>
 #include <set>
 #include <span>
@@ -773,6 +774,23 @@ TEST(find) {
   EXPECT_EQ(document.as_object().find("bar"), document.as_object().cend());
 }
 
+TEST(find_hash) {
+  const auto document{sourcemeta::core::parse_json(R"({"foo":5,"bar":6})")};
+  const auto &object{document.as_object()};
+  const auto iterator{object.find("bar", object.hash("bar"))};
+  EXPECT_NE(iterator, object.cend());
+  EXPECT_EQ(iterator->first, "bar");
+  EXPECT_TRUE(iterator->second.is_integer());
+  EXPECT_EQ(iterator->second.to_integer(), 6);
+  EXPECT_EQ(std::distance(object.cbegin(), iterator), 1);
+}
+
+TEST(find_hash_non_existent) {
+  const auto document{sourcemeta::core::parse_json(R"({"foo":5})")};
+  const auto &object{document.as_object()};
+  EXPECT_EQ(object.find("bar", object.hash("bar")), object.cend());
+}
+
 TEST(at_hash_const) {
   const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{false}},
                                         {"bar", sourcemeta::core::JSON{true}}};
@@ -1408,6 +1426,37 @@ TEST(at_const_with_string_view_and_hash) {
   const std::string_view foo{"foo"};
   const auto foo_hash{object.hash(foo)};
   EXPECT_EQ(document.at(foo, foo_hash).to_integer(), 1);
+}
+
+TEST(find_with_string_view_and_hash) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
+  const auto &object{document.as_object()};
+  const std::string_view bar{"bar"};
+  const auto iterator{object.find(bar, object.hash(bar))};
+  EXPECT_NE(iterator, object.cend());
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  EXPECT_EQ(std::distance(object.cbegin(), iterator), 1);
+}
+
+TEST(find_with_string_view_and_hash_non_existent) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
+  const auto &object{document.as_object()};
+  const std::string_view qux{"qux"};
+  EXPECT_EQ(object.find(qux, object.hash(qux)), object.cend());
+}
+
+TEST(find_with_string_view_subview_and_hash) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"({"foo":1,"bar":2})");
+  const auto &object{document.as_object()};
+  const std::string buffer{"foobar"};
+  const std::string_view bar_view{buffer.data() + 3, 3};
+  const auto iterator{object.find(bar_view, object.hash(bar_view))};
+  EXPECT_NE(iterator, object.cend());
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  EXPECT_EQ(std::distance(object.cbegin(), iterator), 1);
 }
 
 TEST(defines_with_string_view_long_key) {
@@ -2161,6 +2210,59 @@ TEST(find_two_long_keys_that_share_a_hash) {
       object.find("property_with_a_very_long_name_oBe")->second.to_integer(),
       2);
   EXPECT_EQ(object.find("property_with_a_very_long_name_oCe"), object.cend());
+}
+
+TEST(find_hash_a_key_too_long_to_hash_perfectly) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_one",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_two",
+                  sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  const auto iterator{
+      object.find("property_with_a_very_long_name_two",
+                  object.hash("property_with_a_very_long_name_two"))};
+  EXPECT_NE(iterator, object.cend());
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  EXPECT_EQ(std::distance(object.cbegin(), iterator), 1);
+  EXPECT_EQ(object.find("property_with_a_very_long_name_six",
+                        object.hash("property_with_a_very_long_name_six")),
+            object.cend());
+}
+
+TEST(find_hash_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_oBe",
+                  sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  EXPECT_EQ(object.hash("property_with_a_very_long_name_oAe"),
+            object.hash("property_with_a_very_long_name_oBe"));
+
+  const auto iterator{
+      object.find("property_with_a_very_long_name_oBe",
+                  object.hash("property_with_a_very_long_name_oBe"))};
+  EXPECT_NE(iterator, object.cend());
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  EXPECT_EQ(std::distance(object.cbegin(), iterator), 1);
+}
+
+TEST(find_with_string_view_and_hash_two_long_keys_that_share_a_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("property_with_a_very_long_name_oAe",
+                  sourcemeta::core::JSON{1});
+  document.assign("property_with_a_very_long_name_oBe",
+                  sourcemeta::core::JSON{2});
+
+  const auto &object{document.as_object()};
+  const std::string_view key{"property_with_a_very_long_name_oBe"};
+  const auto iterator{object.find(key, object.hash(key))};
+  EXPECT_NE(iterator, object.cend());
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  EXPECT_EQ(std::distance(object.cbegin(), iterator), 1);
 }
 
 TEST(defines_hash_a_key_too_long_to_hash_perfectly) {
