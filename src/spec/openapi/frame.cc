@@ -599,9 +599,9 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
     // hangs a Callback Object off "the parent operation", so one that two of
     // them reach is reached twice rather than once and the Object it hangs off
     // is part of what tells the two apart
-    [[maybe_unused]] const auto fresh{
-        seen.emplace(kind, path, position, parent).second};
-    assert(fresh);
+    if (!seen.emplace(kind, path, position, parent).second) {
+      continue;
+    }
 
     // Section 4.8.9 leaves undefined only what "appears both in the defined
     // object and the referenced object", so a field written beside a `$ref`
@@ -749,7 +749,9 @@ auto openapi_project(const OpenAPIWalk &walk) -> std::vector<OpenAPIOperation> {
 
       for (const auto &callback : operation->second.callbacks) {
         const auto entries{walk.callbacks.find(follow_aliases(walk, callback))};
-        assert(entries != walk.callbacks.cend());
+        if (entries == walk.callbacks.cend()) {
+          continue;
+        }
 
         for (const auto &[expression, path_item] : entries->second) {
           pending.push_back({.kind = OpenAPIOperationKind::Callback,

@@ -174,15 +174,6 @@ inline auto openapi_is_component_key(const JSON::StringView key) noexcept
 // Operation Object, which is reached through the Path Item Object holding it
 inline auto openapi_component_container(const OpenAPIObjectKind kind) noexcept
     -> JSON::StringView {
-  assert(kind == OpenAPIObjectKind::Schema ||
-         kind == OpenAPIObjectKind::Response ||
-         kind == OpenAPIObjectKind::Parameter ||
-         kind == OpenAPIObjectKind::Example ||
-         kind == OpenAPIObjectKind::RequestBody ||
-         kind == OpenAPIObjectKind::Header || kind == OpenAPIObjectKind::Link ||
-         kind == OpenAPIObjectKind::Callbacks ||
-         kind == OpenAPIObjectKind::PathItem ||
-         kind == OpenAPIObjectKind::MediaType);
   switch (kind) {
     case OpenAPIObjectKind::Schema:
       return "schemas"sv;
@@ -196,29 +187,21 @@ inline auto openapi_component_container(const OpenAPIObjectKind kind) noexcept
       return "requestBodies"sv;
     case OpenAPIObjectKind::Header:
       return "headers"sv;
+    case OpenAPIObjectKind::SecurityScheme:
+      return "securitySchemes"sv;
     case OpenAPIObjectKind::Link:
       return "links"sv;
     case OpenAPIObjectKind::Callbacks:
       return "callbacks"sv;
     case OpenAPIObjectKind::PathItem:
       return "pathItems"sv;
-      // Clang keeps an arm for the kinds that never arrive and counts it as
-      // one that nothing took, so a kind that does arrive is written as the
-      // default there, while the compilers reading a case label are the ones
-      // holding this switch to naming them all. A Security Scheme Object is
-      // among the ones that never arrive, as the Components Object is the only
-      // place one ever sits, so a reference naming one names a component and
-      // is answered by the member that component already sits under
-#if defined(__clang__)
-    default:
-#else
     case OpenAPIObjectKind::MediaType:
-#endif
       return "mediaTypes"sv;
-#if !defined(__clang__)
     default:
-      std::unreachable();
-#endif
+      // A kind the Components Object has no home for is answered with nothing
+      // rather than left undefined, as a reference reaching one would
+      // otherwise embed it under no member at all
+      return {};
   }
 }
 

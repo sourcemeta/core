@@ -305,12 +305,13 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
       // reads its fragment hands back a view into it
       const sourcemeta::core::URI destination{discriminator.destination};
       const auto fragment{destination.fragment()};
-      assert(!sourcemeta::core::openapi_within_document(
-                 discriminator.destination, remote.base) ||
-             fragment.has_value());
+      // A Schema Object that declares an identity of its own is named by that
+      // identity rather than by a route into the document, and such an
+      // identity may be the one the document itself answers to, so there is
+      // not always a fragment to read a route out of
       if (!sourcemeta::core::openapi_within_document(discriminator.destination,
                                                      remote.base) ||
-          !fragment.value().starts_with('/')) {
+          !fragment.has_value() || !fragment.value().starts_with('/')) {
         continue;
       }
 
@@ -1252,16 +1253,16 @@ auto index_schemas(const sourcemeta::core::JSON &remote_document,
   // one it names itself with, and 3.2.1 Section 4.1.1 keeps the two apart, so a
   // Schema Object claiming either of them is a Schema Object claiming a whole
   // document
-  frame.for_each_resource(
-      [&identifier, &result](const auto &uri, const auto &location) -> void {
-        // A Schema Object declares an identifier of its own, which is what
-        // makes it a resource and tells it apart from the document that holds
-        // it, by either of the two names that document answers to
-        assert(uri != identifier);
-        result.emplace(sourcemeta::core::JSON::String{uri},
-                       std::make_pair(identifier, sourcemeta::core::to_pointer(
-                                                      location.pointer)));
-      });
+  frame.for_each_resource([&identifier, &remote, &result](
+                              const auto &uri, const auto &location) -> void {
+    if (uri == remote.base || uri == identifier) {
+      return;
+    }
+
+    result.emplace(sourcemeta::core::JSON::String{uri},
+                   std::make_pair(identifier, sourcemeta::core::to_pointer(
+                                                  location.pointer)));
+  });
 
   // A dynamic anchor is settled where a schema is evaluated rather than where
   // it sits, so only the ones that name a place outright are places to reach

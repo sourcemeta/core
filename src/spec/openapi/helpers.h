@@ -645,7 +645,9 @@ inline auto openapi_resolve_uri(const JSON::StringView reference,
 inline auto openapi_restated_uri(const JSON::StringView reference,
                                  const JSON::String &base)
     -> std::optional<URI> {
-  assert(!base.empty());
+  if (base.empty()) {
+    return std::nullopt;
+  }
 
   try {
     URI target{JSON::String{reference}};

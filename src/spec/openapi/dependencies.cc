@@ -45,8 +45,7 @@ auto is_description(const JSON &document) -> bool {
   }
 
   const auto *version{document.try_at("openapi")};
-  assert(version == nullptr || version->is_string());
-  return version != nullptr;
+  return version != nullptr && version->is_string();
 }
 
 // A caller's resolver may run an allowance of its own, and running out of
@@ -217,7 +216,11 @@ auto declares_foreign_dialect(const JSON &document) -> bool {
     return false;
   }
 
-  return document.try_at("$schema") != nullptr;
+  const auto *declared{document.try_at("$schema")};
+  return declared != nullptr &&
+         !(declared->is_string() &&
+           declared->to_string() ==
+               openapi_dialect(OpenAPIVersion::OPENAPI_3_0));
 }
 
 auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
