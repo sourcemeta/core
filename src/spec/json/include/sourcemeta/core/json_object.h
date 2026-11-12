@@ -116,16 +116,14 @@ public:
       }
     }
 
-    // Both objects hold the same number of entries, so a key missing from
-    // this one means some key of this one is missing from the other, which
-    // the scan above has already settled on
+    // A key named twice leaves both objects holding the same number of
+    // entries while naming a different number of keys, so the scan above can
+    // find nothing to disagree on and this one still settle the outcome
     for (const auto &entry : other.data_) {
-      if (this->find(entry.first) == this->cend()) {
-        assert(decisive_key != nullptr);
-        if (entry.first < *decisive_key) {
-          decisive_key = &entry.first;
-          decision = false;
-        }
+      if (this->find(entry.first) == this->cend() &&
+          (decisive_key == nullptr || entry.first < *decisive_key)) {
+        decisive_key = &entry.first;
+        decision = false;
       }
     }
 

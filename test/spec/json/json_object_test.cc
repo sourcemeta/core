@@ -3266,3 +3266,17 @@ TEST(try_assign_before_a_suffix_colliding_with_an_entry) {
   EXPECT_EQ(document.at("baz").to_integer(), 99);
   EXPECT_EQ(document.at(COLLIDING_LEFT).to_integer(), 1);
 }
+
+TEST(less_than_where_a_repeated_key_leaves_no_difference) {
+  // The parser keeps a key named twice, so one object can hold as many entries
+  // as another while naming fewer keys, and then the first scan finds nothing
+  // to disagree on
+  const auto left{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "a": 1 })JSON")};
+  const auto right{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 2 })JSON")};
+  EXPECT_EQ(left.size(), 2);
+  EXPECT_EQ(right.size(), 2);
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
+}

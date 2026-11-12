@@ -1667,14 +1667,17 @@ BENCHMARK(JSON_Object_Defines_Missing_Perfect_Hash) {
 // change to the scan has to be judged against rather than the one above
 BENCHMARK(JSON_Object_At_Long_Keys) {
   auto value{sourcemeta::core::JSON::make_object()};
+  // The hash of a key this long is taken from its length, its first byte, its
+  // last byte and the 31 bytes it opens with, so a byte past those and before
+  // the last is what leaves the entries hashing alike
   for (std::size_t index = 0; index < opaque(8); index++) {
     sourcemeta::core::JSON::String key(40, 'x');
-    key[39] = static_cast<char>('A' + index);
+    key[32] = static_cast<char>('A' + index);
     value.assign(key, sourcemeta::core::JSON{static_cast<std::int64_t>(index)});
   }
 
   sourcemeta::core::JSON::String key(40, 'x');
-  key[39] = 'H';
+  key[32] = 'H';
   const auto document{value};
 
   for (auto iteration : state) {
