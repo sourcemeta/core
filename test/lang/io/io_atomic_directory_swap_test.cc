@@ -1,9 +1,10 @@
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/test.h>
 
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::ofstream, std::ifstream
-#include <string>     // std::string
+#include <filesystem>   // std::filesystem
+#include <fstream>      // std::ofstream, std::ifstream
+#include <string>       // std::string
+#include <system_error> // std::error_code
 
 TEST(creates_when_original_absent) {
   const sourcemeta::core::TemporaryDirectory workspace{
@@ -131,3 +132,139 @@ TEST(no_leftover_temporary) {
     EXPECT_FALSE(filename.starts_with(".swap-"));
   }
 }
+
+TEST(missing_destination_parent_preserves_replacement) {
+  const sourcemeta::core::TemporaryDirectory workspace{
+      std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
+  const auto original{workspace.path() / "missing" / "original"};
+  const auto replacement{workspace.path() / "replacement"};
+  std::filesystem::create_directory(replacement);
+  sourcemeta::core::write_file(replacement / "keep", "replacement");
+  try {
+    sourcemeta::core::atomic_directory_swap(original, replacement);
+    FAIL();
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_EQ(error.path(), replacement);
+  }
+  EXPECT_FALSE(std::filesystem::exists(original));
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(replacement / "keep"),
+            "replacement");
+}
+
+#if !defined(_WIN32)
+TEST(destination_parent_is_a_file_preserves_replacement) {
+  const sourcemeta::core::TemporaryDirectory workspace{
+      std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
+  const auto blocker{workspace.path() / "blocker"};
+  sourcemeta::core::write_file(blocker, "original");
+  const auto original{blocker / "original"};
+  const auto replacement{workspace.path() / "replacement"};
+  std::filesystem::create_directory(replacement);
+  sourcemeta::core::write_file(replacement / "keep", "replacement");
+  try {
+    sourcemeta::core::atomic_directory_swap(original, replacement);
+    FAIL();
+  } catch (const sourcemeta::core::IOFilesystemError &error) {
+    EXPECT_TRUE(static_cast<bool>(error.code()));
+    EXPECT_EQ(error.path(), replacement);
+    EXPECT_EQ(error.other(), original);
+  }
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(blocker), "original");
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(replacement / "keep"),
+            "replacement");
+}
+
+namespace {
+class ReadOnlyAtomicParent {
+public:
+  explicit ReadOnlyAtomicParent(const std::filesystem::path &path)
+      : path_{path}, permissions_{std::filesystem::status(path).permissions()} {
+    std::filesystem::permissions(path_,
+                                 std::filesystem::perms::owner_read |
+                                     std::filesystem::perms::owner_exec,
+                                 std::filesystem::perm_options::replace);
+  }
+  ~ReadOnlyAtomicParent() {
+    std::error_code error;
+    std::filesystem::permissions(path_, permissions_, error);
+  }
+
+private:
+  std::filesystem::path path_;
+  std::filesystem::perms permissions_;
+};
+} // namespace
+
+TEST(permission_denied_when_original_absent_preserves_replacement) {
+  const sourcemeta::core::TemporaryDirectory workspace{
+      std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
+  const auto parent{workspace.path() / "locked"};
+  std::filesystem::create_directory(parent);
+  const auto original{parent / "original"};
+  const auto replacement{workspace.path() / "replacement"};
+  std::filesystem::create_directory(replacement);
+  sourcemeta::core::write_file(replacement / "keep", "replacement");
+  {
+    const ReadOnlyAtomicParent locked{parent};
+    try {
+      sourcemeta::core::atomic_directory_swap(original, replacement);
+      FAIL();
+    } catch (const sourcemeta::core::IOFilePermissionError &error) {
+      EXPECT_EQ(error.path(), replacement);
+    }
+  }
+  EXPECT_FALSE(std::filesystem::exists(original));
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(replacement / "keep"),
+            "replacement");
+}
+
+TEST(permission_denied_exchange_preserves_both_directories) {
+  const sourcemeta::core::TemporaryDirectory workspace{
+      std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
+  const auto original{workspace.path() / "original"};
+  const auto replacement{workspace.path() / "replacement"};
+  std::filesystem::create_directory(original);
+  std::filesystem::create_directory(replacement);
+  sourcemeta::core::write_file(original / "keep", "original");
+  sourcemeta::core::write_file(replacement / "keep", "replacement");
+  {
+    const ReadOnlyAtomicParent locked{workspace.path()};
+    try {
+      sourcemeta::core::atomic_directory_swap(original, replacement);
+      FAIL();
+    } catch (const sourcemeta::core::IOFilePermissionError &error) {
+      EXPECT_EQ(error.path(), original);
+    }
+  }
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(original / "keep"),
+            "original");
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(replacement / "keep"),
+            "replacement");
+}
+#endif
+
+#if defined(__linux__) || defined(__APPLE__)
+// Both paths satisfy the directory preconditions, but a directory cannot be
+// exchanged with its own descendant. Neither tree may be partially moved.
+TEST(exchange_with_descendant_preserves_both_directories) {
+  const sourcemeta::core::TemporaryDirectory workspace{
+      std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
+  const auto original{workspace.path() / "original"};
+  const auto replacement{original / "replacement"};
+  std::filesystem::create_directories(replacement);
+  sourcemeta::core::write_file(original / "keep", "original");
+  sourcemeta::core::write_file(replacement / "keep", "replacement");
+  try {
+    sourcemeta::core::atomic_directory_swap(original, replacement);
+    FAIL();
+  } catch (const sourcemeta::core::IOFilesystemError &error) {
+    EXPECT_TRUE(static_cast<bool>(error.code()));
+    EXPECT_EQ(error.path(), replacement);
+    EXPECT_EQ(error.other(), original);
+  }
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(original / "keep"),
+            "original");
+  EXPECT_EQ(sourcemeta::core::read_file_to_string(replacement / "keep"),
+            "replacement");
+}
+#endif
