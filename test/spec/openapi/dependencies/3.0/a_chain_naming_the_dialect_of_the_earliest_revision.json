@@ -1,0 +1,52 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/near.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/near.json": {
+      "$id": "https://www.sourcemeta.com/near.json",
+      "properties": {
+        "far": {
+          "$ref": "https://www.sourcemeta.com/far.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/far.json": {
+      "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+      "$id": "https://www.sourcemeta.com/far.json",
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/near.json",
+      "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/near.json",
+      "pointer": "/properties/far/$ref",
+      "destination": "https://www.sourcemeta.com/far.json",
+      "kind": "schema"
+    }
+  ],
+  "fetched": [],
+  "error": {
+    "type": "SchemaDialectImpossibleError",
+    "message": "The dialect that this schema declares does not define the keyword that declares it",
+    "location": ""
+  }
+}

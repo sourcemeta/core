@@ -29,9 +29,13 @@ const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
 // Every exception that analysis throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
 // from the fields that happen to be there
-const std::vector<std::string> KNOWN_ERROR_TYPES{
-    "OpenAPIResolutionError", "OpenAPIReferenceError", "OpenAPIFrameLimitError",
-    "SchemaResolutionError",  "SchemaReferenceError",  "OpenAPIError"};
+const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIResolutionError",
+                                                 "OpenAPIReferenceError",
+                                                 "OpenAPIFrameLimitError",
+                                                 "SchemaResolutionError",
+                                                 "SchemaReferenceError",
+                                                 "SchemaDialectImpossibleError",
+                                                 "OpenAPIError"};
 
 const std::vector<std::string> KNOWN_ERROR_KEYS{
     "type", "message", "identifier", "limit", "base", "location"};
@@ -182,7 +186,8 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
                           type == "OpenAPIReferenceError"};
   EXPECT_EQ(error.defines("base"), carries_base);
   EXPECT_EQ(error.defines("location"),
-            carries_base || type == "SchemaReferenceError");
+            carries_base || type == "SchemaReferenceError" ||
+                type == "SchemaDialectImpossibleError");
 }
 
 auto check_error(const sourcemeta::core::JSON &test,
@@ -235,6 +240,16 @@ auto check_error(const sourcemeta::core::JSON &test,
     } catch (const sourcemeta::core::SchemaReferenceError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+      EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+                expected.at("location").to_string());
+    }
+  } else if (type == "SchemaDialectImpossibleError") {
+    try {
+      [[maybe_unused]] const auto locations{
+          collect(test, schema_resolver, resolver, base, reported)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaDialectImpossibleError &error) {
+      EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(sourcemeta::core::to_string(error.location()),
                 expected.at("location").to_string());
     }

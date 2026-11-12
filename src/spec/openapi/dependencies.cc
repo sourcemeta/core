@@ -44,8 +44,12 @@ auto is_description(const JSON &document) -> bool {
     return false;
   }
 
+  // Whatever a resolver hands back for a reference of this specification is
+  // read as a description before anything asks what it looks like, and that
+  // reading is what holds the field to being a string
   const auto *version{document.try_at("openapi")};
-  return version != nullptr && version->is_string();
+  assert(version == nullptr || version->is_string());
+  return version != nullptr;
 }
 
 // A caller's resolver may run an allowance of its own, and running out of
@@ -216,11 +220,12 @@ auto declares_foreign_dialect(const JSON &document) -> bool {
     return false;
   }
 
+  // A dialect that is no string is no dialect at all, which reading the schema
+  // turns down before any of this is asked
   const auto *declared{document.try_at("$schema")};
+  assert(declared == nullptr || declared->is_string());
   return declared != nullptr &&
-         !(declared->is_string() &&
-           declared->to_string() ==
-               openapi_dialect(OpenAPIVersion::OPENAPI_3_0));
+         declared->to_string() != openapi_dialect(OpenAPIVersion::OPENAPI_3_0);
 }
 
 auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
