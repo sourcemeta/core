@@ -222,7 +222,7 @@ auto declares_foreign_dialect(const JSON &document) -> bool {
 
 auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
                              const JSON::StringView document,
-                             const Reached reached) -> bool {
+                             [[maybe_unused]] const Reached reached) -> bool {
   const auto known{walk.accounted.find(document)};
   if (spelled.size() == document.size() || known == walk.accounted.cend()) {
     return false;
@@ -322,7 +322,8 @@ auto reject_conflicting_kind(const Held &held, const Reached reached,
 // What a description of the earliest revision reaches has to be written against
 // the dialect that revision publishes whether this walk is reading it now or
 // read it for another description earlier
-auto reject_foreign_hold(const Held &held, const Reached reached,
+auto reject_foreign_hold(const Held &held,
+                         [[maybe_unused]] const Reached reached,
                          const OpenAPIVersion version,
                          const JSON::StringView origin, const Pointer &pointer)
     -> void {

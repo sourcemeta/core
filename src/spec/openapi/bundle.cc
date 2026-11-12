@@ -344,10 +344,10 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
   // `$id` as a Base URI". So a schema that names itself relatively names
   // something else once it sits in another document, and writing back what it
   // resolved to where it came from is what keeps its identity its own
-  frame.for_each_resource([&value, &origin,
-                           &moved](const auto &identifier,
-                                   const auto &location) -> void {
-    assert(location.pointer.starts_with(moved));
+  frame.for_each_resource([&value, &origin](const auto &identifier,
+                                            const auto &location) -> void {
+    assert(location.pointer.starts_with(
+        sourcemeta::core::to_weak_pointer(origin)));
     auto &schema{sourcemeta::core::get(
         value,
         (sourcemeta::core::to_pointer(location.pointer)).resolve_from(origin))};
@@ -370,9 +370,10 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
   // without it being a schema of its own, a keyword value such as the instance
   // an enumeration or a constant holds, and writing a URI into one of those
   // would be rewriting what a description says an instance must look like
-  frame.for_each_subschema([&value, &origin, &moved, &frame, &walker,
+  frame.for_each_subschema([&value, &origin, &frame, &walker,
                             &resolver](const auto &location) -> void {
-    assert(location.pointer.starts_with(moved));
+    assert(location.pointer.starts_with(
+        sourcemeta::core::to_weak_pointer(origin)));
 
     // Section 4.8.24 lists `externalDocs` among the keywords that the dialect
     // this specification publishes is made of, and Section 4.8.24.5 has a
@@ -405,7 +406,7 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
 
   frame.for_each_reference_from(
       moved,
-      [&value, &origin, &moved, &landing, &frame, &remote](
+      [&value, &origin, &landing, &frame, &remote](
           const auto type, const auto &pointer, const auto &reference) -> void {
         // What a dynamic reference names is settled where the schema is
         // evaluated rather than where it sits, so a bare name is left exactly
@@ -453,7 +454,8 @@ auto absolutize_schemas(sourcemeta::core::JSON &value,
         // The frame spans the Schema Objects within what moves and nothing
         // else, so a destination it can reach names a place within it
         assert(!target.has_value() ||
-               target.value().get().pointer.starts_with(moved));
+               target.value().get().pointer.starts_with(
+                   sourcemeta::core::to_weak_pointer(origin)));
         if (target.has_value()) {
           // Which root a pointer counts from is what the reference resolved
           // against rather than how it is spelled. One that resolved against
@@ -1250,15 +1252,16 @@ auto index_schemas(const sourcemeta::core::JSON &remote_document,
   // one it names itself with, and 3.2.1 Section 4.1.1 keeps the two apart, so a
   // Schema Object claiming either of them is a Schema Object claiming a whole
   // document
-  frame.for_each_resource([&identifier, &remote, &result](
-                              const auto &uri, const auto &location) -> void {
-    // A Schema Object declares an identifier of its own, which is what makes
-    // it a resource and tells it apart from the document that holds it
-    assert(uri != remote.base && uri != identifier);
-    result.emplace(sourcemeta::core::JSON::String{uri},
-                   std::make_pair(identifier, sourcemeta::core::to_pointer(
-                                                  location.pointer)));
-  });
+  frame.for_each_resource(
+      [&identifier, &result](const auto &uri, const auto &location) -> void {
+        // A Schema Object declares an identifier of its own, which is what
+        // makes it a resource and tells it apart from the document that holds
+        // it, by either of the two names that document answers to
+        assert(uri != identifier);
+        result.emplace(sourcemeta::core::JSON::String{uri},
+                       std::make_pair(identifier, sourcemeta::core::to_pointer(
+                                                      location.pointer)));
+      });
 
   // A dynamic anchor is settled where a schema is evaluated rather than where
   // it sits, so only the ones that name a place outright are places to reach
@@ -1766,7 +1769,7 @@ auto adopt_mappings(
                                : previous->second};
         assert(pending.scope == base);
         JSON named{to_uri(reached).recompose()};
-        const auto *written{try_get(document, pending.origin)};
+        [[maybe_unused]] const auto *written{try_get(document, pending.origin)};
         assert(written != nullptr && *written != named);
         set(document, pending.origin, std::move(named));
         changed = true;

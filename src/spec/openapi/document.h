@@ -257,13 +257,12 @@ inline auto openapi_check_object(const OpenAPIObjectKind expected,
 // still has to land on something and what it lands on still has to be the
 // Object the reference position expects
 inline auto openapi_follow_internal_reference(const URI &target,
-                                              const bool names_a_fragment,
                                               const OpenAPIObjectKind expected,
                                               OpenAPIWalk &walk) -> void {
-  // A reference naming no fragment names the document itself, which is an
-  // OpenAPI Description and has already been read, and which reaching this is
-  // what settles. Framing reads a document it was handed rather than fetching
-  assert(names_a_fragment && walk.document != nullptr);
+  // A reference naming no fragment names the document itself, which the
+  // caller turns down before reaching this, so what is left names a fragment.
+  // Framing reads a document it was handed rather than fetching one
+  assert(walk.document != nullptr);
 
   // OpenAPI Specification 3.1.1, Section 4.6: "If the representation of the
   // referenced document is JSON or YAML, then the fragment identifier SHOULD
@@ -331,7 +330,7 @@ inline auto openapi_follow_target(const URI &target, const Pointer &origin,
                        walk.base, origin};
   }
 
-  openapi_follow_internal_reference(target, names_a_fragment, expected, walk);
+  openapi_follow_internal_reference(target, expected, walk);
 }
 
 inline auto openapi_follow_reference(const JSON::StringView reference,
