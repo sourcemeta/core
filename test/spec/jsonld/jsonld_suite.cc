@@ -228,11 +228,17 @@ auto register_compact_case(const sourcemeta::core::JSON &entry,
                            const std::filesystem::path &suite_root,
                            const sourcemeta::core::JSON::String &base_prefix)
     -> void {
-  // A document declared as JSON-LD 1.0 exercises compaction behaviour that
-  // changed for a 1.1 processor (notably that an expanded term definition is no
-  // longer usable as a compact IRI prefix), per the JSON-LD 1.0 Errata. The
-  // reference implementations skip these tests when run as a 1.1 processor, so
-  // neither do we:
+  // A case declaring itself JSON-LD 1.0 states what a 1.0 processor produces,
+  // which the 1.1 algorithms cannot restate whatever mode they are asked for.
+  // Create Term Definition raises the prefix flag only for a simple term whose
+  // IRI ends with a gen-delim character or names a blank node, and offers no
+  // escape for a processing mode, while IRI Expansion treats a term as the
+  // prefix of a compact IRI only when that flag stands (JSON-LD 1.1 API
+  // Sections 4.2.2 and 5.2.2). An expanded term definition therefore stops
+  // serving as a prefix, which is the 1.0 Errata change these cases rest on,
+  // and asking for the 1.0 processing mode only withholds what 1.1 added
+  // rather than restoring what 1.0 did. So these cases are left out, as the
+  // reference implementations leave them out:
   //
   //   https://github.com/digitalbazaar/jsonld.js/blob/main/tests/test.js
   //   https://github.com/digitalbazaar/pyld/blob/master/tests/runtests.py
@@ -358,9 +364,10 @@ auto register_flatten_case(const sourcemeta::core::JSON &entry,
                            const std::filesystem::path &suite_root,
                            const sourcemeta::core::JSON::String &base_prefix)
     -> void {
-  // A document declared as JSON-LD 1.0 exercises behaviour that changed for a
-  // 1.1 processor, per the JSON-LD 1.0 Errata. The reference implementations
-  // skip these tests when run as a 1.1 processor, so neither do we:
+  // A case declaring itself JSON-LD 1.0 states what a 1.0 processor produces,
+  // which the 1.1 algorithms cannot restate whatever mode they are asked for,
+  // for the reason the compaction runner above sets out. So these cases are
+  // left out, as the reference implementations leave them out:
   //
   //   https://github.com/digitalbazaar/jsonld.js/blob/main/tests/test.js
   //   https://github.com/digitalbazaar/pyld/blob/master/tests/runtests.py

@@ -2,9 +2,10 @@
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/test.h>
 
-#include <cstddef> // std::size_t
-#include <string>  // std::string
-#include <utility> // std::move
+#include <cstddef>  // std::size_t
+#include <optional> // std::optional, std::nullopt
+#include <string>   // std::string
+#include <utility>  // std::move
 
 // A document-relative identifier that names nothing beyond the document
 // stays as it is when no base settles what it points at, and it compacts to
@@ -1326,4 +1327,804 @@ TEST(deeply_nested_input_is_rejected) {
   } catch (const sourcemeta::core::JSONLDError &error) {
     EXPECT_EQ(std::string{error.what()}, "Maximum nesting depth exceeded");
   }
+}
+
+TEST(list_of_lists_is_rejected_under_the_1_0_processing_mode) {
+  // JSON-LD 1.0 holds that a term with a list container cannot carry two list
+  // objects, and names the refusal "compaction to list of lists" (JSON-LD 1.0
+  // API Section 8.1). JSON-LD 1.1 permits a list of lists and drops that error
+  // code from the ones it names (JSON-LD 1.1 API Section 9.6.2), so only the
+  // earlier processing mode refuses this
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example/list": [
+        { "@list": [ { "@list": [ { "@value": "foo" } ] },
+                     { "@list": [ { "@value": "bar" } ] } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "list": { "@id": "http://example/list", "@container": "@list" }
+  })");
+
+  try {
+    sourcemeta::core::jsonld_compact(input, context, "", nullptr,
+                                     sourcemeta::core::JSONLDVersion::V1_0);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Compaction to list of lists");
+  }
+}
+
+TEST(graph_container_over_a_value_that_is_not_a_graph_object) {
+  // A graph container only takes hold of a graph object, so a value object
+  // under the same term compacts as any other value would (JSON-LD 1.1 API
+  // Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/g": [ { "@value": "plain" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "g": { "@id": "http://example.com/g", "@container": "@graph" }
+  })");
+
+  // The term is declined because its container does not match the value, so
+  // the property keeps the IRI it was expanded to
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/g": "plain",
+    "@context": {
+      "g": { "@id": "http://example.com/g", "@container": "@graph" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(graph_container_keeps_an_array_when_arrays_are_not_compacted) {
+  // Holding every value in an array is what asking for arrays to stand
+  // uncompacted means, a graph container included (JSON-LD 1.1 API Section
+  // 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/g": [
+        { "@graph": [ { "@id": "http://example.com/node" } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "g": { "@id": "http://example.com/g", "@container": "@graph" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", nullptr, sourcemeta::core::JSONLDVersion::V1_1,
+      false)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@graph": [ { "g": [ { "@id": "http://example.com/node" } ] } ],
+    "@context": {
+      "g": { "@id": "http://example.com/g", "@container": "@graph" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(language_container_over_a_node_object) {
+  // A language map keys value objects by their language, so a node object
+  // under the same term takes the ordinary path instead (JSON-LD 1.1 API
+  // Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/label": [ { "@id": "http://example.com/other" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "label": { "@id": "http://example.com/label", "@container": "@language" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/label": { "@id": "http://example.com/other" },
+    "@context": {
+      "label": { "@id": "http://example.com/label", "@container": "@language" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(reverse_property_under_the_1_0_processing_mode) {
+  // The index candidates join the container preferences only past 1.0 and only
+  // where the value carries no index of its own, so the earlier mode weighs a
+  // reverse property without them (JSON-LD 1.1 API Section 6.2.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/parent",
+      "@reverse": {
+        "http://example.com/child": [ { "@id": "http://example.com/kid" } ]
+      }
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "child": { "@reverse": "http://example.com/child" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", nullptr, sourcemeta::core::JSONLDVersion::V1_0)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/parent",
+    "child": { "@id": "http://example.com/kid" },
+    "@context": { "child": { "@reverse": "http://example.com/child" } }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(identifier_valued_term_prefers_vocab_when_the_target_names_a_term) {
+  // Where the identifier compacts onto a term that maps back to the very same
+  // IRI, the vocabulary candidate is weighed ahead of the identifier one
+  // (JSON-LD 1.1 API Section 6.2.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/ref": [ { "@id": "http://example.com/target" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "ref": { "@id": "http://example.com/ref", "@type": "@id" },
+    "target": "http://example.com/target"
+  })");
+
+  // The term is typed as an identifier rather than as a vocabulary entry, so
+  // the value stands as an IRI against the document and keeps its full form
+  // even though a term names it (JSON-LD 1.1 API Section 6.3.2)
+  const auto result{sourcemeta::core::jsonld_compact(input, context)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "ref": "http://example.com/target",
+    "@context": {
+      "ref": { "@id": "http://example.com/ref", "@type": "@id" },
+      "target": "http://example.com/target"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(context_named_by_an_iri_is_carried_into_the_result) {
+  // The compacted document carries the context it was compacted against, and a
+  // context handed over as an IRI reference is carried as that reference
+  // rather than as the document it loaded (JSON-LD 1.1 API Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  const sourcemeta::core::JSONLDResolver resolver =
+      [](const sourcemeta::core::JSON::StringView identifier)
+      -> std::optional<sourcemeta::core::JSON> {
+    if (identifier == "https://example.com/context") {
+      return sourcemeta::core::parse_json(
+          R"({ "@context": { "p": "http://example.com/p" } })");
+    }
+    return std::nullopt;
+  };
+
+  const sourcemeta::core::JSON context{"https://example.com/context"};
+  const auto result{
+      sourcemeta::core::jsonld_compact(input, context, "", resolver)};
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": "v",
+    "@context": "https://example.com/context"
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(list_member_value_object_keeps_its_language_and_direction) {
+  // A list member is compacted in its own right, so a value object standing
+  // there has its own keywords compacted alongside its value (JSON-LD 1.1 API
+  // Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@list": [
+            { "@value": "v", "@language": "en", "@direction": "ltr" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@list" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": [ { "@value": "v", "@language": "en", "@direction": "ltr" } ],
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(list_member_value_object_keeps_its_index) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@list": [ { "@value": "v", "@index": "one" } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@list" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": [ { "@value": "v", "@index": "one" } ],
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(type_map_container_keys_an_untyped_node_under_none) {
+  // A type map keys its members by their first type, so a member carrying no
+  // type at all stands under the none label (JSON-LD 1.1 API Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@id": "http://example.com/x" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@type" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@none": "http://example.com/x" },
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@type" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(type_map_container_keys_a_node_with_an_empty_type_under_none) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@id": "http://example.com/x", "@type": [] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@type" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@none": "http://example.com/x" },
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@type" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(value_object_with_a_direction_and_an_index) {
+  // A direction joins the language in what the term preferences are weighed
+  // against, but only where the value carries no index of its own
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "v", "@direction": "ltr", "@index": "one" }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@value": "v", "@direction": "ltr", "@index": "one" },
+    "@context": { "p": { "@id": "http://example.com/p" } }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(an_iri_whose_scheme_names_a_term_that_is_no_prefix_stands) {
+  // An IRI is refused where its scheme names a term usable as a prefix, since
+  // the result would read as a compact IRI instead. A term that came from an
+  // expanded definition is no prefix, so nothing is confused here (JSON-LD
+  // 1.1 API Section 6.2.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "foo:bar": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "foo": { "@id": "http://example.com/foo" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "foo:bar": "v",
+    "@context": { "foo": { "@id": "http://example.com/foo" } }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_context_handed_over_wrapped_in_a_context_entry) {
+  // A context may arrive as the document that carries it, in which case the
+  // entry inside is what the result is compacted against
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  // The result carries the context that was inside the wrapper rather than
+  // the wrapper itself
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": "v",
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_context_handed_over_as_an_array) {
+  // A context may arrive as a list of contexts, which are layered in order
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"([
+    { "q": "http://example.com/q" },
+    { "p": "http://example.com/p" }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": "v",
+    "@context": [
+      { "q": "http://example.com/q" },
+      { "p": "http://example.com/p" }
+    ]
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_term_that_declares_a_language_takes_it_off_the_value) {
+  // Where the term already supplies the language, the value carries none of
+  // its own (JSON-LD 1.1 API Section 6.3.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "v", "@language": "en" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@language": "en" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": "v",
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@language": "en" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_term_that_declares_a_direction_takes_it_off_the_value) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "v", "@direction": "ltr" } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@direction": "ltr" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": "v",
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@direction": "ltr" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_context_that_is_null_is_not_carried_into_the_result) {
+  // The result carries the context it was compacted against only where that
+  // context holds something, so one that names nothing leaves no entry behind
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json("null");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": "v"
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(nest_naming_a_retired_term_is_refused) {
+  // A nest value that is not the keyword itself has to name a term expanding
+  // onto it, and a term that was retired maps to nothing at all
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "n": null,
+    "p": { "@id": "http://example.com/p", "@nest": "n" }
+  })");
+
+  try {
+    sourcemeta::core::jsonld_compact(input, context);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid @nest value");
+  }
+}
+
+TEST(a_list_object_under_a_term_without_a_list_container) {
+  // A list object compacts to a bare array only where the term coerces a list,
+  // so one under a plain term keeps the list entry (JSON-LD 1.1 API Section
+  // 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@list": [ { "@value": "x" } ] } ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@list": [ "x" ] },
+    "@context": { "p": { "@id": "http://example.com/p" } }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_list_container_over_a_plain_value_under_the_1_0_processing_mode) {
+  // The refusal of a list inside a list weighs the value the term carries, and
+  // a term coercing a list may still be handed a value that is no list at all
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "x" } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@list" }
+  })");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", nullptr, sourcemeta::core::JSONLDVersion::V1_0)};
+  // The term is declined because its container does not match the value, so
+  // the property keeps the IRI it was expanded to and the list refusal is
+  // never weighed against it
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": "x",
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(property_index_keys_by_an_identifier_typed_property) {
+  // An index map may key by a property of the item rather than by its index,
+  // and the key is taken from that property only where it reads as a string
+  // (JSON-LD 1.1 API Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/x",
+          "http://example.com/label": [ { "@id": "http://example.com/y" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/label"
+    },
+    "label": { "@id": "http://example.com/label", "@type": "@id" }
+  })");
+
+  // The label term coerces an identifier, so the node reference compacts to a
+  // bare IRI and reads as the key
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "http://example.com/y": { "@id": "http://example.com/x" } },
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/label"
+      },
+      "label": { "@id": "http://example.com/label", "@type": "@id" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(property_index_keys_under_none_where_the_property_holds_an_object) {
+  // Where the property names no string, the item stands under the none label
+  // rather than under a key of its own (JSON-LD 1.1 API Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/x",
+          "http://example.com/label": [ { "@id": "http://example.com/y" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/label"
+    },
+    "label": { "@id": "http://example.com/label" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@none": {
+        "@id": "http://example.com/x",
+        "label": { "@id": "http://example.com/y" }
+      }
+    },
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/label"
+      },
+      "label": { "@id": "http://example.com/label" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_set_container_term_is_declined_for_a_list_object) {
+  // Term selection asks for a term whose container suits the value, and a list
+  // object asks for a list container, so a term offering a set container is no
+  // candidate and the property stands as the IRI it names (Section 4.4.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@list": [ { "@value": "a" } ] } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@container": "@set" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": { "@list": [ "a" ] },
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@set" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(property_index_over_an_empty_array_keys_under_none) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@id": "http://example.com/x", "http://example.com/label": [] }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@id": "http://example.com/p",
+      "@container": "@index",
+      "@index": "http://example.com/label"
+    },
+    "label": { "@id": "http://example.com/label" }
+  })");
+  // The key comes from the first value the indexing property holds, and an
+  // empty array holds none, so the member stands under the none label with
+  // that property left as it was (Section 6.1.2)
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@none": { "@id": "http://example.com/x", "label": [] } },
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@index",
+        "@index": "http://example.com/label"
+      },
+      "label": { "@id": "http://example.com/label" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(identifier_map_keys_under_none_where_the_member_coerces_to_a_scalar) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@id": "http://example.com/x" } ] }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "idmap": {
+      "@id": "http://example.com/p",
+      "@container": "@id",
+      "@type": "@id"
+    }
+  })");
+  // The identifier the key is read from is the one the compacted member
+  // carries, and a member that coerced to a bare identifier is no map and so
+  // carries none, which leaves it under the none label rather than keyed by an
+  // identifier it also still holds (Section 6.1.2)
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "idmap": { "@none": "http://example.com/x" },
+    "@context": {
+      "idmap": {
+        "@id": "http://example.com/p",
+        "@container": "@id",
+        "@type": "@id"
+      }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_bare_graph_object_holding_one_node_collapses) {
+  // A graph object carrying no name of its own lets its lone node stand on its
+  // own, which is what the official suite requires of it (suite entries
+  // #t0090, #t0092 and #t0094)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@graph": [
+            {
+              "@id": "http://example.com/n",
+              "http://example.com/q": [ { "@value": "v" } ]
+            }
+          ]
+        }
+      ]
+    }
+  ])");
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p",
+    "q": "http://example.com/q"
+  })");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@graph": { "@id": "http://example.com/n", "q": "v" } },
+    "@context": {
+      "p": "http://example.com/p",
+      "q": "http://example.com/q"
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_named_graph_holding_one_node_keeps_its_array) {
+  // A graph object that carries a name keeps its nodes as an array, so the
+  // name reads as naming a graph rather than as another property of it
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        {
+          "@id": "http://example.com/g",
+          "@graph": [
+            {
+              "@id": "http://example.com/n",
+              "http://example.com/q": [ { "@value": "v" } ]
+            }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": "http://example.com/p",
+    "q": "http://example.com/q"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@id": "http://example.com/g",
+      "@graph": [ { "@id": "http://example.com/n", "q": "v" } ]
+    },
+    "@context": {
+      "p": "http://example.com/p",
+      "q": "http://example.com/q"
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_typed_value_matching_the_term_type_drops_its_type) {
+  // A term coercing a type carries it, so a value object stating that very
+  // type need not state it again (Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "v", "@type": "http://example.com/T" }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@type": "http://example.com/T" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": "v",
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@type": "http://example.com/T" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_typed_value_parting_from_the_term_type_keeps_its_type) {
+  // Where the type stated is not the one the term coerces, term selection
+  // declines that term, so the property stands as the IRI it names and the
+  // value object states its type in full (Section 4.4.2, Section 6.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "v", "@type": "http://example.com/U" }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "p": { "@id": "http://example.com/p", "@type": "http://example.com/T" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": {
+      "@value": "v",
+      "@type": "http://example.com/U"
+    },
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@type": "http://example.com/T" }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
 }

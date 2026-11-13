@@ -393,3 +393,33 @@ TEST(expansion_is_unchanged_without_a_callback) {
 
   EXPECT_EQ(with, without);
 }
+
+TEST(a_value_object_holding_only_a_direction_is_reported) {
+  // A value object with a direction but no value carries nothing, so it is
+  // dropped the same way one holding only a language is (JSON-LD 1.1 API
+  // Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "p": { "@direction": "ltr" }
+  })");
+
+  const auto drops{collect_drops(input)};
+
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_JSONLD_EXPAND_DROP(0, IncompleteValueObject, "/p",
+                            R"({ "@direction": "ltr" })");
+}
+
+TEST(a_list_inside_a_graph_entry_is_reported) {
+  // A graph entry holds node objects, so a list standing among them is
+  // attached to nothing and is dropped the way a free-floating value is
+  // (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@graph": [ { "@list": [ "x" ] } ]
+  })");
+
+  const auto drops{collect_drops(input)};
+  EXPECT_EQ(drops.size(), 1);
+  EXPECT_JSONLD_EXPAND_DROP(0, FreeFloatingValue, "/@graph/0/@list",
+                            R"([ "x" ])");
+}
