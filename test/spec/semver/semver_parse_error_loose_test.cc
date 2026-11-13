@@ -62,3 +62,7 @@ TEST(major_only_empty_build) { EXPECT_LOOSE_ERROR("1+", 3); }
 TEST(major_minor_empty_pre_release) { EXPECT_LOOSE_ERROR("1.2-", 5); }
 
 TEST(major_minor_empty_build) { EXPECT_LOOSE_ERROR("1.2+", 5); }
+
+TEST(major_then_letter) { EXPECT_LOOSE_ERROR("1x", 2); }
+
+TEST(major_minor_then_letter) { EXPECT_LOOSE_ERROR("1.2x", 4); }

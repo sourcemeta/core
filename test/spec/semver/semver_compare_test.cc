@@ -461,3 +461,123 @@ TEST(different_major_not_equal) {
   EXPECT_NE(sourcemeta::core::SemVer{"1.2.3"},
             sourcemeta::core::SemVer{"2.2.3"});
 }
+
+TEST(compare_pre_release_overflow_same_length) {
+  // Huge numeric identifiers of the same length compare digit by digit
+  const sourcemeta::core::SemVer left{"1.0.0-99999999999999999998"};
+  const sourcemeta::core::SemVer right{"1.0.0-99999999999999999999"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_pre_release_overflow_different_length) {
+  // A huge numeric identifier with fewer digits is lower
+  const sourcemeta::core::SemVer left{"1.0.0-9999999999999999999"};
+  const sourcemeta::core::SemVer right{"1.0.0-99999999999999999999"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_pre_release_left_ends_first) {
+  // Left has fewer identifiers, right continues
+  const sourcemeta::core::SemVer left{"1.0.0-alpha"};
+  const sourcemeta::core::SemVer right{"1.0.0-alpha.beta"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_pre_release_right_ends_first) {
+  // Right has fewer identifiers, left continues
+  const sourcemeta::core::SemVer left{"1.0.0-alpha.beta"};
+  const sourcemeta::core::SemVer right{"1.0.0-alpha"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}
+
+TEST(compare_pre_release_both_end_together) {
+  // Both end at exactly the same position
+  const sourcemeta::core::SemVer left{"1.0.0-alpha.beta"};
+  const sourcemeta::core::SemVer right{"1.0.0-alpha.beta"};
+  EXPECT_FALSE(left < right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(compare_numeric_identifier_less_than_alpha) {
+  // Numeric identifier < alphanumeric identifier
+  const sourcemeta::core::SemVer left{"1.0.0-123"};
+  const sourcemeta::core::SemVer right{"1.0.0-abc"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_alpha_identifier_greater_than_numeric) {
+  // Alphanumeric identifier > numeric identifier
+  const sourcemeta::core::SemVer left{"1.0.0-abc"};
+  const sourcemeta::core::SemVer right{"1.0.0-123"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}
+
+TEST(compare_pre_release_multi_part_numeric_vs_alpha) {
+  // Second identifier: numeric vs alpha
+  const sourcemeta::core::SemVer left{"1.0.0-alpha.123"};
+  const sourcemeta::core::SemVer right{"1.0.0-alpha.beta"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_pre_release_multi_part_alpha_vs_numeric) {
+  // Second identifier: alpha vs numeric
+  const sourcemeta::core::SemVer left{"1.0.0-alpha.beta"};
+  const sourcemeta::core::SemVer right{"1.0.0-alpha.123"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}
+
+TEST(compare_pre_release_overflow_at_exact_digit_boundary) {
+  // Identifiers just past the largest 64-bit value still order correctly
+  const sourcemeta::core::SemVer left{"1.0.0-18446744073709551616"};
+  const sourcemeta::core::SemVer right{"1.0.0-18446744073709551617"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_pre_release_overflow_at_digit_boundary_9) {
+  // Huge identifiers that differ only in the last digit
+  const sourcemeta::core::SemVer left{"1.0.0-18446744073709551619"};
+  const sourcemeta::core::SemVer right{"1.0.0-18446744073709551618"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}
+
+TEST(compare_pre_release_same_single_identifier) {
+  const sourcemeta::core::SemVer left{"1.0.0-rc"};
+  const sourcemeta::core::SemVer right{"1.0.0-rc"};
+  EXPECT_FALSE(left < right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(compare_pre_release_overflow_shorter_length) {
+  // A huge numeric identifier with fewer digits is lower
+  const sourcemeta::core::SemVer left{"1.0.0-99999999999999999999"};
+  const sourcemeta::core::SemVer right{"1.0.0-100000000000000000000"};
+  EXPECT_LT(left, right);
+}
+
+TEST(compare_pre_release_at_exact_max_boundary) {
+  // The largest 64-bit value still compares as a number
+  const sourcemeta::core::SemVer left{"1.0.0-18446744073709551615"};
+  const sourcemeta::core::SemVer right{"1.0.0-18446744073709551614"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}
+
+TEST(compare_pre_release_just_below_overflow) {
+  // Values just below the largest 64-bit value compare as numbers
+  const sourcemeta::core::SemVer left{"1.0.0-18446744073709551614"};
+  const sourcemeta::core::SemVer right{"1.0.0-18446744073709551613"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}
+
+TEST(compare_pre_release_overflow_left_longer) {
+  // A huge numeric identifier with more digits is higher
+  const sourcemeta::core::SemVer left{"1.0.0-99999999999999999999"};
+  const sourcemeta::core::SemVer right{"1.0.0-9999999999999999999"};
+  EXPECT_GT(left, right);
+  EXPECT_FALSE(left < right);
+}

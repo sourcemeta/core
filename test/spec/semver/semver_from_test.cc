@@ -164,3 +164,45 @@ TEST(invalid_build_returns_nullopt) {
 TEST(trailing_garbage_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2.3x").has_value());
 }
+
+// Tests for exact overflow boundaries
+TEST(overflow_major_at_boundary) {
+  // 18446744073709551616 is UINT64_MAX + 1
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("18446744073709551616.0.0").has_value());
+}
+
+TEST(overflow_minor_at_boundary) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("0.18446744073709551616.0").has_value());
+}
+
+TEST(overflow_patch_at_boundary) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("0.0.18446744073709551616").has_value());
+}
+
+TEST(valid_at_uint64_max) {
+  const auto result = sourcemeta::core::SemVer::from(
+      "18446744073709551615.18446744073709551615.18446744073709551615");
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->major(), 18446744073709551615ULL);
+  EXPECT_EQ(result->minor(), 18446744073709551615ULL);
+  EXPECT_EQ(result->patch(), 18446744073709551615ULL);
+}
+
+TEST(from_major_ends_at_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1-").has_value());
+}
+
+TEST(from_major_ends_at_plus) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1+").has_value());
+}
+
+TEST(from_major_minor_ends_at_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2-").has_value());
+}
+
+TEST(from_major_minor_ends_at_plus) {
+  EXPECT_FALSE(sourcemeta::core::SemVer::from("1.2+").has_value());
+}
