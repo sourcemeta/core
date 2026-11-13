@@ -226,3 +226,66 @@ TEST(blank_node_identifier_used_twice_names_one_node) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
+
+TEST(a_blank_node_property_is_relabelled) {
+  // A property may itself be a blank node identifier, and it is relabelled the
+  // way a subject is so that the whole document agrees on the label (JSON-LD
+  // 1.1 API Section 7.1.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "_:prop": [ { "@value": "x" } ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "_:b0": [ { "@value": "x" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(a_node_reached_twice_under_one_index_is_kept) {
+  // Two node objects naming the same subject are merged, and an index they
+  // agree on stands rather than being refused (JSON-LD 1.1 API Section 7.2.2)
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "@index": "one",
+      "http://example.com/p": [ { "@value": "x" } ]
+    },
+    {
+      "@id": "http://example.com/a",
+      "@index": "one",
+      "http://example.com/q": [ { "@value": "y" } ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "@index": "one",
+      "http://example.com/p": [ { "@value": "x" } ],
+      "http://example.com/q": [ { "@value": "y" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(a_type_naming_an_iri_is_not_relabelled) {
+  // Only a name that stands for a blank node is relabelled, so a type naming
+  // an IRI is carried over as it was
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "@id": "http://example.com/s", "@type": [ "http://example.com/T" ] }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "@id": "http://example.com/s", "@type": [ "http://example.com/T" ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}

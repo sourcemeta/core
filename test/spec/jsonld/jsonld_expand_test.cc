@@ -3463,3 +3463,764 @@ TEST(free_floating_node_reference_in_set_is_dropped) {
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(shorthand_term_definition_with_keyword_form_is_ignored) {
+  // A term definition whose IRI is not a keyword but carries the shape of one
+  // is abandoned rather than refused, and a processor should say so (JSON-LD
+  // 1.1 API Section 4.2.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "term": "@unknown" },
+    "http://example.com/p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(expanded_term_definition_with_keyword_form_id_is_ignored) {
+  // The same holds when the shape arrives through an expanded term definition
+  // rather than through a string (JSON-LD 1.1 API Section 4.2.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "term": { "@id": "@unknown" } },
+    "http://example.com/p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(term_with_keyword_form_definition_does_not_expand_its_key) {
+  // The term is left undefined, so a key naming it is dropped rather than
+  // expanded through a definition that was never made
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "term": "@unknown" },
+    "term": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(nest_object_with_a_keyword_form_key_carries_no_value_entry) {
+  // A nested property must not carry a value entry, and the keys are weighed
+  // after expansion, so one shaped like a keyword without being one settles
+  // nothing and the nest stands (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "@nest": [ { "@unknown": "x" } ]
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(list_of_lists_under_1_0_reports_past_a_keyword_form_key) {
+  // JSON-LD 1.0 refuses a list inside a list, and naming the member it refuses
+  // means weighing every key of that member, a key shaped like a keyword
+  // without being one included (JSON-LD 1.0 API Section 7.1)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "@vocab": "http://example.com/",
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    },
+    "p": [ { "@list": [ "a" ], "@unknown": 1 } ]
+  })");
+
+  try {
+    sourcemeta::core::jsonld_expand(input, "", {},
+                                    sourcemeta::core::JSONLDVersion::V1_0);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "List of lists");
+  }
+}
+
+TEST(invalid_value_object_reports_past_a_keyword_form_key) {
+  // Naming the entry that spoils a value object means weighing every key of
+  // that object, since a keyword may arrive under an alias, and one shaped
+  // like a keyword without being one is passed over (JSON-LD 1.1 Section 9.16)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/p": {
+      "@value": "v",
+      "@graph": 1,
+      "@unknown": 2
+    }
+  })");
+
+  try {
+    sourcemeta::core::jsonld_expand(input);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_STREQ(error.what(), "Invalid value object");
+  }
+}
+
+TEST(context_only_keywords_as_document_keys_are_dropped) {
+  // A keyword belongs to a context rather than to a node object, so a key
+  // naming one carries nothing into expanded form while still being weighed
+  // as a keyword (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "@base": "x",
+    "@container": "x",
+    "@import": "x",
+    "@prefix": "x",
+    "@propagate": "x",
+    "@protected": "x",
+    "@version": "x",
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_typed_term_definition_passes_over_its_language) {
+  // A language mapping is read only where the term definition carries no type
+  // of its own, so a typed term leaves the language aside rather than refusing
+  // it (JSON-LD 1.1 API Section 4.2.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@type": "http://example.com/T",
+        "@language": "en"
+      }
+    },
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "v", "@type": "http://example.com/T" }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_typed_term_definition_passes_over_its_direction) {
+  // The same holds for a base direction, which only ever applies to a value
+  // the term has not already given a type (JSON-LD 1.1 API Section 4.2.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@type": "http://example.com/T",
+        "@direction": "ltr"
+      }
+    },
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "v", "@type": "http://example.com/T" }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(graph_id_container_keeps_an_identifier_the_value_already_carries) {
+  // The map key names the graph, but only where the graph has not named
+  // itself already (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "g": {
+        "@id": "http://example.com/g",
+        "@container": [ "@graph", "@id" ]
+      }
+    },
+    "g": {
+      "http://example.com/key": {
+        "@id": "http://example.com/explicit",
+        "@graph": [ { "http://example.com/p": "v" } ]
+      }
+    }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/g": [
+        {
+          "@graph": [
+            { "http://example.com/p": [ { "@value": "v" } ] }
+          ],
+          "@id": "http://example.com/explicit"
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(graph_index_container_keeps_an_index_the_value_already_carries) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "g": {
+        "@id": "http://example.com/g",
+        "@container": [ "@graph", "@index" ]
+      }
+    },
+    "g": {
+      "one": {
+        "@index": "other",
+        "@graph": [ { "http://example.com/p": "v" } ]
+      }
+    }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/g": [
+        {
+          "@graph": [
+            { "http://example.com/p": [ { "@value": "v" } ] }
+          ],
+          "@index": "other"
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(graph_id_container_leaves_a_keyword_form_key_unnamed) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "g": {
+        "@id": "http://example.com/g",
+        "@container": [ "@graph", "@id" ]
+      }
+    },
+    "g": {
+      "@unknown": { "http://example.com/p": "v" }
+    }
+  })");
+
+  // The name comes out of expanding the key, which yields nothing for a key
+  // shaped like a keyword, so the graph is left unnamed rather than named
+  // after a key that named nothing
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/g": [
+        {
+          "@graph": [
+            { "http://example.com/p": [ { "@value": "v" } ] }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(index_container_with_a_keyword_form_key) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@index" }
+    },
+    "p": { "@unknown": "v" }
+  })");
+
+  // The label an index map keys by is weighed by expanding it, which yields
+  // nothing for a label shaped like a keyword, so the label itself stands
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "v", "@index": "@unknown" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(language_container_with_a_keyword_form_key) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@language" }
+    },
+    "p": { "@unknown": "v" }
+  })");
+
+  // A language map keys by language tag, and one shaped like a keyword is
+  // weighed the same way before standing as the tag itself
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "v", "@language": "@unknown" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(list_container_under_the_1_0_processing_mode_without_a_nested_list) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    },
+    "p": [ "x", "y" ]
+  })");
+
+  // JSON-LD 1.0 refuses a list inside a list, so every member of a list
+  // container is weighed against that, and a list of plain values stands
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@list": [ { "@value": "x" }, { "@value": "y" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(an_expand_context_handed_over_wrapped_in_a_context_entry) {
+  // The context to expand against may arrive as the document that carries it
+  const auto input = sourcemeta::core::parse_json(R"({ "p": "v" })");
+  const auto expand_context = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input, expand_context), expected);
+}
+
+TEST(a_term_that_declares_a_language_gives_it_to_the_value) {
+  // A term may supply the language every value under it carries (JSON-LD 1.1
+  // API Section 5.3.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@language": "en" }
+    },
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "v", "@language": "en" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_term_that_declares_a_direction_gives_it_to_the_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@direction": "ltr" }
+    },
+    "p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [ { "@value": "v", "@direction": "ltr" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(reverse_with_keyword_form_is_left_alone) {
+  // "If the value associated with the @reverse entry is not a keyword, but has
+  // the form of a keyword, return" (JSON-LD 1.1 API Section 4.2.2 step 15.3),
+  // so the term is abandoned rather than refused
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@reverse": "@unknown" } },
+    "http://example.com/q": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/q": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(an_identifier_type_mapping_stands_under_the_1_0_processing_mode) {
+  // Only the JSON and none type mappings arrived with 1.1, so the earlier mode
+  // refuses those two and leaves every other type mapping standing (JSON-LD
+  // 1.1 API Section 4.2.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "a": { "@id": "http://example.com/a", "@type": "@id" }
+    },
+    "a": "http://example.com/target"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/a": [ { "@id": "http://example.com/target" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(list_container_over_a_null_value_carries_nothing) {
+  // A list container gathers the value it is handed into a list object, and a
+  // value that expanded to nothing has nothing to gather (JSON-LD 1.1 API
+  // Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": { "@id": "http://example.com/p", "@container": "@list" }
+    },
+    "p": null
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(self_referential_compact_iri_term_over_a_retired_prefix) {
+  // A term that maps onto itself resolves through its own prefix, and a prefix
+  // that was retired maps to nothing, leaving the term standing as written
+  // (JSON-LD 1.1 API Section 4.2.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "foo": null, "foo:bar": "foo:bar" },
+    "foo:bar": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "foo:bar": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_root_set_object_collapses_to_nothing_in_1_0) {
+  // A set object hands its members to the position it stands in, and at the
+  // top of a document that position carries no property, so the scalar it
+  // holds is free floating and dropped
+  const auto input = sourcemeta::core::parse_json(R"({ "@set": [ "a" ] })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(both_reverse_forms_on_one_node_merge_into_one_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "rev": { "@reverse": "http://example.com/r" } },
+    "@id": "http://example.com/s",
+    "@reverse": { "http://example.com/q": [ { "@id": "http://example.com/a" } ] },
+    "rev": { "@id": "http://example.com/b" }
+  })");
+  // Both forms reach the same reverse map, and the one already standing there
+  // is carried forward rather than replaced
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/s",
+      "@reverse": {
+        "http://example.com/q": [ { "@id": "http://example.com/a" } ],
+        "http://example.com/r": [ { "@id": "http://example.com/b" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(identifier_map_inside_a_type_scoped_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "Foo": {
+        "@id": "http://example.com/Foo",
+        "@context": {
+          "idmap": { "@id": "http://example.com/p", "@container": "@id" }
+        }
+      }
+    },
+    "@type": "Foo",
+    "idmap": { "http://example.com/x": { "http://example.com/q": "v" } }
+  })");
+  // An identifier map reads its keys against the context that preceded the
+  // type-scoped one, and the map term itself came from that scoped context
+  // (JSON-LD 1.1 API Section 5.1.2 step 13.8.3.1)
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@type": [ "http://example.com/Foo" ],
+      "http://example.com/p": [
+        {
+          "http://example.com/q": [ { "@value": "v" } ],
+          "@id": "http://example.com/x"
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(identifier_map_over_a_scalar_yields_an_identified_value_object) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "idmap": { "@id": "http://example.com/p", "@container": "@id" }
+    },
+    "idmap": { "http://example.com/x": "hello" }
+  })");
+  // An identifier map takes node objects, and a scalar is not one, so this
+  // stands outside what the grammar admits (JSON-LD 1.1 Section 9.11). No
+  // error covers it, and the step that adds the identifier asks only whether
+  // one is already there, so a scalar expands to a value object and is handed
+  // an identifier the grammar does not allow it to carry, which no later step
+  // revisits (JSON-LD 1.1 API Section 5.1.2 step 13.8.3.7.4, JSON-LD 1.1
+  // Section 4.5)
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "hello", "@id": "http://example.com/x" }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_expand(input)};
+  EXPECT_EQ(result, expected);
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(included_holding_an_empty_set_carries_an_empty_block) {
+  // A set object hands over the members it holds, and an empty one hands over
+  // none, so the block is there with nothing in it and no member of it can be
+  // anything other than a node object (JSON-LD 1.1 API Section 5.1.2 step
+  // 13.4.7)
+  const auto input =
+      sourcemeta::core::parse_json(R"({ "@included": { "@set": [] } })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "@included": [] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_set_object_under_a_plain_term_in_1_0) {
+  // JSON-LD 1.0 refuses a list among the items a list collects, so the items a
+  // set hands over are weighed against the term above them, and a term that
+  // collects nothing into a list leaves them as they are (JSON-LD 1.0 API
+  // Expansion Algorithm step 3.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@set": [ "a" ] }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "a" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(a_type_map_string_value_becomes_a_node_reference) {
+  // A type map admits a string in place of a node object, which stands for the
+  // node that string names, so it becomes a reference and the key it stood
+  // under is added as its type (JSON-LD 1.1 Section 9.12)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "typemap": { "@id": "http://example.com/p", "@container": "@type" }
+    },
+    "typemap": { "http://example.com/T": "str" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@id": "str", "@type": [ "http://example.com/T" ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(an_identifier_mapping_over_a_retired_prefix) {
+  // An identifier mapping written as a compact IRI resolves through its
+  // prefix, and a prefix that was retired maps to nothing, so the mapping
+  // stands as written (JSON-LD 1.1 API Section 4.2.2 step 16)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "foo": null, "term": { "@id": "foo:bar" } },
+    "term": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "foo:bar": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_compact_iri_term_name_over_a_retired_prefix) {
+  // A term named as a compact IRI and given no identifier of its own resolves
+  // through its prefix, and a prefix that was retired maps to nothing, so the
+  // name stands as written (JSON-LD 1.1 API Section 4.2.2 step 16)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "foo": null, "foo:bar": { "@container": "@set" } },
+    "foo:bar": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "foo:bar": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(a_prefix_flag_on_a_term_that_gave_up_its_identifier) {
+  // A term may be marked usable as a prefix and still name nothing, and the
+  // check that a prefix names no keyword has nothing to weigh then, so the
+  // compact IRI written against it stands as it is (JSON-LD 1.1 API Section
+  // 4.2.2 step 24)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "foo": { "@id": null, "@prefix": true } },
+    "foo:bar": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "foo:bar": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(an_import_inside_a_remote_context_reports_against_the_reference) {
+  // A context reached by reference already stands in for a document the input
+  // does not spell out, so an import nested inside it keeps that reference as
+  // what its entries report against rather than naming the import
+  const sourcemeta::core::JSONLDResolver resolver =
+      [](const sourcemeta::core::JSON::StringView identifier)
+      -> std::optional<sourcemeta::core::JSON> {
+    if (identifier == "https://example.com/remote") {
+      return sourcemeta::core::parse_json(R"({
+        "@context": {
+          "@import": "https://example.com/imported",
+          "x": "http://example.com/x"
+        }
+      })");
+    }
+
+    if (identifier == "https://example.com/imported") {
+      return sourcemeta::core::parse_json(
+          R"({ "@context": { "y": "http://example.com/y" } })");
+    }
+
+    return std::nullopt;
+  };
+
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": "https://example.com/remote",
+    "x": "vx",
+    "y": "vy"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/x": [ { "@value": "vx" } ],
+      "http://example.com/y": [ { "@value": "vy" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input, "", resolver), expected);
+}
+
+TEST(an_array_among_the_items_of_a_list_flattens_into_it) {
+  // An array standing among the items a list collects hands its members over
+  // to the list rather than nesting inside it (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "p": "http://e/p" }, "p": { "@list": [ [ "a" ] ] } })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://e/p": [ { "@list": [ { "@value": "a" } ] } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(two_reverse_mapped_terms_merge_into_one_reverse_map) {
+  // Two terms carrying a reverse mapping each contribute to the one reverse
+  // map the node holds, rather than the second replacing the first
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "0rev": { "@reverse": "http://e/r" },
+      "rev2": { "@reverse": "http://e/r2" }
+    },
+    "@id": "http://e/s",
+    "0rev": { "@id": "http://e/b" },
+    "rev2": { "@id": "http://e/c" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://e/s",
+      "@reverse": {
+        "http://e/r": [ { "@id": "http://e/b" } ],
+        "http://e/r2": [ { "@id": "http://e/c" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(an_identifier_mapping_parting_from_its_term_stands_in_1_0) {
+  // The step above arrived with 1.1, so standing in for a 1.0 processor means
+  // withholding it and letting the mapping stand (JSON-LD 1.0 API Section 6.2)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": null, "a:b": { "@id": "http://e/x" } },
+           "a:b": "v" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://e/x": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(a_set_object_under_a_list_container_is_gathered_into_a_list) {
+  // A set object hands its members over as an array, which is no list object,
+  // so the container gathers them into one (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "http://e/p", "@container": "@list" } },
+    "p": { "@set": [ "a", "b" ] }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://e/p": [
+        { "@list": [ { "@value": "a" }, { "@value": "b" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
