@@ -324,9 +324,10 @@ TEST_F(IOAtomicWriteFileTest, concurrent_writers_publish_one_complete_value) {
         EXPECT_EQ(failure.path1().parent_path(), path.parent_path());
         EXPECT_TRUE(failure.path1().filename().string().starts_with(
             path.filename().string() + ".tmp."));
+        const std::error_code sharing_violation{ERROR_SHARING_VIOLATION,
+                                                std::system_category()};
         EXPECT_TRUE(failure.code() == std::errc::permission_denied ||
-                    failure.code() == std::error_code{ERROR_SHARING_VIOLATION,
-                                                      std::system_category()});
+                    failure.code() == sharing_violation);
       }
     }
 #else
