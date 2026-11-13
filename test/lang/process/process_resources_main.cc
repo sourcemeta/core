@@ -4,6 +4,7 @@
 #include <cerrno> // errno, EBADF, ECHILD
 #include <csignal> // SIGCHLD, SIG_IGN, SIGPIPE, SIG_BLOCK, sigaction, sigpending, sigwait
 #include <cstddef>        // std::size_t
+#include <cstdlib>        // std::strtol
 #include <fcntl.h>        // fcntl, F_DUPFD_CLOEXEC, F_GETFD
 #include <pthread.h>      // pthread_sigmask
 #include <string>         // std::string
@@ -13,6 +14,64 @@
 #include <unistd.h> // alarm, close, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
 
 namespace {
+
+// Only the isolated helper installs this handler. The acknowledgement makes
+// each child signal a completed round trip, without a timer or a sleep.
+volatile std::sig_atomic_t acknowledgement{-1};
+volatile std::sig_atomic_t interruptions{0};
+extern "C" auto acknowledge_signal(int) -> void {
+  const int saved_errno{errno};
+  const char byte{'x'};
+  static_cast<void>(write(acknowledgement, &byte, 1));
+  interruptions = interruptions + 1;
+  errno = saved_errno;
+}
+
+auto interrupted(const std::string &self, const bool waiting) -> bool {
+  std::array<int, 2> descriptors{};
+  if (pipe(descriptors.data()) != 0) {
+    return false;
+  }
+
+  struct sigaction action{};
+  action.sa_handler = acknowledge_signal;
+  sigemptyset(&action.sa_mask);
+  struct sigaction previous{};
+  acknowledgement = descriptors[1];
+  interruptions = 0;
+  if (sigaction(SIGUSR1, &action, &previous) != 0) {
+    close(descriptors[0]);
+    close(descriptors[1]);
+    return false;
+  }
+
+  sigset_t unblocked;
+  sigemptyset(&unblocked);
+  sigaddset(&unblocked, SIGUSR1);
+  sigset_t previous_mask;
+  if (pthread_sigmask(SIG_UNBLOCK, &unblocked, &previous_mask) != 0) {
+    sigaction(SIGUSR1, &previous, nullptr);
+    close(descriptors[0]);
+    close(descriptors[1]);
+    return false;
+  }
+
+  const auto before{sourcemeta::core::process_descriptors()};
+  const auto result{sourcemeta::core::spawn_and_capture(
+      self, {"interrupt-child", std::to_string(descriptors[0]),
+             std::to_string(descriptors[1]), waiting ? "wait" : "capture"})};
+  const auto after{sourcemeta::core::process_descriptors()};
+  const bool restored{sigaction(SIGUSR1, &previous, nullptr) == 0};
+  acknowledgement = -1;
+  close(descriptors[0]);
+  close(descriptors[1]);
+  const bool mask_restored{
+      pthread_sigmask(SIG_SETMASK, &previous_mask, nullptr) == 0};
+  return restored && mask_restored && interruptions == 64 &&
+         before.open == after.open && result.exit_code == 0 &&
+         result.standard_error.empty() &&
+         result.standard_output == (waiting ? "" : "complete");
+}
 
 auto closed(const int descriptor) -> bool {
   return fcntl(descriptor, F_GETFD) == -1 && errno == EBADF;
@@ -192,6 +251,28 @@ auto telemetry() -> bool {
 } // namespace
 
 auto main(int argc, char *argv[]) -> int {
+  if (argc == 5 && std::string_view{argv[1]} == "interrupt-child") {
+    alarm(10);
+    const int input{static_cast<int>(std::strtol(argv[2], nullptr, 10))};
+    close(static_cast<int>(std::strtol(argv[3], nullptr, 10)));
+    const bool waiting{std::string_view{argv[4]} == "wait"};
+    if (waiting) {
+      close(STDOUT_FILENO);
+      close(STDERR_FILENO);
+    }
+
+    for (unsigned int index = 0; index < 64; ++index) {
+      char byte{0};
+      if (kill(getppid(), SIGUSR1) != 0 || read(input, &byte, 1) != 1 ||
+          byte != 'x') {
+        return 1;
+      }
+    }
+
+    close(input);
+    return waiting || write(STDOUT_FILENO, "complete", 8) == 8 ? 0 : 1;
+  }
+
   if (argc != 3) {
     return 2;
   }
@@ -199,6 +280,10 @@ auto main(int argc, char *argv[]) -> int {
   alarm(15);
   const std::string_view scenario{argv[1]};
   const std::string program{argv[2]};
+  if (scenario == "interrupt-capture" || scenario == "interrupt-wait") {
+    return interrupted(argv[0], scenario == "interrupt-wait") ? 0 : 1;
+  }
+
   if (scenario == "closed-input") {
     close(STDIN_FILENO);
     return sourcemeta::core::spawn(program, {"expect-stdin", "the input"},

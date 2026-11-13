@@ -64,3 +64,11 @@ TEST(unavailable_process_measurements_are_absent_and_recover) {
   check_resources("telemetry");
 }
 #endif
+
+TEST(capture_preserves_output_across_acknowledged_signal_interruptions) {
+  check_resources("interrupt-capture");
+}
+
+TEST(child_waiting_completes_across_acknowledged_signal_interruptions) {
+  check_resources("interrupt-wait");
+}
