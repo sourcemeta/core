@@ -40,9 +40,9 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
 const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
                                                 "location", "limit"};
 
-// Every key an entry of what analysis reported declares, the last of them
-// being whether the entry is the one that had analysis resolve the document it
-// names, which is what hands the document over
+// Every key an entry of what analysis reported declares. The last of them says
+// whether analysis resolved the document the entry names, which is the one
+// case where the document itself is handed over
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
                                                      "destination", "resolved"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)

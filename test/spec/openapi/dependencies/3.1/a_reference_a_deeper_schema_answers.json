@@ -70,7 +70,7 @@
     },
     {
       "origin": "https://www.sourcemeta.com/s1.json",
-      "pointer": "",
+      "pointer": "/properties/x/$ref",
       "destination": "https://www.sourcemeta.com/hidden.json",
       "kind": "schema",
       "resolved": false

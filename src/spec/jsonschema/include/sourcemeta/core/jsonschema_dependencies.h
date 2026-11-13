@@ -22,10 +22,10 @@ namespace sourcemeta::core {
 ///
 /// A reference that a schema makes to a schema of another document. Several
 /// of them may name one document, as what is reported is where a reference
-/// sits rather than what analysis had to fetch. Every member of this points
-/// into something that analysis owns for no longer than the call that reports
-/// it, so a callback that keeps any of them past its own return has to copy
-/// them out
+/// sits rather than what analysis had to fetch. Whatever a member of this
+/// carries points into something that analysis owns for no longer than the
+/// call that reports it, so a callback that keeps any of them past its own
+/// return has to copy them out
 struct SchemaDependency {
   /// The identifier that the document making the reference goes by, which for
   /// a document the walk read is the URI it was asked for, and for the one
@@ -59,6 +59,8 @@ struct SchemaDependenciesOptions {
   using AccountedPredicate = std::function<bool(std::string_view)>;
   /// A callback to report every URI that analysis comes to account for
   using AccountedCallback = std::function<void(std::string_view)>;
+  /// A callback to report every reference that nothing came to answer for
+  using UnresolvedCallback = std::function<void(const SchemaDependency &)>;
 
   /// The dialect to assume for a schema that declares none
   std::string_view default_dialect{};
@@ -100,6 +102,15 @@ struct SchemaDependenciesOptions {
   /// that reading takes, which happens before any of this, so answering yes
   /// for one does not keep it from being resolved
   AccountedPredicate accounted{};
+  /// Reports every reference that nothing came to answer for, each of them
+  /// where it sits, just before analysis ends over the first of them. The
+  /// error that ends it names one such reference and nothing of the rest, and
+  /// analysis lets go of all of them as it unwinds, so a caller that walks
+  /// several documents of one span and may still come to hold what one of
+  /// these names has this to take them from. Nothing is reported here where
+  /// analysis ends over anything else, as whatever it reached for then is no
+  /// reference of a document and has no place within one to name
+  UnresolvedCallback unresolved{};
   /// Reports every URI that analysis comes to account for, whether it is one
   /// a dependency was reported for or one a document it read answers to of
   /// its own. A caller that walks several documents of one span keeps what

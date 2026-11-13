@@ -716,7 +716,22 @@ auto register_schema(Walk &walk, const Fetched &entry) -> void {
 // closure below this document, so what comes back is passed straight on, and
 // the one allowance covers both
 auto read_closure(Walk &walk, const Fetched &entry) -> void {
+  // Every reference the walk below could not settle, each where it sits, which
+  // is what the error it raises over them names nothing of. A schema of the
+  // span not read yet may answer to any of these names
+  std::vector<Deferred> unsettled;
   SchemaDependenciesOptions schemas;
+  schemas.unresolved =
+      [&entry, &unsettled](const SchemaDependency &dependency) -> void {
+    unsettled.emplace_back(
+        Deferred{.origin = JSON::String{dependency.origin},
+                 .pointer = to_pointer(dependency.pointer),
+                 .destination = JSON::String{dependency.destination},
+                 .expected = OpenAPIObjectKind::Schema,
+                 .spelled = JSON::String{dependency.destination},
+                 .version = entry.version,
+                 .reached = Reached::Schema});
+  };
   schemas.default_dialect = openapi_dialect(entry.version);
   schemas.default_id = entry.identifier;
   schemas.default_base = entry.identifier;
@@ -787,15 +802,33 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
     // What that walk registered goes uncharged, as a walk that raises reports
     // no count, so the allowance is looser than the caller set by whatever it
     // got through
-    walk.deferred.emplace_back(
-        Deferred{.origin = JSON::String{entry.identifier},
-                 .pointer = EMPTY_POINTER,
-                 .destination = JSON::String{error.identifier()},
-                 .expected = OpenAPIObjectKind::Schema,
-                 .spelled = JSON::String{error.identifier()},
-                 .version = entry.version,
-                 .reached = Reached::Schema,
-                 .foreign = std::current_exception()});
+    if (unsettled.empty()) {
+      // Whatever the walk below reached for of its own, a dialect among it, is
+      // no reference of a document and has no place within one to name, so
+      // there is nothing of it to stand for but the name
+      walk.deferred.emplace_back(
+          Deferred{.origin = JSON::String{entry.identifier},
+                   .pointer = EMPTY_POINTER,
+                   .destination = JSON::String{error.identifier()},
+                   .expected = OpenAPIObjectKind::Schema,
+                   .spelled = JSON::String{error.identifier()},
+                   .version = entry.version,
+                   .reached = Reached::Schema,
+                   .foreign = std::current_exception()});
+      return;
+    }
+
+    // The name the error spells is kept in the terms it was raised in, while
+    // every other reference it stood for is this walk's to spell, as an error
+    // of theirs would otherwise name a reference that is not the one it was
+    // raised over
+    for (auto &deferred : unsettled) {
+      if (deferred.destination == error.identifier()) {
+        deferred.foreign = std::current_exception();
+      }
+
+      walk.deferred.emplace_back(std::move(deferred));
+    }
   }
 }
 

@@ -320,12 +320,33 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
       }
     }
 
+    // A reference that nothing ever answered for is where analysis ends, and
+    // the error that ends it names one of them. The caller hears of every one
+    // of them first, as analysis lets go of the rest as it unwinds and a
+    // caller stitching several documents into one span may still come to hold
+    // what they name
+    const Deferred *unresolved{nullptr};
     for (const auto &deferred : walk.deferred) {
-      if (!is_accounted(walk, deferred.destination)) {
-        throw SchemaResolutionError(
-            "Could not resolve the reference to an external schema",
-            deferred.destination);
+      if (is_accounted(walk, deferred.destination)) {
+        continue;
       }
+
+      if (unresolved == nullptr) {
+        unresolved = &deferred;
+      }
+
+      if (options.unresolved) {
+        options.unresolved({.origin = deferred.origin,
+                            .pointer = to_weak_pointer(deferred.pointer),
+                            .destination = deferred.destination,
+                            .document = nullptr});
+      }
+    }
+
+    if (unresolved != nullptr) {
+      throw SchemaResolutionError(
+          "Could not resolve the reference to an external schema",
+          unresolved->destination);
     }
   } catch (const ForeignFrameLimitError &foreign) {
     throw foreign.error;

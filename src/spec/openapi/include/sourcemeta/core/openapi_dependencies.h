@@ -22,9 +22,10 @@ namespace sourcemeta::core {
 ///
 /// What one reference reaches, whether a description or a schema of the span
 /// made it. Several of them may name one document, as what is reported is
-/// where a reference sits rather than what analysis had to fetch. Every member
-/// points into something analysis owns only for the call that reports it, so a
-/// callback keeping any of them past its own return copies them out
+/// where a reference sits rather than what analysis had to fetch. Whatever a
+/// member carries points into something analysis owns only for the call that
+/// reports it, so a callback keeping any of them past its own return copies
+/// them out
 struct OpenAPIDependency {
   /// The identifier the document making the reference goes by, which is
   /// nothing at all where it declares none and the caller named none
