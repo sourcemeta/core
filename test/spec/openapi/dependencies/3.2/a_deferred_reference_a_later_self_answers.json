@@ -46,6 +46,13 @@
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/other.json",
       "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/X/$ref",
+      "destination": "https://www.sourcemeta.com/named.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 14,

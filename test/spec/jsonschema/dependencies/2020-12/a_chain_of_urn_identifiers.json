@@ -39,6 +39,12 @@
       "origin": "urn:example:middle",
       "pointer": "/allOf/0/$ref",
       "destination": "urn:example:leaf"
+    },
+    {
+      "origin": "urn:example:middle",
+      "pointer": "/allOf/1/$ref",
+      "destination": "urn:example:entry",
+      "document": false
     }
   ],
   "locations": 5,

@@ -44,6 +44,13 @@
       "pointer": "/components/schemas/B/$ref",
       "destination": "https://www.sourcemeta.com/s1.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s1.json",
+      "pointer": "/properties/x/$ref",
+      "destination": "https://www.sourcemeta.com/hidden.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 11,

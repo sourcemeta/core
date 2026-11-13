@@ -34,6 +34,13 @@
       "pointer": "/components/schemas/One/$ref",
       "destination": "https://www.sourcemeta.com/other.json",
       "kind": "schema"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Two/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 10,

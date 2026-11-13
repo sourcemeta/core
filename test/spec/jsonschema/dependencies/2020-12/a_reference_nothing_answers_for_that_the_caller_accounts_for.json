@@ -9,7 +9,14 @@
     "https://www.sourcemeta.com/elsewhere"
   ],
   "accountedReported": [],
-  "dependencies": [],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/items/$ref",
+      "destination": "https://www.sourcemeta.com/elsewhere",
+      "document": false
+    }
+  ],
   "locations": 2,
   "fetched": []
 }

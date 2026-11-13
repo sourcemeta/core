@@ -39,6 +39,12 @@
       "origin": "https://www.sourcemeta.com/b",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/c"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/c",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/b-inner",
+      "document": false
     }
   ],
   "locations": 5,

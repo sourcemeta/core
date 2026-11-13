@@ -58,6 +58,12 @@
       "destination": "https://www.sourcemeta.com/shared"
     },
     {
+      "origin": "https://www.sourcemeta.com/sibling-b",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/shared",
+      "document": false
+    },
+    {
       "origin": "https://www.sourcemeta.com/shared",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/deep"

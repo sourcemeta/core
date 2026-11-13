@@ -25,6 +25,12 @@
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/custom-meta"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/custom-meta",
+      "document": false
     }
   ],
   "locations": 2,

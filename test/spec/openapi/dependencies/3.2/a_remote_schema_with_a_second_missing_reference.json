@@ -80,6 +80,13 @@
       "pointer": "/paths/~1two/$ref",
       "destination": "https://www.sourcemeta.com/b.json",
       "kind": "path-item"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/mid.json",
+      "pointer": "/properties/a/$ref",
+      "destination": "https://www.sourcemeta.com/named.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "fetched": [

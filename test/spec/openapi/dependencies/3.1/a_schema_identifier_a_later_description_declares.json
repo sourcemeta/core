@@ -46,6 +46,13 @@
       "pointer": "/paths/~1one/$ref",
       "destination": "https://www.sourcemeta.com/held.json",
       "kind": "path-item"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/A/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 15,

@@ -67,6 +67,12 @@
       "origin": "https://www.sourcemeta.com/bbb-bridge",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/zzz-host"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/aaa-consumer",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/deep",
+      "document": false
     }
   ],
   "locations": 9,

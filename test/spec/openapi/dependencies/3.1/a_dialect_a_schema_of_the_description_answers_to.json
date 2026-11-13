@@ -1,0 +1,26 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "jsonSchemaDialect": "https://www.sourcemeta.com/dialect.json",
+    "components": {
+      "schemas": {
+        "Dialect": {
+          "$id": "https://www.sourcemeta.com/dialect.json",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true
+          }
+        }
+      }
+    }
+  },
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "expected": [],
+  "locations": 6,
+  "fetched": []
+}

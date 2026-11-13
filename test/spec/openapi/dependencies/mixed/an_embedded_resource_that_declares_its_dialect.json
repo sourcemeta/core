@@ -88,6 +88,13 @@
       "pointer": "/components/schemas/Thing/$ref",
       "destination": "https://www.sourcemeta.com/holder.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/holder.json",
+      "pointer": "/discriminator/mapping/one",
+      "destination": "https://www.sourcemeta.com/embedded.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 20,

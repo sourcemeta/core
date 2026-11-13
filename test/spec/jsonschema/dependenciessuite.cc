@@ -40,8 +40,11 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
 const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
                                                 "location", "limit"};
 
+// Whether a dependency carried the document it names is spelled only where it
+// did not, as the reference that had analysis read a document is the common
+// case and the one that can be checked against the resolver
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
-                                                     "destination"};
+                                                     "destination", "document"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 using Asked = std::vector<sourcemeta::core::JSON::String>;
@@ -169,9 +172,11 @@ auto collect(const sourcemeta::core::JSON &schema,
       [&unlogged, &result](const auto &dependency) -> void {
         // What answers to the destination is handed over alongside it, so a
         // fixture never has to repeat the document it already registered
-        const auto remote{unlogged(dependency.destination)};
-        EXPECT_TRUE(remote.has_value());
-        EXPECT_EQ(dependency.document, remote.value());
+        if (dependency.document != nullptr) {
+          const auto remote{unlogged(dependency.destination)};
+          EXPECT_TRUE(remote.has_value());
+          EXPECT_EQ(*dependency.document, remote.value());
+        }
 
         auto entry{sourcemeta::core::JSON::make_object()};
         entry.assign("origin", sourcemeta::core::JSON{dependency.origin});
@@ -180,6 +185,10 @@ auto collect(const sourcemeta::core::JSON &schema,
                          sourcemeta::core::to_string(dependency.pointer)});
         entry.assign("destination",
                      sourcemeta::core::JSON{dependency.destination});
+        if (dependency.document == nullptr) {
+          entry.assign("document", sourcemeta::core::JSON{false});
+        }
+
         result.push_back(std::move(entry));
       },
       options);
@@ -226,12 +235,20 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
     EXPECT_TRUE(dependencies.is_array());
     for (const auto &dependency : dependencies.as_array()) {
       EXPECT_TRUE(dependency.is_object());
-      EXPECT_EQ(dependency.size(), KNOWN_DEPENDENCY_KEYS.size());
+      EXPECT_TRUE(dependency.defines("origin"));
+      EXPECT_TRUE(dependency.defines("pointer"));
+      EXPECT_TRUE(dependency.defines("destination"));
       for (const auto &entry : dependency.as_object()) {
         EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                     KNOWN_DEPENDENCY_KEYS.cend());
-        EXPECT_TRUE(entry.second.is_string());
+        EXPECT_TRUE(entry.first == "document" ? entry.second.is_boolean()
+                                              : entry.second.is_string());
       }
+
+      // A dependency that carried the document says nothing of it, so there is
+      // one spelling for each of the two rather than two for either
+      const auto *document{dependency.try_at("document")};
+      EXPECT_TRUE(document == nullptr || document->to_boolean() == false);
     }
   }
 

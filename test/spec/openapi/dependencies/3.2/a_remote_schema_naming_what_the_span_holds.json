@@ -56,6 +56,13 @@
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/mid.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/mid.json",
+      "pointer": "/properties/a/$ref",
+      "destination": "https://www.sourcemeta.com/named.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 13,

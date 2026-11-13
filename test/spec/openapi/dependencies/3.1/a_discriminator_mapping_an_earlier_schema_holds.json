@@ -58,6 +58,13 @@
       "pointer": "/components/schemas/Bbb/$ref",
       "destination": "https://www.sourcemeta.com/x.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/x.json",
+      "pointer": "/discriminator/mapping/y",
+      "destination": "https://www.sourcemeta.com/y.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 13,

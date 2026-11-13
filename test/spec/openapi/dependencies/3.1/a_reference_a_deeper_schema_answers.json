@@ -64,6 +64,13 @@
       "pointer": "/properties/y/$ref",
       "destination": "https://www.sourcemeta.com/deep.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s1.json",
+      "pointer": "",
+      "destination": "https://www.sourcemeta.com/hidden.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 12,

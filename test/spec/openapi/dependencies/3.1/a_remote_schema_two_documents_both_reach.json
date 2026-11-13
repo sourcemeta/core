@@ -51,6 +51,13 @@
       "pointer": "/components/schemas/Two/$ref",
       "destination": "https://www.sourcemeta.com/two.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/one.json",
+      "pointer": "/properties/a/$ref",
+      "destination": "https://www.sourcemeta.com/two.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 12,

@@ -111,12 +111,24 @@ struct AccountedHash {
 using Accounted =
     std::unordered_map<JSON::String, Held, AccountedHash, std::equal_to<>>;
 
+// The document a reference sits in, by every name the walk may meet it under
+// at the far end of one of that document's own references. A document answers
+// to what it declares and to wherever it was retrieved from, and reaching
+// either of them is reaching itself
+struct Origin {
+  JSON::StringView identifier;
+  JSON::StringView retrieved_from;
+};
+
 // A reference that nothing answers for yet, which owns what reporting it takes
 // for as long as the walk may still settle it
 struct Deferred {
   JSON::String origin;
   Pointer pointer;
   JSON::String destination;
+  // What the position spelling it reaches for, which is what reporting it
+  // takes once something has answered for the far end
+  OpenAPIObjectKind expected;
   // What the document spelled, fragment and all, as whether it names a place
   // within something the span holds is a question the document part alone
   // cannot answer
@@ -178,6 +190,25 @@ auto report_to_caller(const Walk &walk, const OpenAPIDependency &dependency)
   } catch (const OpenAPIFrameLimitError &) {
     throw ForeignLimitError{std::current_exception()};
   }
+}
+
+// A reference whose far end the walk already holds is a dependency of the
+// document it sits in all the same, so it is reported wherever it sits, with
+// nothing to fetch. One that names the document it sits in reaches no further
+// than that document, which is its own business rather than a dependency
+auto report_site(const Walk &walk, const Origin &origin, const Pointer &pointer,
+                 const JSON::StringView destination,
+                 const OpenAPIObjectKind expected) -> void {
+  if (destination == origin.identifier ||
+      destination == origin.retrieved_from) {
+    return;
+  }
+
+  report_to_caller(walk, {.origin = origin.identifier,
+                          .pointer = pointer,
+                          .destination = destination,
+                          .document = nullptr,
+                          .expected = expected});
 }
 
 // The document a destination names, which is whatever precedes the fragment it
@@ -343,15 +374,17 @@ auto reject_foreign_hold(const Held &held,
   }
 }
 
-auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
+auto report(Walk &walk, const Origin &origin, const Pointer &pointer,
             const JSON::StringView spelled, const OpenAPIObjectKind expected,
             const Reached reached, const OpenAPIVersion version) -> void {
   const auto destination{document_of(spelled)};
 
-  // A reference into a document the walk holds is that document's own business
-  // rather than a dependency of the description on another, and naming a whole
-  // document is the different matter that the kinds below settle
+  // A reference into a document the walk holds names a place that document has
+  // rather than one the caller has to fetch, while the document holding it is
+  // reached all the same, and naming a whole document is the different matter
+  // that the kinds below settle
   if (reaches_within_the_span(walk, spelled, destination, reached)) {
+    report_site(walk, origin, pointer, destination, expected);
     return;
   }
 
@@ -359,21 +392,23 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
   if (!sourcemeta::core::URI{key}.scheme().has_value()) {
     throw OpenAPIReferenceError{
         "The reference does not resolve to an absolute URI",
-        JSON::String{origin}, pointer, key};
+        JSON::String{origin.identifier}, pointer, key};
   }
 
   if (reached == Reached::Schema && version == OpenAPIVersion::OPENAPI_3_0 &&
       schema_is_official(destination)) {
     throw OpenAPIError{"A Schema Object of this revision must be written "
                        "against the OpenAPI 3.0 dialect",
-                       JSON::String{origin}, pointer};
+                       JSON::String{origin.identifier}, pointer};
   }
 
   const auto known{walk.accounted.find(destination)};
   if (known != walk.accounted.cend()) {
-    reject_conflicting_kind(known->second, reached, origin, pointer,
+    reject_conflicting_kind(known->second, reached, origin.identifier, pointer,
                             destination);
-    reject_foreign_hold(known->second, reached, version, origin, pointer);
+    reject_foreign_hold(known->second, reached, version, origin.identifier,
+                        pointer);
+    report_site(walk, origin, pointer, destination, expected);
     return;
   }
 
@@ -392,12 +427,14 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
     // whether this leads anywhere is settled once there is nothing left to
     // read rather than here
     // See https://spec.openapis.org/oas/v3.2.1.html#parsing-documents
-    walk.deferred.emplace_back(Deferred{.origin = JSON::String{origin},
-                                        .pointer = pointer,
-                                        .destination = key,
-                                        .spelled = JSON::String{spelled},
-                                        .version = version,
-                                        .reached = reached});
+    walk.deferred.emplace_back(
+        Deferred{.origin = JSON::String{origin.identifier},
+                 .pointer = pointer,
+                 .destination = key,
+                 .expected = expected,
+                 .spelled = JSON::String{spelled},
+                 .version = version,
+                 .reached = reached});
     return;
   }
 
@@ -411,7 +448,7 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
       remote.value().is_boolean()) {
     throw OpenAPIReferenceError{
         "A Schema Object of this revision must be an object",
-        JSON::String{origin}, pointer, key};
+        JSON::String{origin.identifier}, pointer, key};
   }
 
   // Reading a part of a description without the rest of it would miss what
@@ -424,13 +461,13 @@ auto report(Walk &walk, const JSON::StringView origin, const Pointer &pointer,
        is_description(remote.value()))) {
     throw OpenAPIReferenceError{
         "A Schema Object may only reference a JSON Schema document",
-        JSON::String{origin}, pointer, key};
+        JSON::String{origin.identifier}, pointer, key};
   }
 
-  report_to_caller(walk, {.origin = origin,
+  report_to_caller(walk, {.origin = origin.identifier,
                           .pointer = pointer,
                           .destination = destination,
-                          .document = remote.value(),
+                          .document = &remote.value(),
                           .expected = expected});
   account(walk, key, reached,
           reached == Reached::Schema &&
@@ -494,8 +531,8 @@ auto holds_discriminator(const JSON &document) -> bool {
 // Everything one document of the description reaches, which is the references
 // this specification gives meaning to and the ones its schemas make
 auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
-             const JSON::StringView origin) -> void {
-  const auto base{frame.base().empty() ? origin : frame.base()};
+             const Origin &origin) -> void {
+  const auto base{frame.base().empty() ? origin.identifier : frame.base()};
   const auto version{sourcemeta::core::openapi_version(document)};
   assert(version.has_value());
   // Every URI this document answers to is one the caller never has to fetch,
@@ -530,7 +567,12 @@ auto examine(Walk &walk, const JSON &document, const OpenAPIFrame &frame,
 
     settled.canonicalize();
     const auto identifier{settled.recompose()};
-    if (!schema_is_official(identifier)) {
+    // Every other position of a document names something outside it by the
+    // time it gets here, as framing settles whatever lands within. This one is
+    // read from the document rather than framed, so a dialect that one of this
+    // document's own Schema Objects answers to is turned down here instead
+    if (!schema_is_official(identifier) &&
+        !frame.schemas().traverse(identifier).has_value()) {
       static const Pointer POINTER{"jsonSchemaDialect"};
       report(walk, origin, POINTER, identifier, OpenAPIObjectKind::Schema,
              Reached::Schema, version.value());
@@ -655,7 +697,8 @@ auto register_schema(Walk &walk, const Fetched &entry) -> void {
   // The identifier a document declares is the one it goes by, which is what
   // every other edge out of it is reported from
   assert(!frame->root().empty());
-  const auto &reported{frame->root()};
+  const Origin reported{.identifier = frame->root(),
+                        .retrieved_from = entry.identifier};
   for (const auto &discriminator : sourcemeta::core::openapi_discriminators(
            entry.document, *frame, entry.identifier, walk.walker,
            walk.schema_resolver)) {
@@ -704,10 +747,19 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
                                       .destination = dependency.destination,
                                       .document = dependency.document,
                                       .expected = OpenAPIObjectKind::Schema});
+
+              // A reference reported with nothing to fetch names something
+              // this walk already accounts for, or something another document
+              // of the span settled, so there is nothing of the far end here
+              // to account for or to read
+              if (dependency.document == nullptr) {
+                return;
+              }
+
               account(walk, dependency.destination, Reached::Schema);
 
               reject_foreign_declaration(entry, dependency.destination,
-                                         dependency.document);
+                                         *dependency.document);
 
               // A Discriminator Object of this document is a
               // dependency that the walk reporting it reads nothing
@@ -715,10 +767,10 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
               // closure is what that walk already reported, which is
               // why it is not read a second time
               assert(is_traversable(dependency.destination));
-              if (holds_discriminator(dependency.document)) {
+              if (holds_discriminator(*dependency.document)) {
                 walk.schemas.emplace_back(
                     Fetched{.identifier = JSON::String{dependency.destination},
-                            .document = dependency.document,
+                            .document = *dependency.document,
                             .version = entry.version,
                             .closure_read = true});
               }
@@ -739,6 +791,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
         Deferred{.origin = JSON::String{entry.identifier},
                  .pointer = EMPTY_POINTER,
                  .destination = JSON::String{error.identifier()},
+                 .expected = OpenAPIObjectKind::Schema,
                  .spelled = JSON::String{error.identifier()},
                  .version = entry.version,
                  .reached = Reached::Schema,
@@ -776,12 +829,17 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
     const auto entry_frame{
         frame_within(walk, document, options.default_base, nullptr)};
     charge(walk, registered(*entry_frame));
-    if (!options.default_base.empty()) {
-      account(walk, openapi_canonical_base(options.default_base),
-              Reached::Description);
+    const auto retrieved_from{
+        options.default_base.empty()
+            ? JSON::String{}
+            : JSON::String{openapi_canonical_base(options.default_base)}};
+    if (!retrieved_from.empty()) {
+      account(walk, retrieved_from, Reached::Description);
     }
 
-    examine(walk, document, *entry_frame, entry_frame->base());
+    examine(walk, document, *entry_frame,
+            Origin{.identifier = entry_frame->base(),
+                   .retrieved_from = retrieved_from});
 
     // Reading a document can only ever add to what the walk accounts for, so a
     // document reached from one already read is reported from where it was
@@ -792,7 +850,9 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
       const auto frame{frame_within(walk, held.document, held.identifier,
                                     entry_frame.get())};
       charge(walk, registered(*frame));
-      examine(walk, held.document, *frame, frame->base());
+      examine(walk, held.document, *frame,
+              Origin{.identifier = frame->base(),
+                     .retrieved_from = held.identifier});
     }
 
     // Registering runs ahead of reading rather than alongside it, so that
@@ -843,6 +903,19 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
                               entry.pointer, entry.destination);
       reject_foreign_hold(known->second, entry.reached, entry.version,
                           entry.origin, entry.pointer);
+    }
+
+    // A reference that nothing answered for when it was read leads somewhere
+    // only once every one of them has come good, so these are reported after
+    // the fact rather than where they sit, and one that ends analysis is
+    // reported nowhere. A document of the span answers to each of these, as
+    // nothing else settles one, so none of them names the document it sits in
+    for (const auto &entry : walk.deferred) {
+      report_to_caller(walk, {.origin = entry.origin,
+                              .pointer = entry.pointer,
+                              .destination = entry.destination,
+                              .document = nullptr,
+                              .expected = entry.expected});
     }
   } catch (const ForeignLimitError &foreign) {
     std::rethrow_exception(foreign.error);

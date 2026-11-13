@@ -39,6 +39,12 @@
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
       "destination": "https://www.sourcemeta.com/bbb-other"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/bbb-other",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/aaa-target",
+      "document": false
     }
   ],
   "locations": 5,

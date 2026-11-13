@@ -35,6 +35,13 @@
       "pointer": "/components/schemas/Paw/$ref",
       "destination": "https://www.sourcemeta.com/pet.json",
       "kind": "schema"
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 10,

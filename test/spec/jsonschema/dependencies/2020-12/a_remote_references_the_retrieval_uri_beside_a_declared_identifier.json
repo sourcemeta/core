@@ -23,6 +23,12 @@
       "origin": "https://www.sourcemeta.com/declared",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/b"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/b",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/retrieved.json",
+      "document": false
     }
   ],
   "locations": 3,

@@ -30,6 +30,12 @@
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/remote"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/remote",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/openapi.json",
+      "document": false
     }
   ],
   "locations": 2,

@@ -39,6 +39,13 @@
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/s.json",
       "kind": "schema"
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s.json",
+      "pointer": "/discriminator/mapping/cat",
+      "destination": "https://www.sourcemeta.com/entry.json",
+      "kind": "schema",
+      "document": false
     }
   ],
   "locations": 9,
