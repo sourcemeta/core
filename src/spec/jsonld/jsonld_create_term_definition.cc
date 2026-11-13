@@ -34,8 +34,7 @@ auto is_valid_container(const JSON::StringView value) -> bool {
 // only caller weighs an IRI mapping, which was held to naming an IRI, a
 // keyword or a blank node, so nothing empty reaches here
 auto ends_with_gen_delim(const JSON::StringView value) -> bool {
-  assert(!value.empty());
-  return URI::is_gen_delim(value.back());
+  return !value.empty() && URI::is_gen_delim(value.back());
 }
 
 // Whether two definitions are equivalent ignoring their protected status, which
@@ -87,13 +86,9 @@ auto check_iri_mapping(const ActiveContext &active_context,
                        const WeakPointer &term_pointer,
                        const std::initializer_list<JSON::StringView> children)
     -> void {
-  // A mapping that names nothing is answered for where it is made, so one
-  // stands here. A vocabulary is itself an IRI, so it puts a colon in whatever
-  // it prefixes and a mapping that carries none was made without one
-  assert(mapping.has_value());
-  assert(is_keyword(mapping.value()) || mapping.value().contains(':') ||
-         !active_context.vocabulary.has_value());
-  if (!is_keyword(mapping.value()) && !mapping.value().contains(':')) {
+  if (!mapping.has_value() ||
+      (!is_keyword(mapping.value()) && !mapping.value().contains(':') &&
+       !active_context.vocabulary.has_value())) {
     throw JSONLDError("Invalid IRI mapping", term_pointer, children);
   }
 
@@ -240,8 +235,7 @@ auto create_term_definition(ExpansionState &state,
         if (prefix != "_" && !suffix.starts_with("//") &&
             local_context.defines(prefix)) {
           const auto iterator{defined.find(prefix)};
-          assert(iterator == defined.cend() || iterator->second);
-          if (iterator == defined.cend()) {
+          if (iterator == defined.cend() || !iterator->second) {
             create_term_definition(state, active_context, local_context, prefix,
                                    defined, context_pointer);
           }
@@ -270,8 +264,7 @@ auto create_term_definition(ExpansionState &state,
       // withholding it, which is what the earlier mode does here and what two
       // suite cases declaring that version rest on. The mapping always holds
       // something by now, for the reason given where it is checked
-      assert(definition.iri.has_value());
-      if (!state.processing_1_0) {
+      if (!state.processing_1_0 && definition.iri.has_value()) {
         const auto colon_position{term.find(':')};
         const bool iri_like_colon{colon_position != JSON::String::npos &&
                                   colon_position != 0 &&
@@ -284,8 +277,7 @@ auto create_term_definition(ExpansionState &state,
           // A term is only weighed here for carrying a colon or a slash,
           // neither of which a name of keyword form may hold, and that shape
           // is the only one expanding to nothing
-          assert(expanded_term.has_value());
-          if (expanded_term != definition.iri) {
+          if (expanded_term.has_value() && expanded_term != definition.iri) {
             throw JSONLDError("Invalid IRI mapping", term_pointer);
           }
         }
@@ -372,8 +364,8 @@ auto create_term_definition(ExpansionState &state,
       // nothing for, and the step above has already left such a value alone,
       // so what stands to be settled here is whether the expansion names an
       // absolute IRI
-      assert(definition.iri.has_value());
-      if (!definition.iri.value().contains(':')) {
+      if (!definition.iri.has_value() ||
+          !definition.iri.value().contains(':')) {
         throw JSONLDError("Invalid IRI mapping", term_pointer,
                           {KEYWORD_REVERSE});
       }
@@ -397,8 +389,7 @@ auto create_term_definition(ExpansionState &state,
       // reason given where the same test stands above. The mapping always
       // holds something by now, as the step above left a value shaped like a
       // keyword alone
-      assert(mapping.has_value());
-      if (!state.processing_1_0) {
+      if (!state.processing_1_0 && mapping.has_value()) {
         const auto colon_position{term.find(':')};
         const bool iri_like_colon{colon_position != JSON::String::npos &&
                                   colon_position != 0 &&
@@ -410,8 +401,7 @@ auto create_term_definition(ExpansionState &state,
                                               EMPTY_WEAK_POINTER)};
           // As above, a name carrying a colon or a slash is of no keyword
           // form, so it never expands to nothing
-          assert(expanded_term.has_value());
-          if (expanded_term != mapping) {
+          if (expanded_term.has_value() && expanded_term != mapping) {
             throw JSONLDError("Invalid IRI mapping", term_pointer,
                               {KEYWORD_ID});
           }
@@ -430,8 +420,7 @@ auto create_term_definition(ExpansionState &state,
       if (prefix != "_" && !suffix.starts_with("//") &&
           local_context.defines(prefix)) {
         const auto iterator{defined.find(prefix)};
-        assert(iterator == defined.cend() || iterator->second);
-        if (iterator == defined.cend()) {
+        if (iterator == defined.cend() || !iterator->second) {
           create_term_definition(state, active_context, local_context, prefix,
                                  defined, context_pointer);
         }

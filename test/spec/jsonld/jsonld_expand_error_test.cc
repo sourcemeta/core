@@ -3609,3 +3609,33 @@ TEST(a_type_redefinition_carrying_an_unknown_entry_is_refused) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Keyword redefinition", "/@context/@type");
 }
+
+TEST(a_term_aliasing_a_term_that_gave_up_its_mapping_is_refused) {
+  // A term that gave up its mapping names nothing, so a term written against
+  // it has nothing to resolve to (JSON-LD 1.1 API Section 4.2.2 step 14)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": null, "b": "a" }, "b": "v" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/b");
+}
+
+TEST(a_reverse_mapping_naming_a_term_that_gave_up_its_mapping_is_refused) {
+  // As above, and a reverse mapping is held to naming an absolute IRI, which
+  // nothing is (JSON-LD 1.1 API Section 4.2.2 step 15.3)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": null, "b": { "@reverse": "a" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/b/@reverse");
+}
+
+TEST(a_term_resolving_through_a_prefix_that_names_it_is_cyclic) {
+  // Resolving the term reaches for its own prefix, which is still being made,
+  // so the two name each other (JSON-LD 1.1 API Section 4.2.2 step 3)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": "a:b", "a:b": "a:b" } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Cyclic IRI mapping", "/@context/a");
+}

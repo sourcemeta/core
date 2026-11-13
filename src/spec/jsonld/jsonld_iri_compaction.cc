@@ -172,8 +172,8 @@ auto compact_iri(const ActiveContext &active_context,
         JSON::String item_type{KEYWORD_NONE};
         // What a list holds in expanded form is a map, so what is settled is
         // whether it is one holding a value
-        assert(item.is_object());
-        if (item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH)) {
+        if (item.is_object() &&
+            item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH)) {
           const bool item_has_language{
               item.defines(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH)};
           const bool item_has_direction{
@@ -202,10 +202,9 @@ auto compact_iri(const ActiveContext &active_context,
         }
         if (!common_language.has_value()) {
           common_language = item_language;
-          // Only an item holding a value carries a language of its own, so
-          // one parting ways with the common language is such an item
-        } else if (common_language.value() != item_language) {
-          assert(item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH));
+        } else if (common_language.value() != item_language &&
+                   item.is_object() &&
+                   item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH)) {
           common_language = JSON::String{KEYWORD_NONE};
         }
         if (!common_type.has_value()) {
@@ -307,29 +306,23 @@ auto compact_iri(const ActiveContext &active_context,
     if ((type_language_value == KEYWORD_ID ||
          type_language_value == KEYWORD_REVERSE) &&
         is_object && value->defines(KEYWORD_ID, KEYWORD_ID_HASH)) {
-      // An identifier is a string in expanded form, which is what a value
-      // handed here came from
       const auto &identifier{value->at(KEYWORD_ID, KEYWORD_ID_HASH)};
-      assert(identifier.is_string());
-      const auto compacted_id{compact_iri(active_context, inverse_context,
-                                          identifier.to_string(), nullptr, true,
-                                          false)};
-      // A name settled on above only ever names this very IRI: a name shaped
-      // like an IRI must expand onto the IRI it maps, and a name taken from
-      // the vocabulary is only taken where it is no term already (JSON-LD 1.1
-      // API Section 4.2.2 step 16, Section 6.2.2)
-      const auto iterator{active_context.terms.find(compacted_id)};
-      assert(iterator == active_context.terms.cend() ||
-             (iterator->second.iri.has_value() &&
-              iterator->second.iri.value() == identifier.to_string()));
-      if (iterator != active_context.terms.cend()) {
-        preferred.emplace_back(KEYWORD_VOCAB);
-        preferred.emplace_back(KEYWORD_ID);
-        preferred.emplace_back(KEYWORD_NONE);
-      } else {
-        preferred.emplace_back(KEYWORD_ID);
-        preferred.emplace_back(KEYWORD_VOCAB);
-        preferred.emplace_back(KEYWORD_NONE);
+      if (identifier.is_string()) {
+        const auto compacted_id{compact_iri(active_context, inverse_context,
+                                            identifier.to_string(), nullptr,
+                                            true, false)};
+        const auto iterator{active_context.terms.find(compacted_id)};
+        if (iterator != active_context.terms.cend() &&
+            iterator->second.iri.has_value() &&
+            iterator->second.iri.value() == identifier.to_string()) {
+          preferred.emplace_back(KEYWORD_VOCAB);
+          preferred.emplace_back(KEYWORD_ID);
+          preferred.emplace_back(KEYWORD_NONE);
+        } else {
+          preferred.emplace_back(KEYWORD_ID);
+          preferred.emplace_back(KEYWORD_VOCAB);
+          preferred.emplace_back(KEYWORD_NONE);
+        }
       }
     } else if (value == nullptr) {
       // For a bare value the preferred list is the type or language value
@@ -390,24 +383,17 @@ auto compact_iri(const ActiveContext &active_context,
     auto compact{term};
     compact += ":";
     compact += variable.substr(definition.iri.value().size());
-    // As above, a term carrying this very name maps this very IRI, so what
-    // settles the candidate is whether such a term stands there at all
     const auto existing{active_context.terms.find(compact)};
-    assert(existing == active_context.terms.cend() ||
-           (existing->second.iri.has_value() &&
-            existing->second.iri.value() == variable));
     const bool usable{existing == active_context.terms.cend() ||
-                      value == nullptr};
-    // The shorter candidate wins. Of two the same length the algorithm asks
-    // for the one that sorts first, and the terms are read in sorted order
-    // with each candidate opening with the term it came from, so the one
-    // already held always sorts first and that rule is left nothing to settle
-    // (JSON-LD 1.1 API Section 6.2.2)
-    assert(!usable || !candidate.has_value() ||
-           compact.size() != candidate.value().size() ||
-           !(compact < candidate.value()));
+                      (value == nullptr && existing->second.iri.has_value() &&
+                       existing->second.iri.value() == variable)};
+    // The shorter candidate wins, and of two the same length the one that
+    // sorts first, which is what the algorithm asks for (JSON-LD 1.1 API
+    // Section 6.2.2)
     if (usable &&
-        (!candidate.has_value() || compact.size() < candidate.value().size())) {
+        (!candidate.has_value() || compact.size() < candidate.value().size() ||
+         (compact.size() == candidate.value().size() &&
+          compact < candidate.value()))) {
       candidate = compact;
     }
   }

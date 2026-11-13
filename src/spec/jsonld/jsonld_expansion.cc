@@ -75,31 +75,25 @@ auto merge(JSON &object, const JSON::StringView name, JSON &&values) -> void {
 }
 
 // Whether an expanded member is one that the position it landed in forbids
-// The grammar names a set object among the shapes a node object is not, but
-// expansion has handed over what one held before any item reaches here, so
-// only the other two are weighed (JSON-LD 1.1 Section 4.1)
+// A node object is any map that is neither a value object, a list object nor
+// a set object (JSON-LD 1.1 Section 4.1)
 auto is_not_node_object(const JSON &item) -> bool {
-  assert(!item.is_object() || !item.defines(KEYWORD_SET, KEYWORD_SET_HASH));
   return !item.is_object() || item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
-         item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH);
+         item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
+         item.defines(KEYWORD_SET, KEYWORD_SET_HASH);
 }
 
-// The three readings below weigh the items of an expanded array, each of which
-// is a map, so what they settle is only which kind of map it is
 auto is_value_object(const JSON &item) -> bool {
-  assert(item.is_object());
-  return item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH);
+  return item.is_object() && item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH);
 }
 
 auto is_value_or_list_object(const JSON &item) -> bool {
-  assert(item.is_object());
-  return item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
-         item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH);
+  return item.is_object() && (item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
+                              item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH));
 }
 
 auto is_list_object(const JSON &item) -> bool {
-  assert(item.is_object());
-  return item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH);
+  return item.is_object() && item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH);
 }
 
 using ForbiddenMember = bool (*)(const JSON &);
@@ -144,37 +138,32 @@ auto forbidden_member_pointer(
   const SuspendedDropReportingScope silent{state};
   try {
     if (member.is_array()) {
-      // The offending member stood in the enclosing position, so one of these
-      // items holds it. Each is expanded again only to find which, and the
-      // position each is told of does not bear on the answer, since reporting
-      // is suspended and whatever an expansion runs into is caught below
-      const auto &items{member.as_array()};
-      const auto match{std::ranges::find_if(items, [&](const JSON &candidate) {
-        return holds_forbidden_member(
-            expand(state, active_context, active_property, candidate, pointer),
-            forbidden);
-      })};
-      assert(match != items.cend());
-      const WeakPointer item_pointer{pointer.concat(
-          static_cast<std::size_t>(std::distance(items.cbegin(), match)))};
-      return forbidden_member_pointer(state, active_context, active_property,
-                                      *match, item_pointer, forbidden);
-    }
-
-    if (member.is_object()) {
+      std::size_t index{0};
+      for (const auto &item : member.as_array()) {
+        const WeakPointer item_pointer{pointer.concat(index)};
+        if (holds_forbidden_member(expand(state, active_context,
+                                          active_property, item, item_pointer),
+                                   forbidden)) {
+          return forbidden_member_pointer(state, active_context,
+                                          active_property, item, item_pointer,
+                                          forbidden);
+        }
+        index += 1;
+      }
+    } else if (member.is_object()) {
       // A set object hands its members to the enclosing position, and the
       // context of the property or of the member itself may be what names the
       // keyword, so both are layered on before the keys are read, the way they
       // are when the member is expanded
-      // The walker is only ever entered on the way out of an error, and every
-      // error that reaches for it arose under a property, so one is in hand
       ActiveContext effective{active_context};
-      assert(active_property.has_value());
-      const auto definition{active_context.terms.find(active_property.value())};
-      if (definition != active_context.terms.cend() &&
-          definition->second.context.has_value()) {
-        effective.previous = nullptr;
-        apply_scoped_context(state, effective, definition->second);
+      if (active_property.has_value()) {
+        const auto definition{
+            active_context.terms.find(active_property.value())};
+        if (definition != active_context.terms.cend() &&
+            definition->second.context.has_value()) {
+          effective.previous = nullptr;
+          apply_scoped_context(state, effective, definition->second);
+        }
       }
       if (member.defines(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)) {
         process_context(state, effective,
@@ -536,10 +525,8 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
   // where it was discarded
   if (!active_property.has_value() ||
       active_property.value() == KEYWORD_GRAPH) {
-    // A free-floating list is reported against the entry that held it before
-    // the enclosing map is weighed, so none stands here
-    assert(!result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH));
     if (result.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
+        result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
         (result.object_size() == 1 &&
          result.defines(KEYWORD_ID, KEYWORD_ID_HASH))) {
       report_drop(state, JSONLDExpandDropReason::FreeFloatingValue, pointer,
@@ -869,10 +856,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       auto reversed{expand(state, active_context, JSON::String{KEYWORD_REVERSE},
                            entry.second, entry_pointer)};
       if (reversed.is_object()) {
-        // The keyword is read before any term carrying a reverse mapping
-        // writes one, so the map is always made here rather than added to
-        assert(result.try_at(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH) == nullptr);
-        auto reverse_map{JSON::make_object()};
+        const auto *existing_reverse{
+            result.try_at(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)};
+        auto reverse_map{existing_reverse != nullptr ? *existing_reverse
+                                                     : JSON::make_object()};
         for (const auto &reverse_entry : reversed.as_object()) {
           const auto &reverse_property{reverse_entry.first};
           if (reverse_entry.key_equals(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)) {
@@ -1005,11 +992,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
           }
 
           // Wrap the item in a graph object, unless it is already one.
+          // Wrap the item in a graph object, unless it is already one.
           JSON graph{nullptr};
-          // An item gathered by the container is a map, so what is settled is
-          // whether it already names a graph
-          assert(item.is_object());
-          if (item.defines(KEYWORD_GRAPH, KEYWORD_GRAPH_HASH)) {
+          if (item.is_object() &&
+              item.defines(KEYWORD_GRAPH, KEYWORD_GRAPH_HASH)) {
             graph = std::move(item);
           } else {
             graph = JSON::make_object();

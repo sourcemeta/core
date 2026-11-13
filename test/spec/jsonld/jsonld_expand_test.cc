@@ -4150,3 +4150,16 @@ TEST(an_import_inside_a_remote_context_reports_against_the_reference) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input, "", resolver), expected);
 }
+
+TEST(an_array_among_the_items_of_a_list_flattens_into_it) {
+  // An array standing among the items a list collects hands its members over
+  // to the list rather than nesting inside it (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "p": "http://e/p" }, "p": { "@list": [ [ "a" ] ] } })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://e/p": [ { "@list": [ { "@value": "a" } ] } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

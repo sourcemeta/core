@@ -21,28 +21,6 @@ auto container_includes(const TermDefinition *const definition,
          definition->container.cend();
 }
 
-// The term supplies the language where it declares one of its own, and the
-// context default stands otherwise
-auto effective_language(const TermDefinition *const definition,
-                        const ActiveContext &active_context)
-    -> std::optional<JSON::String> {
-  if (definition != nullptr && definition->has_language) {
-    return definition->language;
-  }
-
-  return active_context.default_language;
-}
-
-auto effective_direction(const TermDefinition *const definition,
-                         const ActiveContext &active_context)
-    -> std::optional<JSON::String> {
-  if (definition != nullptr && definition->has_direction) {
-    return definition->direction;
-  }
-
-  return active_context.default_direction;
-}
-
 } // namespace
 
 auto compact_value(const ActiveContext &active_context,
@@ -66,11 +44,9 @@ auto compact_value(const ActiveContext &active_context,
     const auto extra{
         value.object_size() - 1 -
         (value.defines(KEYWORD_INDEX, KEYWORD_INDEX_HASH) ? 1U : 0U)};
-    // An identifier is a string in expanded form
     const auto &identifier{value.at(KEYWORD_ID, KEYWORD_ID_HASH)};
-    assert(identifier.is_string());
     if (extra == 0 && index_ok && definition != nullptr &&
-        definition->type_mapping.has_value()) {
+        definition->type_mapping.has_value() && identifier.is_string()) {
       if (definition->type_mapping.value() == KEYWORD_ID) {
         return JSON{compact_iri(active_context, inverse_context,
                                 identifier.to_string(), nullptr, false, false)};
@@ -140,9 +116,7 @@ auto compact_value(const ActiveContext &active_context,
           key,
           JSON{compact_iri(active_context, inverse_context,
                            entry.second.to_string(), nullptr, true, false)});
-    } else if (entry.first == KEYWORD_ID) {
-      // As above, an identifier reaching here is a string
-      assert(entry.second.is_string());
+    } else if (entry.first == KEYWORD_ID && entry.second.is_string()) {
       result.assign_assume_new(
           key,
           JSON{compact_iri(active_context, inverse_context,

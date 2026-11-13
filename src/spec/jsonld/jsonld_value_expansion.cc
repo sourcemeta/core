@@ -6,7 +6,7 @@
 
 namespace sourcemeta::core {
 
-namespace {
+namespace {} // namespace
 
 // The term supplies the language where it declares one of its own, and the
 // context default stands otherwise
@@ -29,8 +29,6 @@ auto effective_direction(const TermDefinition *const definition,
 
   return active_context.default_direction;
 }
-
-} // namespace
 
 // Value Expansion (JSON-LD 1.1 API Section 5.3.2)
 auto expand_value(ExpansionState &state, ActiveContext &active_context,

@@ -295,6 +295,16 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
             const JSON &element, const WeakPointer &pointer,
             const bool from_map = false) -> JSON;
 
+// The language and the base direction a value answers to, which the term
+// supplies where it declares one of its own and the context default supplies
+// otherwise. Both expansion and compaction read the same rule
+auto effective_language(const TermDefinition *definition,
+                        const ActiveContext &active_context)
+    -> std::optional<JSON::String>;
+auto effective_direction(const TermDefinition *definition,
+                         const ActiveContext &active_context)
+    -> std::optional<JSON::String>;
+
 // Inverse Context Creation (JSON-LD 1.1 API Section 4.3.2). The inverse context
 // is represented as a JSON map of IRI to container to type/language to term.
 auto create_inverse_context(const ActiveContext &active_context) -> JSON;

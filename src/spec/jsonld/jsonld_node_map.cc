@@ -87,10 +87,7 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
     auto &type_value{working.at(KEYWORD_TYPE, KEYWORD_TYPE_HASH)};
     if (type_value.is_array()) {
       for (auto &item : type_value.as_array()) {
-        // A type names an IRI or a blank node, so what stands among the items
-        // is a string and what is settled here is only which of the two
-        assert(item.is_string());
-        if (is_blank_node(item.to_string())) {
+        if (item.is_string() && is_blank_node(item.to_string())) {
           item = JSON{generate_blank_node_identifier(state, item.to_string())};
         }
       }
@@ -141,13 +138,12 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
   std::optional<JSON::String> identifier;
   if (working.defines(KEYWORD_ID, KEYWORD_ID_HASH)) {
     const auto &id_value{working.at(KEYWORD_ID, KEYWORD_ID_HASH)};
-    // An identifier is a string in expanded form, which is what the node map
-    // is built from
-    assert(id_value.is_string());
-    identifier =
-        is_blank_node(id_value.to_string())
-            ? generate_blank_node_identifier(state, id_value.to_string())
-            : id_value.to_string();
+    if (id_value.is_string()) {
+      identifier =
+          is_blank_node(id_value.to_string())
+              ? generate_blank_node_identifier(state, id_value.to_string())
+              : id_value.to_string();
+    }
     working.erase(KEYWORD_ID);
   }
   if (!identifier.has_value()) {

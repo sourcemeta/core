@@ -2128,3 +2128,131 @@ TEST(a_typed_value_parting_from_the_term_type_keeps_its_type) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
 }
+
+TEST(a_list_of_lists_under_a_plain_term_keeps_its_nesting) {
+  // Compacting the members of a list hands an inner list to the same walk
+  // under a term that coerces no list, and the inner list keeps its own
+  // boundary rather than being unwrapped (Section 6.1.2 step 3.3)
+  const auto input = sourcemeta::core::parse_json(
+      R"([ { "http://e/p": [ { "@list": [ { "@list": [] } ] } ] } ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({ "p": "http://e/p" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": { "@list": [ { "@list": [] } ] },
+    "@context": { "p": "http://e/p" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_named_graph_holding_several_nodes_keeps_its_array) {
+  // A graph naming itself holds its nodes as an array whatever their number,
+  // so one holding several is carried over as it stands
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://e/p": [
+        {
+          "@id": "http://e/g",
+          "@graph": [ { "@id": "http://e/n1" }, { "@id": "http://e/n2" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({ "p": "http://e/p" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": {
+      "@id": "http://e/g",
+      "@graph": [ { "@id": "http://e/n1" }, { "@id": "http://e/n2" } ]
+    },
+    "@context": { "p": "http://e/p" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_term_named_by_the_iri_it_maps_is_found_whatever_the_value_holds) {
+  // A term whose name is the very IRI it maps is settled on without weighing
+  // the value, so a container it carries says nothing about the shape in hand
+  const auto input = sourcemeta::core::parse_json(
+      R"([ { "http://e/p": [ { "@value": "v" } ] } ])");
+
+  const auto context = sourcemeta::core::parse_json(
+      R"({ "http://e/p": { "@container": "@graph" } })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "http://e/p": "v",
+    "@context": { "http://e/p": { "@container": "@graph" } }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_list_mixing_a_language_tagged_value_with_a_node_reference) {
+  // A node reference carries no language of its own, so it parts ways with the
+  // language the values agreed on without being a value itself
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "http://e/p": [
+        {
+          "@list": [
+            { "@value": "x", "@language": "en" },
+            { "@id": "http://e/n" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(
+      R"({ "p": { "@id": "http://e/p", "@container": "@list" } })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "p": [ { "@value": "x", "@language": "en" }, { "@id": "http://e/n" } ],
+    "@context": { "p": { "@id": "http://e/p", "@container": "@list" } }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(a_compact_iri_candidate_whose_term_gave_up_its_mapping_is_declined) {
+  // The name a prefix would build is already a term, and that term maps
+  // nothing, so the name is not free to take and the IRI stands (Section 6.2.2)
+  const auto input =
+      sourcemeta::core::parse_json(R"([ { "@type": [ "http://e/x" ] } ])");
+
+  const auto context =
+      sourcemeta::core::parse_json(R"({ "ex": "http://e/", "ex:x": null })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@type": "http://e/x",
+    "@context": { "ex": "http://e/", "ex:x": null }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
+
+TEST(of_two_candidates_the_same_length_the_one_sorting_first_wins) {
+  // Two prefixes can build names of equal length, and the order the terms are
+  // read in is not the order those names sort in, so the comparison settles it
+  // (Section 6.2.2)
+  const auto input =
+      sourcemeta::core::parse_json(R"([ { "@type": [ "http://e/xyz" ] } ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "a": "http://e/",
+    "a-": { "@id": "http://e/x", "@prefix": true }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@type": "a-:yz",
+    "@context": {
+      "a": "http://e/",
+      "a-": { "@id": "http://e/x", "@prefix": true }
+    }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_compact(input, context), expected);
+}
