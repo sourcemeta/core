@@ -6,6 +6,43 @@
 #include <string>       // std::string
 #include <system_error> // std::error_code
 
+namespace {
+class ReadOnlyAtomicParent {
+public:
+  explicit ReadOnlyAtomicParent(const std::filesystem::path &path)
+      : path_{path}, permissions_{std::filesystem::status(path).permissions()} {
+    std::ofstream{path_ / "permission-probe"} << "probe";
+    std::filesystem::permissions(path_,
+                                 std::filesystem::perms::owner_read |
+                                     std::filesystem::perms::owner_exec,
+                                 std::filesystem::perm_options::replace);
+  }
+  ~ReadOnlyAtomicParent() {
+    std::error_code error;
+    std::filesystem::permissions(path_, permissions_, error);
+    std::filesystem::remove(path_ / "permission-probe", error);
+    std::filesystem::remove(path_ / "permission-renamed", error);
+    std::filesystem::remove(path_ / "permission-created", error);
+  }
+
+  // Privileged processes and some filesystems can bypass the requested bits.
+  [[nodiscard]] auto allows_modification() const -> bool {
+    std::error_code error;
+    std::filesystem::rename(path_ / "permission-probe",
+                            path_ / "permission-renamed", error);
+    if (!error) {
+      return true;
+    }
+    std::ofstream probe{path_ / "permission-created"};
+    return probe.is_open();
+  }
+
+private:
+  std::filesystem::path path_;
+  std::filesystem::perms permissions_;
+};
+} // namespace
+
 TEST(creates_when_original_absent) {
   const sourcemeta::core::TemporaryDirectory workspace{
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
@@ -173,43 +210,6 @@ TEST(destination_parent_is_a_file_preserves_replacement) {
   EXPECT_EQ(sourcemeta::core::read_file_to_string(replacement / "keep"),
             "replacement");
 }
-
-namespace {
-class ReadOnlyAtomicParent {
-public:
-  explicit ReadOnlyAtomicParent(const std::filesystem::path &path)
-      : path_{path}, permissions_{std::filesystem::status(path).permissions()} {
-    std::ofstream{path_ / "permission-probe"} << "probe";
-    std::filesystem::permissions(path_,
-                                 std::filesystem::perms::owner_read |
-                                     std::filesystem::perms::owner_exec,
-                                 std::filesystem::perm_options::replace);
-  }
-  ~ReadOnlyAtomicParent() {
-    std::error_code error;
-    std::filesystem::permissions(path_, permissions_, error);
-    std::filesystem::remove(path_ / "permission-probe", error);
-    std::filesystem::remove(path_ / "permission-renamed", error);
-    std::filesystem::remove(path_ / "permission-created", error);
-  }
-
-  // Privileged processes and some filesystems can bypass the requested bits.
-  [[nodiscard]] auto allows_modification() const -> bool {
-    std::error_code error;
-    std::filesystem::rename(path_ / "permission-probe",
-                            path_ / "permission-renamed", error);
-    if (!error) {
-      return true;
-    }
-    std::ofstream probe{path_ / "permission-created"};
-    return probe.is_open();
-  }
-
-private:
-  std::filesystem::path path_;
-  std::filesystem::perms permissions_;
-};
-} // namespace
 
 TEST(permission_denied_when_original_absent_preserves_replacement) {
   const sourcemeta::core::TemporaryDirectory workspace{
