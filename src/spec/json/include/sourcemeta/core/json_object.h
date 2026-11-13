@@ -69,14 +69,15 @@ public:
     }
   };
 
-  // TODO: A key and a value stand between one hash and the next, so searching
-  // the hashes strides over a cache line per entry and cannot compare a block
-  // of them at a time. Explore keeping the hashes in contiguous storage of
-  // their own beside the entries, which would let a lookup reuse the block
-  // comparison that the search for a repeated item in an array already
-  // performs. Weigh it against the second allocation and the two containers
-  // having to agree, and measure it against the current scans before keeping
-  // it, as they are tuned and two reshapings of them have already lost
+  // A key and a value stand between one hash and the next, so a search over
+  // the hashes strides across a cache line per entry. Giving the hashes
+  // storage of their own, and nothing else, reads the same as this layout at
+  // eight and at thirty two entries, because the width of a hash holds the
+  // search back rather than the stride. Ruling out several candidates at once
+  // instead, over a narrow discriminator and without the branch that leaves
+  // on the first match, did read faster, by around a quarter of the search,
+  // but by less than the same timings move between runs on the machine they
+  // were taken on, so that one is open rather than refused
   using underlying_type = std::vector<Entry>;
   using value_type = underlying_type::value_type;
   using size_type = underlying_type::size_type;
