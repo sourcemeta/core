@@ -44,9 +44,12 @@ auto compact_value(const ActiveContext &active_context,
     const auto extra{
         value.object_size() - 1 -
         (value.defines(KEYWORD_INDEX, KEYWORD_INDEX_HASH) ? 1U : 0U)};
+    // An identifier is a string in expanded form, which the entry point holds
+    // the input to
     const auto &identifier{value.at(KEYWORD_ID, KEYWORD_ID_HASH)};
+    assert(identifier.is_string());
     if (extra == 0 && index_ok && definition != nullptr &&
-        definition->type_mapping.has_value() && identifier.is_string()) {
+        definition->type_mapping.has_value()) {
       if (definition->type_mapping.value() == KEYWORD_ID) {
         return JSON{compact_iri(active_context, inverse_context,
                                 identifier.to_string(), nullptr, false, false)};
@@ -116,7 +119,9 @@ auto compact_value(const ActiveContext &active_context,
           key,
           JSON{compact_iri(active_context, inverse_context,
                            entry.second.to_string(), nullptr, true, false)});
-    } else if (entry.first == KEYWORD_ID && entry.second.is_string()) {
+      // As above, an identifier is a string
+    } else if (entry.first == KEYWORD_ID) {
+      assert(entry.second.is_string());
       result.assign_assume_new(
           key,
           JSON{compact_iri(active_context, inverse_context,

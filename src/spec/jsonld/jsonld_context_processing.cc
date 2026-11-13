@@ -104,8 +104,11 @@ auto is_input_authored(const JSONLDError &error, const JSON &context,
   // Everything the merged context is held to account for is one of its
   // entries, so what reports against it reaches past the context itself
   assert(pointer.size() > location.size());
+  // The merged context is a map, so the step past its own position names an
+  // entry of it rather than an index
   const auto &token{pointer.at(location.size())};
-  return token.is_property() && context.defines(token.to_property());
+  assert(token.is_property());
+  return context.defines(token.to_property());
 }
 
 // The origin a context reached from the given location reports against. A
@@ -474,6 +477,9 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
     }
 
     DefinedTerms defined;
+    // An import entry is consumed where the two documents are merged above, so
+    // none stands among the entries terms are made from
+    assert(!context.defines(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH));
     for (const auto &entry : context.as_object()) {
       const auto &name{entry.first};
       if (entry.key_equals(KEYWORD_BASE, KEYWORD_BASE_HASH) ||
@@ -481,7 +487,6 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
           entry.key_equals(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) ||
           entry.key_equals(KEYWORD_VERSION, KEYWORD_VERSION_HASH) ||
           entry.key_equals(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH) ||
-          entry.key_equals(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH) ||
           entry.key_equals(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH) ||
           entry.key_equals(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)) {
         continue;

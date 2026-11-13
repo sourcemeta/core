@@ -3639,3 +3639,26 @@ TEST(a_term_resolving_through_a_prefix_that_names_it_is_cyclic) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Cyclic IRI mapping", "/@context/a");
 }
+
+TEST(a_term_resolving_through_a_prefix_it_is_defining_is_cyclic) {
+  // Defining the prefix reaches for the compact IRI written against it, which
+  // reaches back for the prefix while it is still being made (JSON-LD 1.1 API
+  // Section 4.2.2 step 3)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": "a:b", "a:b": { "@container": "@set" } } })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Cyclic IRI mapping", "/@context/a");
+}
+
+TEST(an_identifier_mapping_that_parts_from_its_term_is_refused) {
+  // A term shaped like an IRI must expand onto the very IRI it maps, and this
+  // one names a prefix that gave up its mapping, so the term expands to itself
+  // and parts from what it was given (JSON-LD 1.1 API Section 4.2.2 step 16)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": null, "a:b": { "@id": "http://e/x" } },
+           "a:b": "v" })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid IRI mapping", "/@context/a:b/@id");
+}

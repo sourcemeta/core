@@ -641,3 +641,58 @@ TEST(property_value_that_is_a_bare_null) {
       sourcemeta::core::parse_json(R"([ { "http://e.com/p": [ null ] } ])")};
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(input));
 }
+
+TEST(a_property_holding_something_other_than_a_map_is_refused) {
+  // Expanded form holds the values of a property as maps, which is what the
+  // walks that consume expanded form rest on
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(
+      sourcemeta::core::parse_json(R"([ { "http://e/p": [ "x" ] } ])")));
+}
+
+TEST(a_property_holding_something_other_than_an_array_is_refused) {
+  // Expanded form holds every property value in an array
+  EXPECT_FALSE(
+      sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+          R"([ { "http://e/p": { "@value": "x" } } ])")));
+}
+
+TEST(an_identifier_that_is_no_string_is_refused) {
+  // An identifier names a node, so it is a string
+  EXPECT_FALSE(
+      sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+          R"([ { "http://e/p": [ { "@id": 5 } ] } ])")));
+}
+
+TEST(a_list_holding_something_other_than_a_map_is_refused) {
+  // As with a property, what a list holds is maps
+  EXPECT_FALSE(
+      sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+          R"([ { "http://e/p": [ { "@list": [ "x" ] } ] } ])")));
+}
+
+TEST(a_type_that_is_no_string_is_refused) {
+  // A type names an IRI or a blank node, so it is a string
+  EXPECT_FALSE(
+      sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+          R"([ { "@type": [ 5 ], "http://e/p": [ { "@value": "x" } ] } ])")));
+}
+
+TEST(a_language_that_is_no_string_is_refused) {
+  // A language tag is a string (JSON-LD 1.1 Section 4.6)
+  EXPECT_FALSE(
+      sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+          R"([ { "http://e/p": [ { "@value": "x", "@language": 5 } ] } ])")));
+}
+
+TEST(a_node_object_carrying_a_language_is_refused) {
+  // A language belongs to a value object, so a node carrying one is no node
+  // object (JSON-LD 1.1 Section 4.6)
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+      R"([ { "@language": "en", "http://e/p": [ { "@value": "x" } ] } ])")));
+}
+
+TEST(a_node_object_carrying_a_direction_is_refused) {
+  // As with a language, a base direction belongs to a value object
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(sourcemeta::core::parse_json(
+      R"([ { "@direction": "ltr", "http://e/p": [ { "@value": "x" } ] } ])")));
+}

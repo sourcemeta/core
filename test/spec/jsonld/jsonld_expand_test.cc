@@ -4163,3 +4163,64 @@ TEST(an_array_among_the_items_of_a_list_flattens_into_it) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(two_reverse_mapped_terms_merge_into_one_reverse_map) {
+  // Two terms carrying a reverse mapping each contribute to the one reverse
+  // map the node holds, rather than the second replacing the first
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "0rev": { "@reverse": "http://e/r" },
+      "rev2": { "@reverse": "http://e/r2" }
+    },
+    "@id": "http://e/s",
+    "0rev": { "@id": "http://e/b" },
+    "rev2": { "@id": "http://e/c" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://e/s",
+      "@reverse": {
+        "http://e/r": [ { "@id": "http://e/b" } ],
+        "http://e/r2": [ { "@id": "http://e/c" } ]
+      }
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(an_identifier_mapping_parting_from_its_term_stands_in_1_0) {
+  // The step above arrived with 1.1, so standing in for a 1.0 processor means
+  // withholding it and letting the mapping stand (JSON-LD 1.0 API Section 6.2)
+  const auto input = sourcemeta::core::parse_json(
+      R"({ "@context": { "a": null, "a:b": { "@id": "http://e/x" } },
+           "a:b": "v" })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://e/x": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(a_set_object_under_a_list_container_is_gathered_into_a_list) {
+  // A set object hands its members over as an array, which is no list object,
+  // so the container gathers them into one (JSON-LD 1.1 API Section 5.1.2)
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "http://e/p", "@container": "@list" } },
+    "p": { "@set": [ "a", "b" ] }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://e/p": [
+        { "@list": [ { "@value": "a" }, { "@value": "b" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
