@@ -51,22 +51,26 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/hub"
+      "destination": "https://www.sourcemeta.com/hub",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/hub",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/aaa-consumer"
+      "destination": "https://www.sourcemeta.com/aaa-consumer",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/hub",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://www.sourcemeta.com/bbb-bridge"
+      "destination": "https://www.sourcemeta.com/bbb-bridge",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/bbb-bridge",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/zzz-host"
+      "destination": "https://www.sourcemeta.com/zzz-host",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/aaa-consumer",

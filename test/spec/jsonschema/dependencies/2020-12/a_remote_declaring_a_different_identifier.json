@@ -27,12 +27,14 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/fetched-as"
+      "destination": "https://www.sourcemeta.com/fetched-as",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/fetched-as",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/leaf"
+      "destination": "https://www.sourcemeta.com/leaf",
+      "resolved": true
     }
   ],
   "locations": 4,

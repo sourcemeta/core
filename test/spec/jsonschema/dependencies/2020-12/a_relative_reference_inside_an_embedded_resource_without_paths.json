@@ -35,7 +35,8 @@
     {
       "origin": "",
       "pointer": "/$defs/Outer/$defs/Inner/$ref",
-      "destination": "https://www.sourcemeta.com/nested/leaf"
+      "destination": "https://www.sourcemeta.com/nested/leaf",
+      "resolved": true
     }
   ],
   "locations": 6,

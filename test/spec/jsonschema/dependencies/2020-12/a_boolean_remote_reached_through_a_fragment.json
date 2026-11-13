@@ -16,7 +16,8 @@
     {
       "origin": "",
       "pointer": "/items/$ref",
-      "destination": "https://www.sourcemeta.com/yes"
+      "destination": "https://www.sourcemeta.com/yes",
+      "resolved": true
     }
   ],
   "locations": 2,

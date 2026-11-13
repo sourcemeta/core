@@ -19,7 +19,8 @@
     {
       "origin": "",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/test-4"
+      "destination": "https://www.sourcemeta.com/test-4",
+      "resolved": true
     }
   ],
   "locations": 2,

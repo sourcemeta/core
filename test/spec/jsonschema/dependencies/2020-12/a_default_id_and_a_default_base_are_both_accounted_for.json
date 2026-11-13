@@ -29,7 +29,8 @@
     {
       "origin": "https://www.sourcemeta.com/declared/me.json",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/remote"
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/remote",

@@ -38,7 +38,8 @@
       "origin": "",
       "pointer": "/components/schemas/Pet/discriminator/mapping/cat",
       "destination": "https://www.sourcemeta.com/pet.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 9,

@@ -29,7 +29,8 @@
     {
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
-      "destination": "https://www.sourcemeta.com/remote"
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/remote",

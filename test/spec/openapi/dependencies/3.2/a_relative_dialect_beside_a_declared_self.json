@@ -30,7 +30,8 @@
       "origin": "https://www.sourcemeta.com/named/entry.json",
       "pointer": "/jsonSchemaDialect",
       "destination": "https://www.sourcemeta.com/named/dialect.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 6,

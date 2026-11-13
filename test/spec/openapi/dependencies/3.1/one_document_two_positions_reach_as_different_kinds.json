@@ -45,7 +45,8 @@
       "origin": "",
       "pointer": "/components/responses/Error/$ref",
       "destination": "https://www.sourcemeta.com/shared.json",
-      "kind": "response"
+      "kind": "response",
+      "resolved": true
     },
     {
       "origin": "",

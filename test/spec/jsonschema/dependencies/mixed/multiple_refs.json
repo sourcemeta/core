@@ -43,17 +43,20 @@
     {
       "origin": "https://www.example.com/",
       "pointer": "/properties/bar/$ref",
-      "destination": "https://www.sourcemeta.com/test-1"
+      "destination": "https://www.sourcemeta.com/test-1",
+      "resolved": true
     },
     {
       "origin": "https://www.example.com/",
       "pointer": "/properties/foo/$ref",
-      "destination": "https://www.sourcemeta.com/test-3"
+      "destination": "https://www.sourcemeta.com/test-3",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/test-3",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/test-4"
+      "destination": "https://www.sourcemeta.com/test-4",
+      "resolved": true
     }
   ],
   "locations": 7,

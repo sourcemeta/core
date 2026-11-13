@@ -28,7 +28,8 @@
       "origin": "",
       "pointer": "/jsonSchemaDialect",
       "destination": "https://www.sourcemeta.com/dialect.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 6,

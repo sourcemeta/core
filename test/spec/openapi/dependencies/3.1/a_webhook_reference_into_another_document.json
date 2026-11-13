@@ -30,7 +30,8 @@
       "origin": "",
       "pointer": "/webhooks/onEvent/$ref",
       "destination": "https://www.sourcemeta.com/hooks.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     }
   ],
   "locations": 6,

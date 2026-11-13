@@ -45,17 +45,20 @@
     {
       "origin": "https://www.example.com/",
       "pointer": "/properties/a/$ref",
-      "destination": "https://www.sourcemeta.com/sibling-a"
+      "destination": "https://www.sourcemeta.com/sibling-a",
+      "resolved": true
     },
     {
       "origin": "https://www.example.com/",
       "pointer": "/properties/b/$ref",
-      "destination": "https://www.sourcemeta.com/sibling-b"
+      "destination": "https://www.sourcemeta.com/sibling-b",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/sibling-a",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/shared"
+      "destination": "https://www.sourcemeta.com/shared",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/sibling-b",
@@ -66,7 +69,8 @@
     {
       "origin": "https://www.sourcemeta.com/shared",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/deep"
+      "destination": "https://www.sourcemeta.com/deep",
+      "resolved": true
     }
   ],
   "locations": 7,

@@ -61,7 +61,8 @@
       "origin": "https://www.sourcemeta.com/entry.json",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/other.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/other.json",

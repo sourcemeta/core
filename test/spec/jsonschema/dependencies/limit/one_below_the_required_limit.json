@@ -31,17 +31,20 @@
     {
       "origin": "",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/chain-1"
+      "destination": "https://www.sourcemeta.com/chain-1",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/chain-1",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/chain-2"
+      "destination": "https://www.sourcemeta.com/chain-2",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/chain-2",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/chain-3"
+      "destination": "https://www.sourcemeta.com/chain-3",
+      "resolved": true
     }
   ],
   "fetched": [

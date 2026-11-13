@@ -41,7 +41,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://www.sourcemeta.com/zzz-wide"
+      "destination": "https://www.sourcemeta.com/zzz-wide",
+      "resolved": true
     }
   ],
   "fetched": [

@@ -26,7 +26,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/contains/$ref",
-      "destination": "https://www.sourcemeta.com/target"
+      "destination": "https://www.sourcemeta.com/target",
+      "resolved": true
     }
   ],
   "locations": 5,

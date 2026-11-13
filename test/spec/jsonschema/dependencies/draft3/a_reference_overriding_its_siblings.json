@@ -29,7 +29,8 @@
     {
       "origin": "http://www.example.com/entry",
       "pointer": "/properties/sibling/$ref",
-      "destination": "http://www.example.com/target"
+      "destination": "http://www.example.com/target",
+      "resolved": true
     }
   ],
   "locations": 3,

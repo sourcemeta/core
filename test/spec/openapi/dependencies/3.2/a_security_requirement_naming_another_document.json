@@ -41,7 +41,8 @@
       "origin": "",
       "pointer": "/security/0/https:~1~1www.sourcemeta.com~1auth.json#~1components~1securitySchemes~1Main",
       "destination": "https://www.sourcemeta.com/auth.json",
-      "kind": "security-scheme"
+      "kind": "security-scheme",
+      "resolved": true
     }
   ],
   "locations": 9,

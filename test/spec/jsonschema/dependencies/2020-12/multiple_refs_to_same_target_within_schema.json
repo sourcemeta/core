@@ -42,7 +42,8 @@
     {
       "origin": "https://www.example.com/",
       "pointer": "/anyOf/0/properties/foo/$ref",
-      "destination": "https://www.sourcemeta.com/test-1"
+      "destination": "https://www.sourcemeta.com/test-1",
+      "resolved": true
     },
     {
       "origin": "https://www.example.com/",

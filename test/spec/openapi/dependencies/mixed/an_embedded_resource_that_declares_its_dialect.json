@@ -75,19 +75,22 @@
       "origin": "",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/b.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/outer.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/b.json",
       "pointer": "/components/schemas/Thing/$ref",
       "destination": "https://www.sourcemeta.com/holder.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/holder.json",

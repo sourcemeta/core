@@ -30,7 +30,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/a~b"
+      "destination": "https://www.sourcemeta.com/a~b",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",

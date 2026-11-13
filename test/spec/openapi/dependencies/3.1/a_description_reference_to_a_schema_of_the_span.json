@@ -55,13 +55,15 @@
       "origin": "",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/b.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/shared.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "fetched": [

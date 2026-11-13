@@ -40,9 +40,9 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
 const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
                                                 "location", "limit"};
 
-// Whether a dependency is the one that had analysis resolve the document it
-// names is spelled only where it was not, as resolving is the common case and
-// the one that can be checked against the resolver
+// Every key an entry of what analysis reported declares, the last of them
+// being whether the entry is the one that had analysis resolve the document it
+// names, which is what hands the document over
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
                                                      "destination", "resolved"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
@@ -185,9 +185,8 @@ auto collect(const sourcemeta::core::JSON &schema,
                          sourcemeta::core::to_string(dependency.pointer)});
         entry.assign("destination",
                      sourcemeta::core::JSON{dependency.destination});
-        if (dependency.document == nullptr) {
-          entry.assign("resolved", sourcemeta::core::JSON{false});
-        }
+        entry.assign("resolved",
+                     sourcemeta::core::JSON{dependency.document != nullptr});
 
         result.push_back(std::move(entry));
       },
@@ -235,20 +234,13 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
     EXPECT_TRUE(dependencies.is_array());
     for (const auto &dependency : dependencies.as_array()) {
       EXPECT_TRUE(dependency.is_object());
-      EXPECT_TRUE(dependency.defines("origin"));
-      EXPECT_TRUE(dependency.defines("pointer"));
-      EXPECT_TRUE(dependency.defines("destination"));
+      EXPECT_EQ(dependency.size(), KNOWN_DEPENDENCY_KEYS.size());
       for (const auto &entry : dependency.as_object()) {
         EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                     KNOWN_DEPENDENCY_KEYS.cend());
         EXPECT_TRUE(entry.first == "resolved" ? entry.second.is_boolean()
                                               : entry.second.is_string());
       }
-
-      // A dependency that resolved the document says nothing of it, so there
-      // is one spelling for each of the two rather than two for either
-      const auto *resolved{dependency.try_at("resolved")};
-      EXPECT_TRUE(resolved == nullptr || resolved->to_boolean() == false);
     }
   }
 

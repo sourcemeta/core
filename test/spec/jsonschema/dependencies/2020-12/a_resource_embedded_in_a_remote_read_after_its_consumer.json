@@ -39,12 +39,14 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/aaa-consumer"
+      "destination": "https://www.sourcemeta.com/aaa-consumer",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://www.sourcemeta.com/zzz-host"
+      "destination": "https://www.sourcemeta.com/zzz-host",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/aaa-consumer",

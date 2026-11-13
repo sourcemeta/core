@@ -33,7 +33,8 @@
       "origin": "",
       "pointer": "/paths/~1two/$ref",
       "destination": "https://www.sourcemeta.com/present.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     }
   ],
   "fetched": [

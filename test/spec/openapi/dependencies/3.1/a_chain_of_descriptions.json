@@ -42,13 +42,15 @@
       "origin": "",
       "pointer": "/paths/~1one/$ref",
       "destination": "https://www.sourcemeta.com/a.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/a.json",
       "pointer": "/paths/~1two/$ref",
       "destination": "https://www.sourcemeta.com/b.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     }
   ],
   "locations": 12,

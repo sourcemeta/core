@@ -27,7 +27,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/consumer"
+      "destination": "https://www.sourcemeta.com/consumer",
+      "resolved": true
     }
   ],
   "fetched": [

@@ -22,7 +22,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/items/$ref",
-      "destination": "https://www.sourcemeta.com/test-1"
+      "destination": "https://www.sourcemeta.com/test-1",
+      "resolved": true
     }
   ],
   "locations": 3,

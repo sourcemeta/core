@@ -30,12 +30,14 @@
     {
       "origin": "",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/dir/fetched.json"
+      "destination": "https://www.sourcemeta.com/dir/fetched.json",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/dir/fetched.json",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/dir/sub/leaf.json"
+      "destination": "https://www.sourcemeta.com/dir/sub/leaf.json",
+      "resolved": true
     }
   ],
   "locations": 4,

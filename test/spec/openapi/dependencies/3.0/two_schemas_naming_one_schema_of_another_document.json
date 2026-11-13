@@ -28,7 +28,8 @@
       "origin": "",
       "pointer": "/components/schemas/Paw/$ref",
       "destination": "https://www.sourcemeta.com/pet.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "",

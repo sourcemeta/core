@@ -45,7 +45,8 @@
       "origin": "",
       "pointer": "/paths/~1one/$ref",
       "destination": "https://www.sourcemeta.com/held.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "",

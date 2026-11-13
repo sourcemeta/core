@@ -22,9 +22,9 @@ const std::vector<std::string> KNOWN_KEYS{
     "schemaResolver", "maxLocations", "expected",
     "locations",      "fetched",      "error"};
 
-// Every key an entry of what analysis reported may declare. Whether it is the
-// one that had analysis resolve the document it names is spelled only where it
-// was not, as resolving is the common case
+// Every key an entry of what analysis reported declares, the last of them
+// being whether the entry is the one that had analysis resolve the document it
+// names, which is what hands the document over
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{
     "origin", "pointer", "destination", "kind", "resolved"};
 
@@ -125,9 +125,8 @@ auto collect(const sourcemeta::core::JSON &test,
         entry.assign("kind",
                      sourcemeta::core::JSON{sourcemeta::core::openapi_kind_name(
                          dependency.expected)});
-        if (dependency.document == nullptr) {
-          entry.assign("resolved", sourcemeta::core::JSON{false});
-        }
+        entry.assign("resolved",
+                     sourcemeta::core::JSON{dependency.document != nullptr});
 
         result.push_back(std::move(entry));
       },
@@ -147,17 +146,13 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
   EXPECT_TRUE(test.at("expected").is_array());
   for (const auto &dependency : test.at("expected").as_array()) {
     EXPECT_TRUE(dependency.is_object());
+    EXPECT_EQ(dependency.size(), KNOWN_DEPENDENCY_KEYS.size());
     for (const auto &entry : dependency.as_object()) {
       EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                   KNOWN_DEPENDENCY_KEYS.cend());
       EXPECT_TRUE(entry.first == "resolved" ? entry.second.is_boolean()
                                             : entry.second.is_string());
     }
-
-    // A dependency that resolved the document says nothing of it, so there is
-    // one spelling for each of the two rather than two for either
-    const auto *resolved{dependency.try_at("resolved")};
-    EXPECT_TRUE(resolved == nullptr || resolved->to_boolean() == false);
   }
 
   // Analysis that throws reports no count at all, so a fixture that expects

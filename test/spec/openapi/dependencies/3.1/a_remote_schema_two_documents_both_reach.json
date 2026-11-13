@@ -44,13 +44,15 @@
       "origin": "",
       "pointer": "/components/schemas/One/$ref",
       "destination": "https://www.sourcemeta.com/one.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/components/schemas/Two/$ref",
       "destination": "https://www.sourcemeta.com/two.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/one.json",

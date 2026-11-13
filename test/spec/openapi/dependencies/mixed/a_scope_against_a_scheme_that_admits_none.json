@@ -52,7 +52,8 @@
       "origin": "",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/old.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     }
   ],
   "fetched": [
