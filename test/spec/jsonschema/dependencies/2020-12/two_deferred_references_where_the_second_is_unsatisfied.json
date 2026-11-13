@@ -57,7 +57,7 @@
       "origin": "https://www.sourcemeta.com/aaa-consumer",
       "pointer": "/allOf/0/$ref",
       "destination": "https://www.sourcemeta.com/present",
-      "document": false
+      "resolved": false
     }
   ],
   "fetched": [

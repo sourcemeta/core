@@ -86,7 +86,7 @@
       "pointer": "/properties/a/$ref",
       "destination": "https://www.sourcemeta.com/named.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "fetched": [

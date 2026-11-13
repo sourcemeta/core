@@ -35,7 +35,7 @@
       "origin": "https://www.sourcemeta.com/remote",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/openapi.json",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 2,

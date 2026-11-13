@@ -72,7 +72,7 @@
       "origin": "https://www.sourcemeta.com/aaa-consumer",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/deep",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 9,

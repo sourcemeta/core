@@ -35,13 +35,13 @@
       "origin": "https://www.sourcemeta.com/remote",
       "pointer": "/allOf/0/$ref",
       "destination": "https://www.sourcemeta.com/declared/me.json",
-      "document": false
+      "resolved": false
     },
     {
       "origin": "https://www.sourcemeta.com/remote",
       "pointer": "/allOf/1/$ref",
       "destination": "https://www.sourcemeta.com/retrieved/doc.json",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 5,

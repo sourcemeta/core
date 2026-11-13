@@ -21,7 +21,7 @@
       "origin": "",
       "pointer": "/items/$ref",
       "destination": "https://www.sourcemeta.com/leaf",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 2,

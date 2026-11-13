@@ -48,13 +48,13 @@
       "origin": "https://www.example.com/",
       "pointer": "/anyOf/1/properties/bar/$ref",
       "destination": "https://www.sourcemeta.com/test-1",
-      "document": false
+      "resolved": false
     },
     {
       "origin": "https://www.example.com/",
       "pointer": "/anyOf/2/properties/baz/$ref",
       "destination": "https://www.sourcemeta.com/test-1",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 8,

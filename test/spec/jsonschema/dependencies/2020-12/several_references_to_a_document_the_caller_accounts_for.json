@@ -36,19 +36,19 @@
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
       "destination": "https://www.sourcemeta.com/leaf",
-      "document": false
+      "resolved": false
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
       "destination": "https://www.sourcemeta.com/leaf",
-      "document": false
+      "resolved": false
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/2/$ref",
       "destination": "https://www.sourcemeta.com/leaf",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 4,

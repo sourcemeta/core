@@ -60,7 +60,7 @@
       "pointer": "/components/schemas/Thing/$ref",
       "destination": "https://www.sourcemeta.com/bool.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 14,

@@ -48,7 +48,7 @@
       "origin": "https://www.sourcemeta.com/aaa-consumer",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/needed",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 5,

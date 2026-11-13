@@ -40,11 +40,11 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
 const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
                                                 "location", "limit"};
 
-// Whether a dependency carried the document it names is spelled only where it
-// did not, as the reference that had analysis read a document is the common
-// case and the one that can be checked against the resolver
+// Whether a dependency is the one that had analysis resolve the document it
+// names is spelled only where it was not, as resolving is the common case and
+// the one that can be checked against the resolver
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
-                                                     "destination", "document"};
+                                                     "destination", "resolved"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 using Asked = std::vector<sourcemeta::core::JSON::String>;
@@ -186,7 +186,7 @@ auto collect(const sourcemeta::core::JSON &schema,
         entry.assign("destination",
                      sourcemeta::core::JSON{dependency.destination});
         if (dependency.document == nullptr) {
-          entry.assign("document", sourcemeta::core::JSON{false});
+          entry.assign("resolved", sourcemeta::core::JSON{false});
         }
 
         result.push_back(std::move(entry));
@@ -241,14 +241,14 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
       for (const auto &entry : dependency.as_object()) {
         EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                     KNOWN_DEPENDENCY_KEYS.cend());
-        EXPECT_TRUE(entry.first == "document" ? entry.second.is_boolean()
+        EXPECT_TRUE(entry.first == "resolved" ? entry.second.is_boolean()
                                               : entry.second.is_string());
       }
 
-      // A dependency that carried the document says nothing of it, so there is
-      // one spelling for each of the two rather than two for either
-      const auto *document{dependency.try_at("document")};
-      EXPECT_TRUE(document == nullptr || document->to_boolean() == false);
+      // A dependency that resolved the document says nothing of it, so there
+      // is one spelling for each of the two rather than two for either
+      const auto *resolved{dependency.try_at("resolved")};
+      EXPECT_TRUE(resolved == nullptr || resolved->to_boolean() == false);
     }
   }
 

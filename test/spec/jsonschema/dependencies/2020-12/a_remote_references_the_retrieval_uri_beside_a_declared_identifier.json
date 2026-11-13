@@ -28,7 +28,7 @@
       "origin": "https://www.sourcemeta.com/b",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/retrieved.json",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 3,

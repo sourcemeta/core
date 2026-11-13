@@ -70,7 +70,7 @@
       "pointer": "",
       "destination": "https://www.sourcemeta.com/hidden.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 12,

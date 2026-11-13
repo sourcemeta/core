@@ -40,7 +40,7 @@
       "pointer": "/components/schemas/Two/$ref",
       "destination": "https://www.sourcemeta.com/pet.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 10,

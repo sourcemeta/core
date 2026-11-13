@@ -44,7 +44,7 @@
       "origin": "https://www.sourcemeta.com/bbb-other",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/aaa-target",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 5,

@@ -45,7 +45,7 @@
       "pointer": "/discriminator/mapping/cat",
       "destination": "https://www.sourcemeta.com/entry.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 9,

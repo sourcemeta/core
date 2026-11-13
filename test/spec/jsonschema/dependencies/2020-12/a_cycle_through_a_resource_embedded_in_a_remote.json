@@ -44,7 +44,7 @@
       "origin": "https://www.sourcemeta.com/c",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/b-inner",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 5,

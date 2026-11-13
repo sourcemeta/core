@@ -26,7 +26,7 @@
       "origin": "https://www.sourcemeta.com/b",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/a",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 2,

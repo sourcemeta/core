@@ -36,13 +36,13 @@
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
       "destination": "https://www.sourcemeta.com/a~b",
-      "document": false
+      "resolved": false
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/2/$ref",
       "destination": "https://www.sourcemeta.com/a~b",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 5,

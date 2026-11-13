@@ -57,7 +57,7 @@
       "pointer": "/properties/a/$ref",
       "destination": "https://www.sourcemeta.com/two.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 12,

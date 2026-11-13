@@ -64,7 +64,7 @@
       "pointer": "/discriminator/mapping/y",
       "destination": "https://www.sourcemeta.com/y.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 13,

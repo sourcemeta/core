@@ -52,7 +52,7 @@
       "pointer": "/paths/~1pets/$ref",
       "destination": "https://www.sourcemeta.com/shared.json",
       "kind": "path-item",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 12,

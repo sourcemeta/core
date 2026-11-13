@@ -40,7 +40,7 @@
       "origin": "https://www.sourcemeta.com/r",
       "pointer": "/$schema",
       "destination": "https://www.sourcemeta.com/custom-meta",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 3,

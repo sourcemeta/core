@@ -68,7 +68,7 @@
       "pointer": "/paths/~1p/get/responses/200/content/application~1json/schema/discriminator/mapping/dog",
       "destination": "https://www.sourcemeta.com/entry.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 18,

@@ -37,7 +37,7 @@
       "origin": "https://www.sourcemeta.com/c",
       "pointer": "/$ref",
       "destination": "https://www.sourcemeta.com/b",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 3,

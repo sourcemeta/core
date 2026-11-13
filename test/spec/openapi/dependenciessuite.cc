@@ -22,11 +22,11 @@ const std::vector<std::string> KNOWN_KEYS{
     "schemaResolver", "maxLocations", "expected",
     "locations",      "fetched",      "error"};
 
-// Every key an entry of what analysis reported may declare. Whether it carried
-// the document it names is spelled only where it did not, as the reference that
-// had analysis read a document is the common case
+// Every key an entry of what analysis reported may declare. Whether it is the
+// one that had analysis resolve the document it names is spelled only where it
+// was not, as resolving is the common case
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{
-    "origin", "pointer", "destination", "kind", "document"};
+    "origin", "pointer", "destination", "kind", "resolved"};
 
 // Every exception that analysis throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
@@ -126,7 +126,7 @@ auto collect(const sourcemeta::core::JSON &test,
                      sourcemeta::core::JSON{sourcemeta::core::openapi_kind_name(
                          dependency.expected)});
         if (dependency.document == nullptr) {
-          entry.assign("document", sourcemeta::core::JSON{false});
+          entry.assign("resolved", sourcemeta::core::JSON{false});
         }
 
         result.push_back(std::move(entry));
@@ -150,14 +150,14 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
     for (const auto &entry : dependency.as_object()) {
       EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                   KNOWN_DEPENDENCY_KEYS.cend());
-      EXPECT_TRUE(entry.first == "document" ? entry.second.is_boolean()
+      EXPECT_TRUE(entry.first == "resolved" ? entry.second.is_boolean()
                                             : entry.second.is_string());
     }
 
-    // A dependency that carried the document says nothing of it, so there is
+    // A dependency that resolved the document says nothing of it, so there is
     // one spelling for each of the two rather than two for either
-    const auto *document{dependency.try_at("document")};
-    EXPECT_TRUE(document == nullptr || document->to_boolean() == false);
+    const auto *resolved{dependency.try_at("resolved")};
+    EXPECT_TRUE(resolved == nullptr || resolved->to_boolean() == false);
   }
 
   // Analysis that throws reports no count at all, so a fixture that expects

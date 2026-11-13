@@ -94,7 +94,7 @@
       "pointer": "/discriminator/mapping/one",
       "destination": "https://www.sourcemeta.com/embedded.json",
       "kind": "schema",
-      "document": false
+      "resolved": false
     }
   ],
   "locations": 20,
