@@ -15,15 +15,16 @@
 #include <variant>     // std::get, std::get_if
 #include <vector>      // std::vector
 
-// Clang keeps an arm for the value that never arrives and counts it as one
+// Clang keeps an arm for the container that never arrives and counts it as one
 // nothing took, so the last name carries the default there, while the
-// compilers reading a case label are the ones holding a switch to naming them
-// all. The conditional stands at file scope, where it claims no line of its
-// own that could read as never reached
+// compilers reading a case label are the ones holding the switch to naming
+// them all. The conditional stands at file scope rather than between the case
+// labels, because a directive inside the switch body takes a region of its own
+// that nothing flows into and so reads as a line never reached
 #if defined(__clang__)
-#define JSONLD_LAST_CASE(name) default:
+#define JSONLD_MATERIALIZE_LAST_CASE(name) default:
 #else
-#define JSONLD_LAST_CASE(name) case name:
+#define JSONLD_MATERIALIZE_LAST_CASE(name) case name:
 #endif
 
 namespace sourcemeta::core {
@@ -579,7 +580,7 @@ auto materialize_value(const JSON &value, PointerT &pointer,
           descriptor.edges,
           [](const JSONLDEdge &edge) -> bool { return edge.reverse; }));
       return build_language_collection(value);
-      JSONLD_LAST_CASE(JSONLDContainer::Index)
+      JSONLD_MATERIALIZE_LAST_CASE(JSONLDContainer::Index)
       assert(value.is_object());
       return build_index_collection(value, pointer, range, standalone);
   }
@@ -697,4 +698,4 @@ auto jsonld_materialize(const JSON &instance,
 
 } // namespace sourcemeta::core
 
-#undef JSONLD_LAST_CASE
+#undef JSONLD_MATERIALIZE_LAST_CASE

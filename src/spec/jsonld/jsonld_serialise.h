@@ -27,10 +27,12 @@
 // obtain stay byte-identical to the native behaviour they get today
 
 // Clang keeps an arm for the kind that never arrives and counts it as one
-// nothing took, so the kinds carrying no lexical form take the default there,
-// which a string then takes, while the compilers reading a case label are the
-// ones holding the switch to naming every kind. The conditional stands at file
-// scope, where it claims no line of its own that could read as never reached
+// nothing took, so the kinds carrying no lexical form of their own take the
+// default there, which a string then takes, while the compilers reading a case
+// label are the ones holding the switch to naming every kind. The conditional
+// stands at file scope rather than between the case labels, because a
+// directive inside the switch body takes a region of its own that nothing
+// flows into and so reads as a line never reached
 #if defined(__clang__)
 #define JSONLD_SERIALISE_LAST_CASES default:
 #else
@@ -246,9 +248,9 @@ inline auto typed_literal_lexical_form(const JSON &value,
       }
       return fixed_lexical_form(decimal);
     }
-      // A typed literal only ever carries a scalar, so of the kinds the default
-      // gathers only a string ever arrives and the other three stand for shapes
-      // this is never handed
+      // A typed literal only ever carries a scalar, so of the four kinds the
+      // default gathers only a string ever arrives and the other three stand
+      // for shapes this is never handed
       JSONLD_SERIALISE_LAST_CASES
       return std::nullopt;
   }
