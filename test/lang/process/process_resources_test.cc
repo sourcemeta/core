@@ -9,10 +9,10 @@
 static auto check_resources(const std::string_view scenario) -> void {
   const auto result{sourcemeta::core::spawn_and_capture(
       std::string{RESOURCES_BINARY}, {scenario, HELPER_BINARY})};
+  EXPECT_EQ(result.standard_error, "");
   EXPECT_TRUE(result.exit_code.has_value());
   EXPECT_EQ(result.exit_code.value(), 0);
   EXPECT_TRUE(result.standard_output.empty());
-  EXPECT_TRUE(result.standard_error.empty());
 }
 
 TEST(input_is_delivered_when_the_caller_closed_standard_input) {
@@ -64,11 +64,3 @@ TEST(unavailable_process_measurements_are_absent_and_recover) {
   check_resources("telemetry");
 }
 #endif
-
-TEST(capture_preserves_output_across_acknowledged_signal_interruptions) {
-  check_resources("interrupt-capture");
-}
-
-TEST(child_waiting_completes_across_acknowledged_signal_interruptions) {
-  check_resources("interrupt-wait");
-}

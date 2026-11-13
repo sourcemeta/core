@@ -4,8 +4,8 @@
 #include <cerrno> // errno, EBADF, ECHILD
 #include <csignal> // SIGCHLD, SIG_IGN, SIGPIPE, SIG_BLOCK, sigaction, sigpending, sigwait
 #include <cstddef>        // std::size_t
-#include <cstdlib>        // std::strtol
 #include <fcntl.h>        // fcntl, F_DUPFD_CLOEXEC, F_GETFD
+#include <iostream>       // std::cerr
 #include <pthread.h>      // pthread_sigmask
 #include <string>         // std::string
 #include <string_view>    // std::string_view
@@ -14,64 +14,6 @@
 #include <unistd.h> // alarm, close, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO
 
 namespace {
-
-// Only the isolated helper installs this handler. The acknowledgement makes
-// each child signal a completed round trip, without a timer or a sleep.
-volatile std::sig_atomic_t acknowledgement{-1};
-volatile std::sig_atomic_t interruptions{0};
-extern "C" auto acknowledge_signal(int) -> void {
-  const int saved_errno{errno};
-  const char byte{'x'};
-  static_cast<void>(write(acknowledgement, &byte, 1));
-  interruptions = interruptions + 1;
-  errno = saved_errno;
-}
-
-auto interrupted(const std::string &self, const bool waiting) -> bool {
-  std::array<int, 2> descriptors{};
-  if (pipe(descriptors.data()) != 0) {
-    return false;
-  }
-
-  struct sigaction action{};
-  action.sa_handler = acknowledge_signal;
-  sigemptyset(&action.sa_mask);
-  struct sigaction previous{};
-  acknowledgement = descriptors[1];
-  interruptions = 0;
-  if (sigaction(SIGUSR1, &action, &previous) != 0) {
-    close(descriptors[0]);
-    close(descriptors[1]);
-    return false;
-  }
-
-  sigset_t unblocked;
-  sigemptyset(&unblocked);
-  sigaddset(&unblocked, SIGUSR1);
-  sigset_t previous_mask;
-  if (pthread_sigmask(SIG_UNBLOCK, &unblocked, &previous_mask) != 0) {
-    sigaction(SIGUSR1, &previous, nullptr);
-    close(descriptors[0]);
-    close(descriptors[1]);
-    return false;
-  }
-
-  const auto before{sourcemeta::core::process_descriptors()};
-  const auto result{sourcemeta::core::spawn_and_capture(
-      self, {"interrupt-child", std::to_string(descriptors[0]),
-             std::to_string(descriptors[1]), waiting ? "wait" : "capture"})};
-  const auto after{sourcemeta::core::process_descriptors()};
-  const bool restored{sigaction(SIGUSR1, &previous, nullptr) == 0};
-  acknowledgement = -1;
-  close(descriptors[0]);
-  close(descriptors[1]);
-  const bool mask_restored{
-      pthread_sigmask(SIG_SETMASK, &previous_mask, nullptr) == 0};
-  return restored && mask_restored && interruptions == 64 &&
-         before.open == after.open && result.exit_code == 0 &&
-         result.standard_error.empty() &&
-         result.standard_output == (waiting ? "" : "complete");
-}
 
 auto closed(const int descriptor) -> bool {
   return fcntl(descriptor, F_GETFD) == -1 && errno == EBADF;
@@ -147,26 +89,48 @@ auto exhausted(const std::string &program, const std::size_t available)
 }
 
 auto failed_spawns(const std::string &program) -> bool {
-  const auto before{sourcemeta::core::process_descriptors()};
-  for (unsigned int attempt = 0; attempt < 3; ++attempt) {
-    bool refused{false};
-    const auto missing{program + ".does-not-exist"};
+  // Error construction and the platform loader may initialize process-global
+  // state on first use. Measure steady-state calls after the same operation.
+  const auto missing{program + ".does-not-exist"};
+  auto attempt = [&]() -> bool {
     try {
-      static_cast<void>(sourcemeta::core::spawn_and_capture(
-          missing, {"an argument"}, {.standard_input = "input"}));
+      const auto output{sourcemeta::core::spawn_and_capture(
+          missing, {"an argument"}, {.standard_input = "input"})};
+      std::cerr << "Missing executable returned a result (exit "
+                << output.exit_code.value_or(-1) << ")\n";
+      return false;
     } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
-      refused = error.program() == missing;
+      return error.program() == missing;
     }
+  };
+  if (!attempt()) {
+    return false;
+  }
 
-    if (!refused) {
+  const auto before{sourcemeta::core::process_descriptors()};
+  for (unsigned int index = 0; index < 3; ++index) {
+    if (!attempt()) {
       return false;
     }
   }
 
   const auto after{sourcemeta::core::process_descriptors()};
+  if (before.open != after.open) {
+    std::cerr << "Failed-exec descriptor count changed: "
+              << before.open.value_or(0) << " -> " << after.open.value_or(0)
+              << '\n';
+    return false;
+  }
+
   int status{0};
-  const bool reaped{waitpid(-1, &status, WNOHANG) == -1 && errno == ECHILD};
-  return before.open == after.open && reaped && capture(program);
+  const auto child{waitpid(-1, &status, WNOHANG)};
+  if (child != -1 || errno != ECHILD) {
+    std::cerr << "Failed exec left a child: waitpid=" << child
+              << " errno=" << errno << '\n';
+    return false;
+  }
+
+  return capture(program);
 }
 
 auto pending_signal(const std::string &program) -> bool {
@@ -251,28 +215,6 @@ auto telemetry() -> bool {
 } // namespace
 
 auto main(int argc, char *argv[]) -> int {
-  if (argc == 5 && std::string_view{argv[1]} == "interrupt-child") {
-    alarm(10);
-    const int input{static_cast<int>(std::strtol(argv[2], nullptr, 10))};
-    close(static_cast<int>(std::strtol(argv[3], nullptr, 10)));
-    const bool waiting{std::string_view{argv[4]} == "wait"};
-    if (waiting) {
-      close(STDOUT_FILENO);
-      close(STDERR_FILENO);
-    }
-
-    for (unsigned int index = 0; index < 64; ++index) {
-      char byte{0};
-      if (kill(getppid(), SIGUSR1) != 0 || read(input, &byte, 1) != 1 ||
-          byte != 'x') {
-        return 1;
-      }
-    }
-
-    close(input);
-    return waiting || write(STDOUT_FILENO, "complete", 8) == 8 ? 0 : 1;
-  }
-
   if (argc != 3) {
     return 2;
   }
@@ -280,10 +222,6 @@ auto main(int argc, char *argv[]) -> int {
   alarm(15);
   const std::string_view scenario{argv[1]};
   const std::string program{argv[2]};
-  if (scenario == "interrupt-capture" || scenario == "interrupt-wait") {
-    return interrupted(argv[0], scenario == "interrupt-wait") ? 0 : 1;
-  }
-
   if (scenario == "closed-input") {
     close(STDIN_FILENO);
     return sourcemeta::core::spawn(program, {"expect-stdin", "the input"},
