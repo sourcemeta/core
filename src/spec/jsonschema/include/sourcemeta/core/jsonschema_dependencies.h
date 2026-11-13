@@ -104,12 +104,12 @@ struct SchemaDependenciesOptions {
   AccountedPredicate accounted{};
   /// Reports every reference that nothing came to answer for, each of them
   /// where it sits, just before analysis ends over the first of them. The
-  /// error that ends it names one such reference and nothing of the rest, and
-  /// analysis lets go of all of them as it unwinds, so a caller that walks
-  /// several documents of one span and may still come to hold what one of
-  /// these names has this to take them from. Nothing is reported here where
-  /// analysis ends over anything else, as whatever it reached for then is no
-  /// reference of a document and has no place within one to name
+  /// error that ends analysis names one of those references and nothing of
+  /// the rest, and analysis lets go of all of them as it unwinds, so this is
+  /// the only place they can be read. A caller that walks several documents of
+  /// one span wants them, as it may still come to hold what they name.
+  /// Analysis that ends over anything else reports nothing here, as whatever
+  /// it reached for then is no reference of a document
   UnresolvedCallback unresolved{};
   /// Reports every URI that analysis comes to account for, whether it is one
   /// a dependency was reported for or one a document it read answers to of
@@ -132,9 +132,10 @@ struct SchemaDependenciesOptions {
 /// that nothing answers for when it is read leads somewhere only once a
 /// document that arrived later settles it, so that one is reported after the
 /// references of every document read in between, and one that nothing ever
-/// answers for is reported nowhere. Official schemas are reported when a
-/// reference names them and left out when a dialect declaration does, and
-/// neither is traversed into. For example:
+/// answers for is no dependency at all, which the options above hand over
+/// separately. Official schemas are reported when a reference names them and
+/// left out when a dialect declaration does, and neither is traversed into.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
