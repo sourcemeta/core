@@ -85,7 +85,7 @@ auto finalize_definition(ExpansionState &state, ActiveContext &active_context,
 // something, and a vocabulary is itself an IRI and so puts a colon in whatever
 // it prefixes. Those two tests stand because the rule they spell out is the
 // one the algorithm names, not because either can settle the outcome
-auto check_iri_mapping(const ActiveContext &active_context,
+auto check_iri_mapping([[maybe_unused]] const ActiveContext &active_context,
                        const std::optional<JSON::String> &mapping,
                        const WeakPointer &term_pointer,
                        const std::initializer_list<JSON::StringView> children)
