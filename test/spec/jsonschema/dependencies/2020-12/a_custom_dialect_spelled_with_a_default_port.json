@@ -24,7 +24,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/$schema",
-      "destination": "https://www.sourcemeta.com/custom-metaschema"
+      "destination": "https://www.sourcemeta.com/custom-metaschema",
+      "resolved": true
     }
   ],
   "locations": 2,

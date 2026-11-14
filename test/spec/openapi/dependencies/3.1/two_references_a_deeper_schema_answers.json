@@ -1,0 +1,91 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "A": {
+          "$ref": "https://www.sourcemeta.com/s1.json"
+        },
+        "B": {
+          "$ref": "https://www.sourcemeta.com/s2.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/s1.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/s1.json",
+      "properties": {
+        "x": {
+          "$ref": "https://www.sourcemeta.com/hidden.json"
+        },
+        "y": {
+          "$ref": "https://www.sourcemeta.com/hidden.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/s2.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/s2.json",
+      "properties": {
+        "z": {
+          "$ref": "https://www.sourcemeta.com/deep.json"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/deep.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/deep.json",
+      "$defs": {
+        "inner": {
+          "$id": "https://www.sourcemeta.com/hidden.json",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/A/$ref",
+      "destination": "https://www.sourcemeta.com/s1.json",
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/B/$ref",
+      "destination": "https://www.sourcemeta.com/s2.json",
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s2.json",
+      "pointer": "/properties/z/$ref",
+      "destination": "https://www.sourcemeta.com/deep.json",
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s1.json",
+      "pointer": "/properties/x/$ref",
+      "destination": "https://www.sourcemeta.com/hidden.json",
+      "kind": "schema",
+      "resolved": false
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s1.json",
+      "pointer": "/properties/y/$ref",
+      "destination": "https://www.sourcemeta.com/hidden.json",
+      "kind": "schema",
+      "resolved": false
+    }
+  ],
+  "locations": 12,
+  "fetched": []
+}

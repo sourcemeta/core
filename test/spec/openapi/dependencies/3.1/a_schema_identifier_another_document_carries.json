@@ -33,7 +33,15 @@
       "origin": "",
       "pointer": "/components/schemas/One/$ref",
       "destination": "https://www.sourcemeta.com/other.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Two/$ref",
+      "destination": "https://www.sourcemeta.com/pet.json",
+      "kind": "schema",
+      "resolved": false
     }
   ],
   "locations": 10,

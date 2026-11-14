@@ -27,7 +27,8 @@
     {
       "origin": "",
       "pointer": "/$defs/Pet/$ref",
-      "destination": "https://www.sourcemeta.com/remote"
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
     }
   ],
   "fetched": [

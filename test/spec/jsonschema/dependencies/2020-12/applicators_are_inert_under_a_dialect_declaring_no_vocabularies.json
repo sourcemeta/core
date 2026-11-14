@@ -48,12 +48,14 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/$schema",
-      "destination": "https://www.sourcemeta.com/meta"
+      "destination": "https://www.sourcemeta.com/meta",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/meta",
       "pointer": "/$ref",
-      "destination": "https://json-schema.org/draft/2020-12/schema"
+      "destination": "https://json-schema.org/draft/2020-12/schema",
+      "resolved": true
     }
   ],
   "locations": 2,

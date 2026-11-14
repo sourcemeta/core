@@ -23,7 +23,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/items/$dynamicRef",
-      "destination": "https://www.sourcemeta.com/anchored"
+      "destination": "https://www.sourcemeta.com/anchored",
+      "resolved": true
     }
   ],
   "locations": 5,

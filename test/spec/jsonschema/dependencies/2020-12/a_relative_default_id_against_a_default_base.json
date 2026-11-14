@@ -22,7 +22,14 @@
     {
       "origin": "https://www.sourcemeta.com/dir/me.json",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/remote"
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/remote",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/dir/me.json",
+      "resolved": false
     }
   ],
   "locations": 3,

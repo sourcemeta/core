@@ -40,8 +40,11 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
 const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
                                                 "location", "limit"};
 
+// Every key an entry of what analysis reported declares. The last of them says
+// whether analysis resolved the document the entry names, which is the one
+// case where the document itself is handed over
 const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
-                                                     "destination"};
+                                                     "destination", "resolved"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 using Asked = std::vector<sourcemeta::core::JSON::String>;
@@ -169,9 +172,11 @@ auto collect(const sourcemeta::core::JSON &schema,
       [&unlogged, &result](const auto &dependency) -> void {
         // What answers to the destination is handed over alongside it, so a
         // fixture never has to repeat the document it already registered
-        const auto remote{unlogged(dependency.destination)};
-        EXPECT_TRUE(remote.has_value());
-        EXPECT_EQ(dependency.document, remote.value());
+        if (dependency.document != nullptr) {
+          const auto remote{unlogged(dependency.destination)};
+          EXPECT_TRUE(remote.has_value());
+          EXPECT_EQ(*dependency.document, remote.value());
+        }
 
         auto entry{sourcemeta::core::JSON::make_object()};
         entry.assign("origin", sourcemeta::core::JSON{dependency.origin});
@@ -180,6 +185,9 @@ auto collect(const sourcemeta::core::JSON &schema,
                          sourcemeta::core::to_string(dependency.pointer)});
         entry.assign("destination",
                      sourcemeta::core::JSON{dependency.destination});
+        entry.assign("resolved",
+                     sourcemeta::core::JSON{dependency.document != nullptr});
+
         result.push_back(std::move(entry));
       },
       options);
@@ -230,7 +238,8 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
       for (const auto &entry : dependency.as_object()) {
         EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                     KNOWN_DEPENDENCY_KEYS.cend());
-        EXPECT_TRUE(entry.second.is_string());
+        EXPECT_TRUE(entry.first == "resolved" ? entry.second.is_boolean()
+                                              : entry.second.is_string());
       }
     }
   }

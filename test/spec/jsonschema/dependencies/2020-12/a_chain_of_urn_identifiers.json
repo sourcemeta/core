@@ -33,12 +33,20 @@
     {
       "origin": "urn:example:entry",
       "pointer": "/$ref",
-      "destination": "urn:example:middle"
+      "destination": "urn:example:middle",
+      "resolved": true
     },
     {
       "origin": "urn:example:middle",
       "pointer": "/allOf/0/$ref",
-      "destination": "urn:example:leaf"
+      "destination": "urn:example:leaf",
+      "resolved": true
+    },
+    {
+      "origin": "urn:example:middle",
+      "pointer": "/allOf/1/$ref",
+      "destination": "urn:example:entry",
+      "resolved": false
     }
   ],
   "locations": 5,

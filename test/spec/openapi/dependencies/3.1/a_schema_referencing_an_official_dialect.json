@@ -18,7 +18,8 @@
       "origin": "",
       "pointer": "/components/schemas/Meta/$ref",
       "destination": "https://json-schema.org/draft/2020-12/schema",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 5,

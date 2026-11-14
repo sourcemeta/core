@@ -33,13 +33,15 @@
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/near.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/near.json",
       "pointer": "/properties/far/$ref",
       "destination": "https://www.sourcemeta.com/far.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 9,

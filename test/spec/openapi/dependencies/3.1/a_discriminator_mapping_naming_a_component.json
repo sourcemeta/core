@@ -61,7 +61,15 @@
       "origin": "https://www.sourcemeta.com/entry.json",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/other.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/other.json",
+      "pointer": "/paths/~1p/get/responses/200/content/application~1json/schema/discriminator/mapping/dog",
+      "destination": "https://www.sourcemeta.com/entry.json",
+      "kind": "schema",
+      "resolved": false
     }
   ],
   "locations": 18,

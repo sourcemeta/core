@@ -33,7 +33,26 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/t"
+      "destination": "https://www.sourcemeta.com/t",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/t",
+      "resolved": false
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/2/$ref",
+      "destination": "https://www.sourcemeta.com/t",
+      "resolved": false
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/3/$ref",
+      "destination": "https://www.sourcemeta.com/t",
+      "resolved": false
     }
   ],
   "locations": 6,

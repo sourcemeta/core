@@ -44,17 +44,20 @@
     {
       "origin": "",
       "pointer": "/apple/$ref",
-      "destination": "https://www.sourcemeta.com/two"
+      "destination": "https://www.sourcemeta.com/two",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/mango/$ref",
-      "destination": "https://www.sourcemeta.com/three"
+      "destination": "https://www.sourcemeta.com/three",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/zebra/$ref",
-      "destination": "https://www.sourcemeta.com/one"
+      "destination": "https://www.sourcemeta.com/one",
+      "resolved": true
     }
   ],
   "fetched": [

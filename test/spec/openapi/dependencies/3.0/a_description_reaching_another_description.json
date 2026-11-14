@@ -40,7 +40,8 @@
       "origin": "",
       "pointer": "/paths/~1pets/get/responses/200/$ref",
       "destination": "https://www.sourcemeta.com/shared.json",
-      "kind": "response"
+      "kind": "response",
+      "resolved": true
     }
   ],
   "locations": 12,

@@ -67,19 +67,29 @@
       "origin": "",
       "pointer": "/paths/~1one/$ref",
       "destination": "https://www.sourcemeta.com/a.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/mid.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/a.json",
       "pointer": "/paths/~1two/$ref",
       "destination": "https://www.sourcemeta.com/b.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/mid.json",
+      "pointer": "/properties/a/$ref",
+      "destination": "https://www.sourcemeta.com/named.json",
+      "kind": "schema",
+      "resolved": false
     }
   ],
   "fetched": [

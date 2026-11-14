@@ -22,9 +22,11 @@ const std::vector<std::string> KNOWN_KEYS{
     "schemaResolver", "maxLocations", "expected",
     "locations",      "fetched",      "error"};
 
-// Every key an entry of what analysis reported may declare
-const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{"origin", "pointer",
-                                                     "destination", "kind"};
+// Every key an entry of what analysis reported declares. The last of them says
+// whether analysis resolved the document the entry names, which is the one
+// case where the document itself is handed over
+const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{
+    "origin", "pointer", "destination", "kind", "resolved"};
 
 // Every exception that analysis throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
@@ -123,6 +125,8 @@ auto collect(const sourcemeta::core::JSON &test,
         entry.assign("kind",
                      sourcemeta::core::JSON{sourcemeta::core::openapi_kind_name(
                          dependency.expected)});
+        entry.assign("resolved",
+                     sourcemeta::core::JSON{dependency.document != nullptr});
 
         result.push_back(std::move(entry));
       },
@@ -142,10 +146,12 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
   EXPECT_TRUE(test.at("expected").is_array());
   for (const auto &dependency : test.at("expected").as_array()) {
     EXPECT_TRUE(dependency.is_object());
+    EXPECT_EQ(dependency.size(), KNOWN_DEPENDENCY_KEYS.size());
     for (const auto &entry : dependency.as_object()) {
       EXPECT_TRUE(std::ranges::find(KNOWN_DEPENDENCY_KEYS, entry.first) !=
                   KNOWN_DEPENDENCY_KEYS.cend());
-      EXPECT_TRUE(entry.second.is_string());
+      EXPECT_TRUE(entry.first == "resolved" ? entry.second.is_boolean()
+                                            : entry.second.is_string());
     }
   }
 

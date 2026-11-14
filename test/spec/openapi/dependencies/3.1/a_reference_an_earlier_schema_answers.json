@@ -37,13 +37,22 @@
       "origin": "",
       "pointer": "/components/schemas/A/$ref",
       "destination": "https://www.sourcemeta.com/s2.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/components/schemas/B/$ref",
       "destination": "https://www.sourcemeta.com/s1.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/s1.json",
+      "pointer": "/properties/x/$ref",
+      "destination": "https://www.sourcemeta.com/hidden.json",
+      "kind": "schema",
+      "resolved": false
     }
   ],
   "locations": 11,

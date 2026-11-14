@@ -42,7 +42,8 @@
       "origin": "",
       "pointer": "/paths/~1thing/get/responses/200/$ref",
       "destination": "https://www.sourcemeta.com/other.json",
-      "kind": "response"
+      "kind": "response",
+      "resolved": true
     }
   ],
   "locations": 13,

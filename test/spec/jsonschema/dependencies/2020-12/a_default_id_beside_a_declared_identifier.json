@@ -29,7 +29,20 @@
     {
       "origin": "https://www.sourcemeta.com/declared",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/remote"
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/remote",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/given",
+      "resolved": false
+    },
+    {
+      "origin": "https://www.sourcemeta.com/remote",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/declared",
+      "resolved": false
     }
   ],
   "locations": 5,

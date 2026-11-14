@@ -60,27 +60,32 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/A"
+      "destination": "https://www.sourcemeta.com/A",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://www.sourcemeta.com/a"
+      "destination": "https://www.sourcemeta.com/a",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/2/$ref",
-      "destination": "https://www.sourcemeta.com/t?"
+      "destination": "https://www.sourcemeta.com/t?",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/3/$ref",
-      "destination": "https://user@www.sourcemeta.com/t"
+      "destination": "https://user@www.sourcemeta.com/t",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/4/$ref",
-      "destination": "https://www.sourcemeta.com/t"
+      "destination": "https://www.sourcemeta.com/t",
+      "resolved": true
     }
   ],
   "locations": 11,

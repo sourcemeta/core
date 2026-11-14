@@ -30,7 +30,20 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/a~b"
+      "destination": "https://www.sourcemeta.com/a~b",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/1/$ref",
+      "destination": "https://www.sourcemeta.com/a~b",
+      "resolved": false
+    },
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/allOf/2/$ref",
+      "destination": "https://www.sourcemeta.com/a~b",
+      "resolved": false
     }
   ],
   "locations": 5,

@@ -31,7 +31,15 @@
       "origin": "https://www.sourcemeta.com/entry.json",
       "pointer": "/paths/~1one/$ref",
       "destination": "https://www.sourcemeta.com/a.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/a.json",
+      "pointer": "/paths/~1back/$ref",
+      "destination": "https://www.sourcemeta.com/entry.json",
+      "kind": "path-item",
+      "resolved": false
     }
   ],
   "locations": 8,

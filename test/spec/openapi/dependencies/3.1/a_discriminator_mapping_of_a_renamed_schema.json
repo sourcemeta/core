@@ -42,19 +42,22 @@
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/alias.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/canonical.json",
       "pointer": "/discriminator/mapping/cat",
       "destination": "https://www.sourcemeta.com/cat.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/canonical.json",
       "pointer": "/oneOf/0/$ref",
       "destination": "https://www.sourcemeta.com/leaf.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 11,

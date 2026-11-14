@@ -15,7 +15,8 @@
     {
       "origin": "https://www.example.com/",
       "pointer": "/items/$ref",
-      "destination": "https://json-schema.org/draft/2020-12/schema"
+      "destination": "https://json-schema.org/draft/2020-12/schema",
+      "resolved": true
     }
   ],
   "locations": 2,

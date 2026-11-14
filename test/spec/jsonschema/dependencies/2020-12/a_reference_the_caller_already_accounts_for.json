@@ -16,7 +16,14 @@
     "https://www.sourcemeta.com/leaf"
   ],
   "accountedReported": [],
-  "dependencies": [],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/items/$ref",
+      "destination": "https://www.sourcemeta.com/leaf",
+      "resolved": false
+    }
+  ],
   "locations": 2,
   "fetched": []
 }

@@ -32,7 +32,8 @@
     {
       "origin": "",
       "pointer": "/properties/one/$ref",
-      "destination": "https://www.sourcemeta.com/dir/fetched.json"
+      "destination": "https://www.sourcemeta.com/dir/fetched.json",
+      "resolved": true
     }
   ],
   "fetched": [

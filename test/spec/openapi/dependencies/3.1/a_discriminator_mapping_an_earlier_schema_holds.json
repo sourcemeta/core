@@ -51,13 +51,22 @@
       "origin": "",
       "pointer": "/components/schemas/Aaa/$ref",
       "destination": "https://www.sourcemeta.com/z.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "",
       "pointer": "/components/schemas/Bbb/$ref",
       "destination": "https://www.sourcemeta.com/x.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/x.json",
+      "pointer": "/discriminator/mapping/y",
+      "destination": "https://www.sourcemeta.com/y.json",
+      "kind": "schema",
+      "resolved": false
     }
   ],
   "locations": 13,

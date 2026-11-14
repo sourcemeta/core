@@ -33,12 +33,20 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://www.sourcemeta.com/aaa-target"
+      "destination": "https://www.sourcemeta.com/aaa-target",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://www.sourcemeta.com/bbb-other"
+      "destination": "https://www.sourcemeta.com/bbb-other",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/bbb-other",
+      "pointer": "/$ref",
+      "destination": "https://www.sourcemeta.com/aaa-target",
+      "resolved": false
     }
   ],
   "locations": 5,

@@ -27,7 +27,8 @@
     {
       "origin": "urn:entry",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://www.sourcemeta.com/remote"
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
     }
   ],
   "locations": 4,

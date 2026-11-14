@@ -40,7 +40,8 @@
     {
       "origin": "",
       "pointer": "/components/schemas/Outer/$defs/Inner/$ref",
-      "destination": "https://www.sourcemeta.com/leaf"
+      "destination": "https://www.sourcemeta.com/leaf",
+      "resolved": true
     }
   ],
   "locations": 2,

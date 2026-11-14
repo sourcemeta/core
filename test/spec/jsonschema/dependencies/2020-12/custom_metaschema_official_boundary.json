@@ -38,22 +38,26 @@
     {
       "origin": "https://www.example.com/",
       "pointer": "/$schema",
-      "destination": "https://www.sourcemeta.com/custom-metaschema"
+      "destination": "https://www.sourcemeta.com/custom-metaschema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/custom-metaschema",
       "pointer": "/allOf/0/$ref",
-      "destination": "https://json-schema.org/draft/2020-12/meta/core"
+      "destination": "https://json-schema.org/draft/2020-12/meta/core",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/custom-metaschema",
       "pointer": "/allOf/1/$ref",
-      "destination": "https://json-schema.org/draft/2020-12/meta/applicator"
+      "destination": "https://json-schema.org/draft/2020-12/meta/applicator",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/custom-metaschema",
       "pointer": "/allOf/2/$ref",
-      "destination": "https://json-schema.org/draft/2020-12/meta/validation"
+      "destination": "https://json-schema.org/draft/2020-12/meta/validation",
+      "resolved": true
     }
   ],
   "locations": 5,

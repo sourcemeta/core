@@ -28,7 +28,8 @@
     {
       "origin": "https://www.sourcemeta.com/entry",
       "pointer": "/items/$ref",
-      "destination": "https://www.sourcemeta.com/carrier"
+      "destination": "https://www.sourcemeta.com/carrier",
+      "resolved": true
     }
   ],
   "locations": 5,

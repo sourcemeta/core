@@ -34,13 +34,15 @@
       "origin": "",
       "pointer": "/components/schemas/Pet/$ref",
       "destination": "https://www.sourcemeta.com/alias.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/canonical.json",
       "pointer": "/properties/a/$ref",
       "destination": "https://www.sourcemeta.com/leaf.json",
-      "kind": "schema"
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "locations": 10,

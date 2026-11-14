@@ -37,7 +37,15 @@
       "origin": "",
       "pointer": "/paths/~1two/$ref",
       "destination": "https://www.sourcemeta.com/held.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
+    },
+    {
+      "origin": "",
+      "pointer": "/paths/~1one/$ref",
+      "destination": "https://www.sourcemeta.com/named.json",
+      "kind": "path-item",
+      "resolved": false
     }
   ],
   "locations": 10,

@@ -44,13 +44,15 @@
       "origin": "https://www.sourcemeta.com/entry.json",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/dir/remote.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     },
     {
       "origin": "https://www.sourcemeta.com/other/named.json",
       "pointer": "/paths/~1p/$ref",
       "destination": "https://www.sourcemeta.com/far.json",
-      "kind": "path-item"
+      "kind": "path-item",
+      "resolved": true
     }
   ],
   "locations": 12,

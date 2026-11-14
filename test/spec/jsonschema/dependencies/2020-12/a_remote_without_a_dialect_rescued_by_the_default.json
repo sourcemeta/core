@@ -17,7 +17,8 @@
     {
       "origin": "",
       "pointer": "/$ref",
-      "destination": "https://www.sourcemeta.com/bare"
+      "destination": "https://www.sourcemeta.com/bare",
+      "resolved": true
     }
   ],
   "locations": 2,
