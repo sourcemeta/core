@@ -274,11 +274,15 @@ auto main(int argc, char *argv[]) -> int {
     return ignored_child(program) ? 0 : 1;
   }
 
-#if defined(__linux__)
   if (scenario == "telemetry") {
+#if defined(__linux__)
     return telemetry() ? 0 : 1;
-  }
+#else
+    // Descriptor exhaustion only prevents telemetry reads on procfs hosts.
+    // Keep the common clitest portable without asserting Linux behavior here.
+    return 0;
 #endif
+  }
 
   return 2;
 }

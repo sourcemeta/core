@@ -30,14 +30,6 @@ else()
     --binary "$<TARGET_FILE:sourcemeta_core_process_unit_resources_main>"
     --environment "HELPER=$<TARGET_FILE:sourcemeta_core_process_unit_capture_main>")
   set_tests_properties(core.process.resources PROPERTIES TIMEOUT 180)
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    add_test(NAME core.process.resources_linux COMMAND
-      "$<TARGET_FILE:sourcemeta_core_clitest>"
-      "${CMAKE_CURRENT_SOURCE_DIR}/process_resources_linux.clitest"
-      --binary "$<TARGET_FILE:sourcemeta_core_process_unit_resources_main>"
-      --environment "HELPER=$<TARGET_FILE:sourcemeta_core_process_unit_capture_main>")
-    set_tests_properties(core.process.resources_linux PROPERTIES TIMEOUT 30)
-  endif()
 endif()
 
 target_link_libraries(sourcemeta_core_process_unit PRIVATE sourcemeta::core::process)

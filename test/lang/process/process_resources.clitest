@@ -35,3 +35,7 @@ COMPARE result.txt AGAINST empty.txt
 RUN pending-signal "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
 COMPARE result.txt AGAINST empty.txt
 
+// Procfs telemetry is checked on Linux; the helper skips it on other POSIX hosts.
+RUN telemetry "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
