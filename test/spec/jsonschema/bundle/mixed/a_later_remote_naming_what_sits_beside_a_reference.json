@@ -1,0 +1,53 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "a": {
+        "$ref": "https://example.com/remote"
+      },
+      "b": {
+        "$ref": "https://example.com/consumer"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$ref": "https://example.com/second",
+      "x-definitions": {
+        "https://example.com/shared": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/shared",
+          "type": "boolean"
+        }
+      }
+    },
+    "https://example.com/second": {
+      "type": "string"
+    },
+    "https://example.com/consumer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/consumer",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/shared"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://example.com/shared"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://example.com/shared"
+    }
+  }
+}

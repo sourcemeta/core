@@ -777,12 +777,16 @@ auto carried_under(const JSON &document, const std::string_view identifier,
                    Pointer &where) -> const JSON * {
   if (document.is_object()) {
     const auto *declared{document.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
-    if (declared == nullptr) {
+    if (declared == nullptr || !declared->is_string()) {
       declared = document.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
     }
 
+    // The name is what the spelling means rather than how it is spelled, which
+    // is what section 8.2.1 of the JSON Schema specification asks of an
+    // identifier. Two documents that hold one resource need not have written
+    // its name the same way
     if (declared != nullptr && declared->is_string() &&
-        declared->to_string() == identifier) {
+        canonical_uri(declared->to_string()) == identifier) {
       return &document;
     }
 
@@ -813,7 +817,7 @@ auto carried_under(const JSON &document, const std::string_view identifier,
 auto what_a_name_reaches(const BundleState &state,
                          const std::string_view identifier) -> NameReaches {
   for (const auto &entry : state.pending) {
-    if (entry.identifier == identifier) {
+    if (canonical_uri(entry.identifier) == identifier) {
       return {.schema = &entry.document};
     }
   }
@@ -923,6 +927,14 @@ auto elevate_embedded_resources(
       walker,
       vocabularies_with_embedded(remote, resolver, remote_dialect,
                                  declared_dialect(remote, default_dialect)))};
+  // Where a reference leaves nothing beside it read, nothing the schema holds
+  // is a schema: what sits at the place the dialect reserves is payload that
+  // looks like one. Reading it as a resource would move or refuse something
+  // that answers to no name at all
+  if (ignores_what_sits_beside_a_reference(remote, remote_dialect)) {
+    return;
+  }
+
   const JSON::String keyword_string{keyword};
   // Which name the dialect reserves is only known once the dialect is, so the
   // hash cannot be a constant. Taking it once is what keeps the lookups below
@@ -996,7 +1008,8 @@ auto elevate_embedded_resources(
     if (declared_id->to_string() != key) {
       const JSON::String carried{declared_id->to_string()};
       if (bundled.contains(canonical_uri(carried))) {
-        const auto elsewhere{what_a_name_reaches(state, carried)};
+        const auto elsewhere{
+            what_a_name_reaches(state, canonical_uri(carried))};
         if (elsewhere.schema != nullptr &&
             says_the_same_as_it_arrived(elsewhere, value, container,
                                         remote_dialect_uri)) {
@@ -1108,7 +1121,8 @@ auto elevate_embedded_resources(
       // in what came out. Holding the copy against that one is what tells a
       // second copy of one resource from two resources claiming one name
       if (!agrees) {
-        const auto elsewhere{what_a_name_reaches(state, identifier_string)};
+        const auto elsewhere{
+            what_a_name_reaches(state, canonical_uri(identifier_string))};
         if (elsewhere.schema != nullptr) {
           auto candidate{value};
           if (!defines_dialect) {

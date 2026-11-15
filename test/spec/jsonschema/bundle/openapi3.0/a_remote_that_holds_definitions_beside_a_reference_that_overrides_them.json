@@ -1,0 +1,86 @@
+{
+  "schema": {
+    "$ref": "https://example.com/remote"
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$ref": "https://example.com/second",
+      "x-definitions": {
+        "https://example.com/ignored": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/ignored"
+        }
+      }
+    },
+    "https://example.com/second": {
+      "type": "string"
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "allOf": [
+        {
+          "$ref": "#/x-definitions/https:~1~1example.com~1remote"
+        }
+      ],
+      "x-definitions": {
+        "https://example.com/remote": {
+          "$ref": "#/x-definitions/https:~1~1example.com~1second",
+          "x-definitions": {
+            "https://example.com/ignored": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/ignored"
+            }
+          }
+        },
+        "https://example.com/second": {
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "allOf": [
+        {
+          "$ref": "#/x-definitions/https:~1~1example.com~1remote"
+        }
+      ],
+      "x-definitions": {
+        "https://example.com/remote": {
+          "$ref": "#/x-definitions/https:~1~1example.com~1second",
+          "x-definitions": {
+            "https://example.com/ignored": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/ignored"
+            }
+          }
+        },
+        "https://example.com/second": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/second",
+        "at": "/x-definitions/https:~1~1example.com~1second"
+      },
+      {
+        "from": "https://example.com/remote",
+        "at": "/x-definitions/https:~1~1example.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/second",
+        "at": "/x-definitions/https:~1~1example.com~1second"
+      },
+      {
+        "from": "https://example.com/remote",
+        "at": "/x-definitions/https:~1~1example.com~1remote"
+      }
+    ]
+  }
+}
