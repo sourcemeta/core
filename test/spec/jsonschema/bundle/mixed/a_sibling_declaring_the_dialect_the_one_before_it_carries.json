@@ -1,0 +1,62 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      {
+        "$id": "https://example.com/pins",
+        "$schema": "https://example.com/meta",
+        "$defs": {
+          "https://example.com/meta": {
+            "$id": "https://example.com/meta",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$vocabulary": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true
+            },
+            "type": "object"
+          }
+        },
+        "properties": {
+          "one": {
+            "$ref": "https://www.sourcemeta.com/one"
+          }
+        }
+      },
+      {
+        "$id": "https://example.com/reads",
+        "$schema": "https://example.com/meta",
+        "properties": {
+          "two": {
+            "$ref": "https://www.sourcemeta.com/two"
+          }
+        }
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/one": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/one",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/two": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/two",
+      "type": "integer"
+    }
+  },
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    }
+  }
+}

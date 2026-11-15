@@ -1,0 +1,59 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "x": {
+        "$ref": "https://www.sourcemeta.com/refusing"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/core-only": {
+      "$id": "https://example.com/core-only",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+      }
+    },
+    "https://www.sourcemeta.com/refusing": false
+  },
+  "defaultDialect": "https://example.com/core-only",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1refusing"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/refusing": false
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1refusing"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/refusing": false
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/refusing",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1refusing"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/refusing",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1refusing"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": {
+    "schema": {
+      "$ref": "https://example.com/pet"
+    }
+  },
+  "resolver": {
+    "https://example.com/pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/pet",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "container": "/schema/x-definitions",
+  "paths": [
+    "/schema"
+  ],
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container beside a reference that overrides it",
+      "location": "/schema/x-definitions"
+    },
+    "references": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container beside a reference that overrides it",
+      "location": "/schema/x-definitions"
+    }
+  }
+}

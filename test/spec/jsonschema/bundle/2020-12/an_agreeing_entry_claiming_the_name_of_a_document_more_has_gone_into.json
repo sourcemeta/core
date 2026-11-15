@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "a": { "$ref": "https://example.com/extra" },
+      "z": { "$ref": "https://example.com/remote" }
+    }
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/remote",
+      "$defs": {
+        "https://example.com/host": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/host",
+          "properties": {
+            "a": { "$ref": "https://example.com/extra" },
+            "z": { "$ref": "https://example.com/remote" }
+          }
+        }
+      }
+    },
+    "https://example.com/extra": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/extra",
+      "type": "string"
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "a": { "$ref": "https://example.com/extra" },
+        "z": { "$ref": "https://example.com/remote" }
+      },
+      "$defs": {
+        "https://example.com/extra": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/extra",
+          "type": "string"
+        },
+        "https://example.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/remote"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "a": { "$ref": "https://example.com/extra" },
+        "z": { "$ref": "https://example.com/remote" }
+      },
+      "$defs": {
+        "https://example.com/extra": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/extra",
+          "type": "string"
+        },
+        "https://example.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/remote"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      { "from": "https://example.com/extra", "at": "/$defs/https:~1~1example.com~1extra" },
+      { "from": "https://example.com/remote", "at": "/$defs/https:~1~1example.com~1remote" }
+    ],
+    "references": [
+      { "from": "https://example.com/extra", "at": "/$defs/https:~1~1example.com~1extra" },
+      { "from": "https://example.com/remote", "at": "/$defs/https:~1~1example.com~1remote" }
+    ]
+  }
+}

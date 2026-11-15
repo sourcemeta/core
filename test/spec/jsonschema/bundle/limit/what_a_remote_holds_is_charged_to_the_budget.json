@@ -1,0 +1,221 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/wide"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/wide": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/wide",
+      "properties": {
+        "p0": {
+          "type": "string"
+        },
+        "p1": {
+          "type": "string"
+        },
+        "p2": {
+          "type": "string"
+        },
+        "p3": {
+          "type": "string"
+        },
+        "p4": {
+          "type": "string"
+        },
+        "p5": {
+          "type": "string"
+        },
+        "p6": {
+          "type": "string"
+        },
+        "p7": {
+          "type": "string"
+        },
+        "p8": {
+          "type": "string"
+        },
+        "p9": {
+          "type": "string"
+        },
+        "p10": {
+          "type": "string"
+        },
+        "p11": {
+          "type": "string"
+        },
+        "p12": {
+          "type": "string"
+        },
+        "p13": {
+          "type": "string"
+        },
+        "p14": {
+          "type": "string"
+        },
+        "p15": {
+          "type": "string"
+        },
+        "p16": {
+          "type": "string"
+        },
+        "p17": {
+          "type": "string"
+        },
+        "p18": {
+          "type": "string"
+        },
+        "p19": {
+          "type": "string"
+        },
+        "p20": {
+          "type": "string"
+        },
+        "p21": {
+          "type": "string"
+        },
+        "p22": {
+          "type": "string"
+        },
+        "p23": {
+          "type": "string"
+        },
+        "p24": {
+          "type": "string"
+        },
+        "p25": {
+          "type": "string"
+        },
+        "p26": {
+          "type": "string"
+        },
+        "p27": {
+          "type": "string"
+        },
+        "p28": {
+          "type": "string"
+        },
+        "p29": {
+          "type": "string"
+        },
+        "p30": {
+          "type": "string"
+        },
+        "p31": {
+          "type": "string"
+        },
+        "p32": {
+          "type": "string"
+        },
+        "p33": {
+          "type": "string"
+        },
+        "p34": {
+          "type": "string"
+        },
+        "p35": {
+          "type": "string"
+        },
+        "p36": {
+          "type": "string"
+        },
+        "p37": {
+          "type": "string"
+        },
+        "p38": {
+          "type": "string"
+        },
+        "p39": {
+          "type": "string"
+        },
+        "p40": {
+          "type": "string"
+        },
+        "p41": {
+          "type": "string"
+        },
+        "p42": {
+          "type": "string"
+        },
+        "p43": {
+          "type": "string"
+        },
+        "p44": {
+          "type": "string"
+        },
+        "p45": {
+          "type": "string"
+        },
+        "p46": {
+          "type": "string"
+        },
+        "p47": {
+          "type": "string"
+        },
+        "p48": {
+          "type": "string"
+        },
+        "p49": {
+          "type": "string"
+        },
+        "p50": {
+          "type": "string"
+        },
+        "p51": {
+          "type": "string"
+        },
+        "p52": {
+          "type": "string"
+        },
+        "p53": {
+          "type": "string"
+        },
+        "p54": {
+          "type": "string"
+        },
+        "p55": {
+          "type": "string"
+        },
+        "p56": {
+          "type": "string"
+        },
+        "p57": {
+          "type": "string"
+        },
+        "p58": {
+          "type": "string"
+        },
+        "p59": {
+          "type": "string"
+        },
+        "p60": {
+          "type": "string"
+        },
+        "p61": {
+          "type": "string"
+        },
+        "p62": {
+          "type": "string"
+        },
+        "p63": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "maxLocations": 40,
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaFrameLimitError",
+      "message": "The schema exceeds the maximum number of frame locations",
+      "limit": 40
+    },
+    "references": {
+      "type": "SchemaFrameLimitError",
+      "message": "The schema exceeds the maximum number of frame locations",
+      "limit": 40
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

@@ -1,0 +1,80 @@
+{
+  "schema": {
+    "storage": {},
+    "schema": {
+      "properties": {
+        "yes": {
+          "$ref": "https://www.sourcemeta.com/yes"
+        },
+        "no": {
+          "$ref": "https://www.sourcemeta.com/no"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/yes": true,
+    "https://www.sourcemeta.com/no": false
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "paths": [
+    "/schema"
+  ],
+  "container": "/storage",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "storage": {
+        "https://www.sourcemeta.com/no": false,
+        "https://www.sourcemeta.com/yes": true
+      },
+      "schema": {
+        "properties": {
+          "yes": {
+            "$ref": "#/storage/https:~1~1www.sourcemeta.com~1yes"
+          },
+          "no": {
+            "$ref": "#/storage/https:~1~1www.sourcemeta.com~1no"
+          }
+        }
+      }
+    },
+    "references": {
+      "storage": {
+        "https://www.sourcemeta.com/no": false,
+        "https://www.sourcemeta.com/yes": true
+      },
+      "schema": {
+        "properties": {
+          "yes": {
+            "$ref": "#/storage/https:~1~1www.sourcemeta.com~1yes"
+          },
+          "no": {
+            "$ref": "#/storage/https:~1~1www.sourcemeta.com~1no"
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/no",
+        "at": "/storage/https:~1~1www.sourcemeta.com~1no"
+      },
+      {
+        "from": "https://www.sourcemeta.com/yes",
+        "at": "/storage/https:~1~1www.sourcemeta.com~1yes"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/no",
+        "at": "/storage/https:~1~1www.sourcemeta.com~1no"
+      },
+      {
+        "from": "https://www.sourcemeta.com/yes",
+        "at": "/storage/https:~1~1www.sourcemeta.com~1yes"
+      }
+    ]
+  }
+}

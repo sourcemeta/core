@@ -1,0 +1,102 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "urn:example:pet"
+      },
+      "sample": {
+        "default": {
+          "$ref": "urn:example:pet"
+        },
+        "examples": [
+          {
+            "$ref": "urn:example:decoy"
+          }
+        ]
+      }
+    },
+    "$defs": {}
+  },
+  "resolver": {
+    "urn:example:pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:example:pet",
+      "type": "string"
+    },
+    "urn:example:decoy": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:example:decoy",
+      "type": "integer"
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "urn:example:pet"
+        },
+        "sample": {
+          "default": {
+            "$ref": "urn:example:pet"
+          },
+          "examples": [
+            {
+              "$ref": "urn:example:decoy"
+            }
+          ]
+        }
+      },
+      "$defs": {
+        "urn:example:pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "urn:example:pet",
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "urn:example:pet"
+        },
+        "sample": {
+          "default": {
+            "$ref": "urn:example:pet"
+          },
+          "examples": [
+            {
+              "$ref": "urn:example:decoy"
+            }
+          ]
+        }
+      },
+      "$defs": {
+        "urn:example:pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "urn:example:pet",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "urn:example:pet",
+        "at": "/$defs/urn:example:pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "urn:example:pet",
+        "at": "/$defs/urn:example:pet"
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "allOf": [
+      {
+        "$ref": "https://example.com/remote"
+      },
+      {
+        "$ref": "https://example.com/remote#missing"
+      }
+    ]
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "resolver": {
+    "https://example.com/remote": {
+      "$id": "https://example.com/remote",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object"
+    }
+  },
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/remote#missing",
+      "location": "/allOf/1/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/remote#missing",
+      "location": "/allOf/1/$ref"
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "$ref": "https://example.com/a"
+      },
+      "b": {
+        "$ref": "https://example.com/b"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/a": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/a",
+      "$defs": {
+        "alias": {
+          "$id": "https://example.com/child",
+          "$defs": {
+            "spot": {
+              "$anchor": "spot",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/b": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/b",
+      "properties": {
+        "good": {
+          "$ref": "https://example.com/child#spot"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "$ref": "https://example.com/a"
+        },
+        "b": {
+          "$ref": "https://example.com/b"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/a": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/a",
+          "$defs": {
+            "alias": {
+              "$id": "https://example.com/child",
+              "$defs": {
+                "spot": {
+                  "$anchor": "spot",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "https://example.com/b": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/b",
+          "properties": {
+            "good": {
+              "$ref": "https://example.com/child#spot"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "$ref": "https://example.com/a"
+        },
+        "b": {
+          "$ref": "https://example.com/b"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/a": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/a",
+          "$defs": {
+            "alias": {
+              "$id": "https://example.com/child",
+              "$defs": {
+                "spot": {
+                  "$anchor": "spot",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "https://example.com/b": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/b",
+          "properties": {
+            "good": {
+              "$ref": "https://example.com/child#spot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/a",
+        "at": "/x-definitions/https:~1~1example.com~1a"
+      },
+      {
+        "from": "https://example.com/b",
+        "at": "/x-definitions/https:~1~1example.com~1b"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/a",
+        "at": "/x-definitions/https:~1~1example.com~1a"
+      },
+      {
+        "from": "https://example.com/b",
+        "at": "/x-definitions/https:~1~1example.com~1b"
+      }
+    ]
+  }
+}

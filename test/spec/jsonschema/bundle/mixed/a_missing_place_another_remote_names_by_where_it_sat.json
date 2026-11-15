@@ -1,0 +1,57 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "$ref": "https://example.com/a"
+      },
+      "b": {
+        "$ref": "https://example.com/b"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/a": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/a",
+      "type": "object",
+      "$defs": {
+        "https://example.com/child": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/child",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "https://example.com/b": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/b",
+      "properties": {
+        "borrowed": {
+          "$ref": "https://example.com/a#/$defs/https:~1~1example.com~1child/properties/nothing"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/a#/$defs/https:~1~1example.com~1child/properties/nothing",
+      "location": "/properties/borrowed/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/a#/$defs/https:~1~1example.com~1child/properties/nothing",
+      "location": "/properties/borrowed/$ref"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

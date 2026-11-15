@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "a_synth": {
+        "$ref": "https://example.com/anon#/$id"
+      },
+      "b_plain": {
+        "$ref": "https://example.com/anon"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/anon": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object"
+    }
+  },
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/anon#/$id",
+      "location": "/properties/a_synth/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/anon#/$id",
+      "location": "/properties/a_synth/$ref"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

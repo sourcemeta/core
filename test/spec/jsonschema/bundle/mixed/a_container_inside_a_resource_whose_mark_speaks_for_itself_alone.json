@@ -1,0 +1,86 @@
+{
+  "schema": {
+    "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "properties": {
+      "res": {
+        "$id": "https://example.com/res",
+        "x-sourcemeta-dialect-override-subschema": "http://json-schema.org/draft-07/schema#",
+        "$schema": "http://json-schema.org/draft-06/schema#",
+        "properties": {
+          "pet": {
+            "$ref": "https://www.sourcemeta.com/pet"
+          }
+        },
+        "definitions": {}
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "string",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "container": "/properties/res/definitions",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+      "properties": {
+        "res": {
+          "$id": "https://example.com/res",
+          "x-sourcemeta-dialect-override-subschema": "http://json-schema.org/draft-07/schema#",
+          "$schema": "http://json-schema.org/draft-06/schema#",
+          "properties": {
+            "pet": {
+              "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1pet"
+            }
+          },
+          "definitions": {
+            "https://www.sourcemeta.com/pet": {
+              "type": "string",
+              "nullable": true,
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+      "properties": {
+        "res": {
+          "$id": "https://example.com/res",
+          "x-sourcemeta-dialect-override-subschema": "http://json-schema.org/draft-07/schema#",
+          "$schema": "http://json-schema.org/draft-06/schema#",
+          "properties": {
+            "pet": {
+              "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1pet"
+            }
+          },
+          "definitions": {
+            "https://www.sourcemeta.com/pet": {
+              "type": "string",
+              "nullable": true,
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/properties/res/definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/properties/res/definitions/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

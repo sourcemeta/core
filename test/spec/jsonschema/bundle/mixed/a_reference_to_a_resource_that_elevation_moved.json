@@ -1,0 +1,95 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/remote#/x-definitions/https:~1~1example.com~1inner"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "type": "object",
+      "x-definitions": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "https://example.com/inner"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/remote": {
+          "type": "object"
+        }
+      }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "pet": {
+          "$ref": "https://example.com/inner"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/remote": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/inner",
+        "at": "/x-definitions/https:~1~1example.com~1inner"
+      },
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/inner",
+        "at": "/x-definitions/https:~1~1example.com~1inner"
+      },
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ]
+  }
+}

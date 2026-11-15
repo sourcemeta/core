@@ -1,0 +1,35 @@
+{
+  "schema": {
+    "$ref": "https://www.sourcemeta.com/missing",
+    "storage": {},
+    "left": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://www.sourcemeta.com/also-missing"
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "container": "/storage",
+  "paths": [],
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$ref": "https://www.sourcemeta.com/missing",
+      "storage": {},
+      "left": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": "https://www.sourcemeta.com/also-missing"
+      }
+    },
+    "references": {
+      "$ref": "https://www.sourcemeta.com/missing",
+      "storage": {},
+      "left": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": "https://www.sourcemeta.com/also-missing"
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [],
+    "references": []
+  }
+}

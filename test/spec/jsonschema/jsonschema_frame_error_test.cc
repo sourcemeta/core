@@ -2378,6 +2378,48 @@ TEST(2020_12_embedded_custom_metaschema_nested_in_sibling) {
   }
 }
 
+// A meta-schema is looked for in the schema that reads under it and nowhere
+// else, so one carried by a resource enclosing that schema is not found. This
+// is a deliberate narrowing rather than a gap: the specification gives
+// `$schema` no resolution procedure at all and leaves an unrecognised
+// meta-schema implementation-defined, per JSON Schema 2020-12 Core section
+// 8.1.2.1, so where the search reaches is this implementation's own choice.
+// Reaching outwards would also find what the sibling case above refuses
+TEST(2020_12_embedded_custom_metaschema_nested_in_enclosing_resource) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$defs": {
+      "outer": {
+        "$id": "https://example.com/outer",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {
+          "https://example.com/meta": {
+            "$id": "https://example.com/meta",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object"
+          },
+          "inner": {
+            "$id": "https://example.com/inner",
+            "$schema": "https://example.com/meta"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+  } catch (...) {
+    FAIL();
+  }
+}
+
 TEST(2020_12_embedded_custom_metaschema_boolean) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://example.com/meta",

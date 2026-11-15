@@ -1,0 +1,76 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "x": {
+        "$ref": "https://www.sourcemeta.com/permissive"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/core-only": {
+      "$id": "https://example.com/core-only",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+      }
+    },
+    "https://www.sourcemeta.com/permissive": true
+  },
+  "defaultDialect": "https://example.com/core-only",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "x": {
+          "$ref": "https://www.sourcemeta.com/permissive"
+        }
+      },
+      "$defs": {
+        "https://example.com/core-only": {
+          "$id": "https://example.com/core-only",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true
+          }
+        },
+        "https://www.sourcemeta.com/permissive": {
+          "$id": "https://www.sourcemeta.com/permissive",
+          "$schema": "https://example.com/core-only"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "x": {
+          "$ref": "https://www.sourcemeta.com/permissive"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/permissive": {
+          "$id": "https://www.sourcemeta.com/permissive",
+          "$schema": "https://example.com/core-only"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/permissive",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1permissive"
+      },
+      {
+        "from": "https://example.com/core-only",
+        "at": "/$defs/https:~1~1example.com~1core-only"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/permissive",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1permissive"
+      }
+    ]
+  }
+}

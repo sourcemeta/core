@@ -1,0 +1,91 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/wide"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/wide": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/wide",
+      "properties": {
+        "p0": {
+          "type": "string"
+        },
+        "p1": {
+          "type": "string"
+        },
+        "p2": {
+          "type": "string"
+        },
+        "p3": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "maxLocations": 40,
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://www.sourcemeta.com/wide",
+      "$defs": {
+        "https://www.sourcemeta.com/wide": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/wide",
+          "properties": {
+            "p0": {
+              "type": "string"
+            },
+            "p1": {
+              "type": "string"
+            },
+            "p2": {
+              "type": "string"
+            },
+            "p3": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://www.sourcemeta.com/wide",
+      "$defs": {
+        "https://www.sourcemeta.com/wide": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/wide",
+          "properties": {
+            "p0": {
+              "type": "string"
+            },
+            "p1": {
+              "type": "string"
+            },
+            "p2": {
+              "type": "string"
+            },
+            "p3": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/wide",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1wide"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/wide",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1wide"
+      }
+    ]
+  }
+}
