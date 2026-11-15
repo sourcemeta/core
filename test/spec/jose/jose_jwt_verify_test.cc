@@ -365,3 +365,314 @@ TEST(key_identifier_with_a_valid_signature) {
       std::nullopt)};
   EXPECT_FALSE(error.has_value());
 }
+
+TEST(signed_hs256_accepts_valid_claims) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+}
+
+TEST(signed_hs256_rejects_subject_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("sub", sourcemeta::core::parse_json(R"JSON("other")JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Subject);
+}
+
+TEST(signed_hs256_rejects_expiration_boundary_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("exp", sourcemeta::core::parse_json(R"JSON(1000)JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Expiration);
+}
+
+TEST(signed_hs256_rejects_future_not_before_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("nbf", sourcemeta::core::parse_json(R"JSON(1001)JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::NotBefore);
+}
+
+TEST(signed_hs256_rejects_null_not_before_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("nbf", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::NotBefore);
+}
+
+TEST(signed_hs256_rejects_future_issued_at_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("iat", sourcemeta::core::parse_json(R"JSON(1001)JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::IssuedAt);
+}
+
+TEST(signed_hs256_rejects_null_issued_at_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("iat", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::IssuedAt);
+}
+
+TEST(signed_hs256_rejects_excessive_lifetime_after_valid_signature) {
+  const std::string secret(32, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  auto key_document{sourcemeta::core::parse_json(
+      R"({"keys":[{"kty":"oct","kid":"matrix"}]})")};
+  key_document.at("keys").at(0).assign(
+      "k", sourcemeta::core::JSON{sourcemeta::core::base64url_encode(secret)});
+  const auto keys{sourcemeta::core::JWKS::from(key_document)};
+  EXPECT_TRUE(keys.has_value());
+  const auto header{sourcemeta::core::parse_json(
+      R"({"alg":"HS256","kid":"matrix","typ":"at+jwt"})")};
+  const auto valid{sourcemeta::core::parse_json(
+      R"({"iss":"issuer","sub":"user","aud":"api","iat":900,"exp":1100})")};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto now{std::chrono::system_clock::from_time_t(1000)};
+  const auto control{sourcemeta::core::jwt_sign(header, valid, key)};
+  EXPECT_TRUE(control.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwt_verify(
+                   sourcemeta::core::JWT{control.value()}, keys.value(),
+                   allowed, "issuer", "api", now, {}, "user", "at+jwt",
+                   std::chrono::seconds{200})
+                   .has_value());
+
+  auto payload{valid};
+  payload.assign("exp", sourcemeta::core::parse_json(R"JSON(1101)JSON"));
+  const auto encoded{sourcemeta::core::jwt_sign(header, payload, key)};
+  EXPECT_TRUE(encoded.has_value());
+  const sourcemeta::core::JWT token{encoded.value()};
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(
+      token, sourcemeta::core::JWK::from_octets(secret)));
+  const auto error{sourcemeta::core::jwt_verify(
+      token, keys.value(), allowed, "issuer", "api", now, {}, "user", "at+jwt",
+      std::chrono::seconds{200})};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Lifetime);
+}
+TEST(jwt_rejects_an_unrecognized_algorithm_before_key_selection) {
+  const auto token{sourcemeta::core::JWT::from(
+      sourcemeta::core::base64url_encode(R"({"alg":"none"})") + "." +
+      sourcemeta::core::base64url_encode(
+          R"({"iss":"issuer","aud":"api","exp":1100})") +
+      ".")};
+  EXPECT_TRUE(token.has_value());
+  const auto keys{sourcemeta::core::JWKS::from(
+      sourcemeta::core::parse_json(R"({"keys":[]})"))};
+  EXPECT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "issuer", "api",
+      std::chrono::system_clock::from_time_t(1000), {}, std::nullopt,
+      std::nullopt)};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(),
+            sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
+}

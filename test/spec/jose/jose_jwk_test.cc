@@ -2,6 +2,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include "jose_jwe_test_keys.h"
 #include "jose_test_keys.h"
 
 #include <optional> // std::optional
@@ -593,5 +594,201 @@ TEST(octet_key_pair_with_a_curve_that_is_not_a_string) {
 TEST(octet_key_pair_with_a_public_key_that_is_not_a_string) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "kty": "OKP", "crv": "Ed25519", "x": 42 })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_null_rsa_exponent) {
+  auto document{sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("e", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_boolean_rsa_exponent) {
+  auto document{sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("e", sourcemeta::core::parse_json(R"JSON(false)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_number_rsa_exponent) {
+  auto document{sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("e", sourcemeta::core::parse_json(R"JSON(42)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_array_rsa_exponent) {
+  auto document{sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("e", sourcemeta::core::parse_json(R"JSON([])JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_object_rsa_exponent) {
+  auto document{sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("e", sourcemeta::core::parse_json(R"JSON({})JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_null_ec_crv) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("crv", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_boolean_ec_crv) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("crv", sourcemeta::core::parse_json(R"JSON(false)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_number_ec_crv) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("crv", sourcemeta::core::parse_json(R"JSON(42)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_array_ec_crv) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("crv", sourcemeta::core::parse_json(R"JSON([])JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_object_ec_crv) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("crv", sourcemeta::core::parse_json(R"JSON({})JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_null_ec_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_boolean_ec_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::parse_json(R"JSON(false)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_number_ec_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::parse_json(R"JSON(42)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_array_ec_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::parse_json(R"JSON([])JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_object_ec_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::parse_json(R"JSON({})JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_null_ec_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_boolean_ec_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::parse_json(R"JSON(false)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_number_ec_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::parse_json(R"JSON(42)JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_array_ec_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::parse_json(R"JSON([])JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_object_ec_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::parse_json(R"JSON({})JSON"));
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_invalid_alphabet_ec_coordinate_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::JSON{"+"});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_invalid_length_ec_coordinate_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::JSON{"A"});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_empty_ec_coordinate_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::JSON{""});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_short_ec_coordinate_x) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("x", sourcemeta::core::JSON{"AA"});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_invalid_alphabet_ec_coordinate_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::JSON{"+"});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_invalid_length_ec_coordinate_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::JSON{"A"});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_empty_ec_coordinate_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::JSON{""});
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(rejects_short_ec_coordinate_y) {
+  auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
+  EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
+  document.assign("y", sourcemeta::core::JSON{"AA"});
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }

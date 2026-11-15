@@ -9,7 +9,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jose
           jose_jws_sign_test.cc jose_jwt_sign_test.cc jose_thumbprint_test.cc
           jose_jwe_algorithm_test.cc jose_jwe_test.cc
           jose_jwe_encrypt_test.cc jose_jwe_decrypt_test.cc
-          jose_compact_segments_test.cc jose_rejection_matrix_test.cc)
+          jose_compact_segments_test.cc)
 
 target_link_libraries(sourcemeta_core_jose_unit
   PRIVATE sourcemeta::core::jose)

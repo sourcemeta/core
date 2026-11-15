@@ -4,6 +4,9 @@
 
 #include "jose_jwe_test_keys.h"
 
+#include <sourcemeta/core/crypto.h>
+#include <sstream> // std::ostringstream
+
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -25,6 +28,73 @@ static auto encrypt_symmetric(const std::string_view secret)
       header_for("A256KW", "A128GCM"), PLAINTEXT,
       sourcemeta::core::JWK::from_octets(secret));
 }
+
+namespace {
+constexpr std::string_view AUTHENTICATED_PLAINTEXT{
+    "Authenticated rejection control"};
+
+// Seal through the public primitive rather than jwe_encrypt, which correctly
+// refuses the malformed headers and mismatched CEK sizes these tests need.
+// The actual header, including any malformed member, is authenticated as AAD.
+auto seal_gcm(const sourcemeta::core::JSON &header,
+              const std::string_view encrypted_key,
+              const std::string_view content_key)
+    -> std::optional<sourcemeta::core::JWE> {
+  std::ostringstream stream;
+  sourcemeta::core::stringify(header, stream);
+  const auto protected_header{sourcemeta::core::base64url_encode(stream.str())};
+  const std::string iv(12, 'v');
+  const auto sealed{sourcemeta::core::aes_gcm_encrypt(
+      content_key, iv, protected_header, AUTHENTICATED_PLAINTEXT)};
+  if (!sealed.has_value()) {
+    return std::nullopt;
+  }
+
+  return sourcemeta::core::JWE::from(
+      protected_header + "." +
+      sourcemeta::core::base64url_encode(encrypted_key) + "." +
+      sourcemeta::core::base64url_encode(iv) + "." +
+      sourcemeta::core::base64url_encode(sealed->ciphertext()) + "." +
+      sourcemeta::core::base64url_encode(sealed->tag()));
+}
+
+// Model an implementation that silently treats malformed party information as
+// absent. Such an implementation could authenticate these objects, so a failed
+// tag cannot mask a missing validation check. The published recipient key is
+// also the fixed ephemeral key in this test-only construction.
+auto seal_agreement(const std::string_view party,
+                    const sourcemeta::core::JSON &value)
+    -> std::optional<sourcemeta::core::JWE> {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK))};
+  const auto private_key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  if (!public_key.has_value() || !private_key.has_value()) {
+    return std::nullopt;
+  }
+
+  const auto shared{sourcemeta::core::ecdh_derive(*private_key->private_key(),
+                                                  *public_key->public_key())};
+  if (!shared.has_value()) {
+    return std::nullopt;
+  }
+
+  const auto content_key{
+      sourcemeta::core::kdf_concat(shared.value(), "A128GCM", "", "", 16)};
+  if (!content_key.has_value()) {
+    return std::nullopt;
+  }
+
+  auto header{
+      sourcemeta::core::parse_json(R"({"alg":"ECDH-ES","enc":"A128GCM"})")};
+  header.assign("epk", sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK));
+  if (!party.empty()) {
+    header.assign(party, value);
+  }
+
+  return seal_gcm(header, "", content_key.value());
+}
+} // namespace
 
 TEST(decrypt_round_trips_a_valid_object) {
   const std::string secret(32, 'k');
@@ -287,4 +357,467 @@ TEST(decrypt_rejects_an_ephemeral_key_on_a_different_curve) {
   EXPECT_FALSE(
       sourcemeta::core::jwe_decrypt(parsed.value(), private_key.value())
           .has_value());
+}
+
+TEST(ecdh_es_decrypt_accepts_absent_party_information) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{seal_agreement("", sourcemeta::core::JSON{""})};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{
+      sourcemeta::core::jwe_decrypt(object.value(), key.value())};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(ecdh_es_decrypt_accepts_empty_apu_party_information) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{seal_agreement("apu", sourcemeta::core::JSON{""})};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{
+      sourcemeta::core::jwe_decrypt(object.value(), key.value())};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(ecdh_es_decrypt_accepts_empty_apv_party_information) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{seal_agreement("apv", sourcemeta::core::JSON{""})};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{
+      sourcemeta::core::jwe_decrypt(object.value(), key.value())};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(ecdh_es_decrypt_rejects_null_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON(null)JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_boolean_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON(false)JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_number_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON(42)JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_array_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON([])JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_object_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON({})JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_invalid_alphabet_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON("+")JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_invalid_length_apu_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apu", sourcemeta::core::parse_json(R"JSON("A")JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_null_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON(null)JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_boolean_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON(false)JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_number_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON(42)JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_array_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON([])JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_object_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON({})JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_invalid_alphabet_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON("+")JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_invalid_length_apv_with_authenticated_header) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto object{
+      seal_agreement("apv", sourcemeta::core::parse_json(R"JSON("A")JSON"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(decrypt_a128gcm_accepts_unwrapped_128_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A128GCM"})JSON")};
+  const std::string content_key(16, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(decrypt_a128gcm_rejects_unwrapped_192_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A128GCM"})JSON")};
+  const std::string content_key(24, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(decrypt_a128gcm_rejects_unwrapped_256_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A128GCM"})JSON")};
+  const std::string content_key(32, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(decrypt_a192gcm_rejects_unwrapped_128_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A192GCM"})JSON")};
+  const std::string content_key(16, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(decrypt_a192gcm_accepts_unwrapped_192_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A192GCM"})JSON")};
+  const std::string content_key(24, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(decrypt_a192gcm_rejects_unwrapped_256_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A192GCM"})JSON")};
+  const std::string content_key(32, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(decrypt_a256gcm_rejects_unwrapped_128_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A256GCM"})JSON")};
+  const std::string content_key(16, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(decrypt_a256gcm_rejects_unwrapped_192_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A256GCM"})JSON")};
+  const std::string content_key(24, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(decrypt_a256gcm_accepts_unwrapped_256_bit_key) {
+  const std::string wrapping_secret(32, 'w');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(wrapping_secret)};
+  const auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"A256KW","enc":"A256GCM"})JSON")};
+  const std::string content_key(32, 'c');
+  const auto wrapped{
+      sourcemeta::core::aes_key_wrap(wrapping_secret, content_key)};
+  EXPECT_TRUE(wrapped.has_value());
+  const auto object{seal_gcm(header, wrapped.value(), content_key)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(decrypt_direct_key_accepts_empty_encrypted_key) {
+  const std::string secret(16, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  const auto header{
+      sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":"A128GCM"})JSON")};
+  const auto object{seal_gcm(header, "", secret)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_TRUE(plaintext.has_value());
+  EXPECT_EQ(plaintext.value(), AUTHENTICATED_PLAINTEXT);
+}
+
+TEST(decrypt_direct_key_rejects_nonempty_encrypted_key) {
+  const std::string secret(16, 'k');
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(secret)};
+  const auto header{
+      sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":"A128GCM"})JSON")};
+  const auto object{seal_gcm(header, "unexpected", secret)};
+  EXPECT_TRUE(object.has_value());
+  const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
+  EXPECT_FALSE(plaintext.has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_null_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk", sourcemeta::core::parse_json(R"JSON(null)JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_boolean_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk", sourcemeta::core::parse_json(R"JSON(false)JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_number_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk", sourcemeta::core::parse_json(R"JSON(42)JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_array_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk", sourcemeta::core::parse_json(R"JSON([])JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_string_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk", sourcemeta::core::parse_json(R"JSON("key")JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_empty_object_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk", sourcemeta::core::parse_json(R"JSON({})JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+
+TEST(ecdh_es_decrypt_rejects_malformed_coordinates_ephemeral_key) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(JWE_EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Structural rejection only: this header cannot form a valid agreement.
+  auto header{sourcemeta::core::parse_json(
+      R"JSON({"alg":"ECDH-ES","enc":"A128GCM"})JSON")};
+  header.assign("epk",
+                sourcemeta::core::parse_json(
+                    R"JSON({"kty":"EC","crv":"P-256","x":"+","y":"+"})JSON"));
+  const auto object{seal_gcm(header, "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(object.value(), key.value()).has_value());
+}
+TEST(decrypt_rejects_an_unknown_encryption_with_a_supported_key_algorithm) {
+  const auto object{
+      seal_gcm(sourcemeta::core::parse_json(R"({"alg":"dir","enc":"unknown"})"),
+               "", std::string(16, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_TRUE(object->algorithm().has_value());
+  EXPECT_FALSE(object->encryption().has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_decrypt(
+                   object.value(), sourcemeta::core::JWKPrivate::from_octets(
+                                       std::string(16, 'k')))
+                   .has_value());
 }
