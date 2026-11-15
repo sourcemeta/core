@@ -814,22 +814,6 @@ auto a_step_names_itself(const JSON &document, const Pointer &pointer) -> bool {
   return false;
 }
 
-// Both spellings are asked for, for the reason given above this file's other
-// walk: the dialect that would settle it is not known here
-auto declared_identifier(const JSON &schema) -> std::string_view {
-  if (!schema.is_object()) {
-    return {};
-  }
-
-  const auto *declared{schema.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
-  if (declared == nullptr || !declared->is_string()) {
-    declared = schema.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
-  }
-
-  return (declared != nullptr && declared->is_string()) ? declared->to_string()
-                                                        : std::string_view{};
-}
-
 auto carried_under(const JSON &document, const std::string_view identifier,
                    const std::string_view base, Pointer &where)
     -> const JSON * {
@@ -984,6 +968,10 @@ auto says_the_same_as_it_arrived(const NameReaches &reached, const JSON &copy,
 // the two always holds it
 auto elevate_embedded_resources(
     BundleState &state, JSON &remote, JSON &root, const Pointer &container,
+    // What a name spelled against something within this document resolves
+    // from, which is the name the document answers to rather than anything
+    // read back off it
+    const std::string_view remote_identity,
     const SchemaBaseDialect remote_dialect, const SchemaWalker &walker,
     const SchemaResolver &resolver, std::string_view default_dialect,
     std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback)
@@ -1001,8 +989,6 @@ auto elevate_embedded_resources(
     return;
   }
 
-  // What a name spelled against something within this document resolves from
-  const auto remote_identity{declared_identifier(remote)};
   const JSON::String keyword_string{keyword};
   // Which name the dialect reserves is only known once the dialect is, so the
   // hash cannot be a constant. Taking it once is what keeps the lookups below
@@ -1208,12 +1194,6 @@ auto elevate_embedded_resources(
         const auto elsewhere{
             what_a_name_reaches(state, canonical_uri(identifier_string))};
         if (elsewhere.schema != nullptr) {
-          auto candidate{value};
-          if (!defines_dialect) {
-            candidate.assign("$schema",
-                             JSON{declared_dialect(value, remote_dialect_uri)});
-          }
-
           if (!says_the_same_as_it_arrived(elsewhere, value, container,
                                            remote_dialect_uri)) {
             throw SchemaError(
@@ -1250,6 +1230,43 @@ auto elevate_embedded_resources(
   if (defs.empty()) {
     remote.erase(keyword_string, keyword_hash);
   }
+}
+
+// The document a name will be answered by, where it is still in hand: either
+// just fetched in this pass or waiting in the queue. Having it is what lets a
+// fragment be held against what came back straight away, instead of against
+// the finished document a whole pass later. Compared by name alone, which is
+// a handful of string compares rather than a walk
+auto document_in_hand(const std::vector<PendingEmbed> &reached,
+                      const BundleState &state,
+                      const std::string_view identifier) -> const JSON * {
+  for (const auto &entry : reached) {
+    if (entry.identifier == identifier) {
+      return &entry.document;
+    }
+  }
+
+  for (const auto &entry : state.pending) {
+    if (entry.identifier == identifier) {
+      return &entry.document;
+    }
+  }
+
+  return nullptr;
+}
+
+// Whether the place a reference names is there, asked of what came back rather
+// than of the finished document, where that is in hand. Only a pointer can be
+// settled this way: an anchor is not a place of the document and takes a frame
+// to find, so one of those is left to be held over
+auto fragment_is_there(const JSON &document, const std::string_view destination)
+    -> std::optional<bool> {
+  const auto pointer{fragment_to_pointer(URI{destination})};
+  if (!pointer.has_value()) {
+    return std::nullopt;
+  }
+
+  return try_get(document, pointer.value()) != nullptr;
 }
 
 // Read one document, settle the references it spells, and hand back the
@@ -1302,9 +1319,8 @@ auto expand_references(
   // from what has been placed, because elevating a carried resource turns on
   // whether a copy of it is already at the container, which carrying it says
   // nothing about
-  frame.for_each_resource_uri([&state](const auto &uri) -> void {
-    state.reachable.emplace(canonical_uri(uri));
-  });
+  frame.for_each_resource_uri(
+      [&state](const auto &uri) -> void { state.reachable.emplace(uri); });
 
   // Every schema this reaches, the one the caller handed over as much as every
   // remote gathered into it, is spelled out against the base it was read
@@ -1374,7 +1390,11 @@ auto expand_references(
       assert(!reference.base.empty());
       const JSON::String identifier{reference.base};
 
-      const auto canonical{canonical_uri(identifier)};
+      // Framing already holds every base and every resource URI it reports to
+      // its canonical spelling, as the comment above says, so what it hands
+      // back needs no second pass. Only a name the caller wrote or the
+      // document carries has to be settled
+      const auto &canonical{identifier};
       if (state.bundled.contains(canonical)) {
         // A target that went in without a name answers to nothing, so this
         // reference is settled against the finished document rather than here.
@@ -1387,21 +1407,35 @@ auto expand_references(
         }
 
         const auto &mapped_id{state.bundled.at(canonical)};
+        // Whether the place the fragment names is really there. Where the
+        // document that answers is still in hand it is asked now, which both
+        // holds the fragment against what came back and saves reading the
+        // finished document all over again. Otherwise the question waits
+        const auto settle_fragment{[&](const JSON::String &destination)
+                                       -> void {
+          if (!reference.fragment.has_value()) {
+            return;
+          }
+
+          const auto *answering{document_in_hand(reached, state, mapped_id)};
+          const auto there{answering == nullptr
+                               ? std::nullopt
+                               : fragment_is_there(*answering, destination)};
+          if (!there.has_value()) {
+            state.held_over.push_back(
+                {.destination = destination, .location = reported});
+          } else if (!there.value()) {
+            throw SchemaReferenceError("Could not resolve schema reference",
+                                       destination, reported);
+          }
+        }};
+
         if (mapped_id != identifier) {
           auto rebased{rebase_reference(mapped_id, reference.fragment)};
-          if (reference.fragment.has_value()) {
-            state.held_over.push_back(
-                {.destination = rebased, .location = reported});
-          }
-
+          settle_fragment(rebased);
           ref_rewrites.emplace_back(to_pointer(pointer), std::move(rebased));
         } else {
-          if (reference.fragment.has_value()) {
-            state.held_over.push_back(
-                {.destination = JSON::String{reference.destination},
-                 .location = reported});
-          }
-
+          settle_fragment(JSON::String{reference.destination});
           if (spells_another_document_relatively(reference)) {
             ref_rewrites.emplace_back(to_pointer(pointer),
                                       JSON::String{reference.destination});
@@ -1736,9 +1770,10 @@ auto embed_references(
     auto entry{std::move(state.pending.back())};
     state.pending.pop_back();
     try {
-      elevate_embedded_resources(
-          state, entry.document, state.root, state.container, entry.dialect,
-          walker, resolver, default_dialect, remaining, callback);
+      elevate_embedded_resources(state, entry.document, state.root,
+                                 state.container, entry.identifier,
+                                 entry.dialect, walker, resolver,
+                                 default_dialect, remaining, callback);
     } catch (const SchemaDialectImpossibleError &) {
       throw SchemaReferenceError("The referenced schema declares a dialect "
                                  "that does not define the keyword that "
@@ -1816,15 +1851,19 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                             remaining};
   charge(remaining, initial_frame);
   initial_frame.for_each_resource_uri([&bundled](const auto &uri) -> void {
-    bundled.emplace(canonical_uri(uri), JSON::String{uri});
+    bundled.emplace(JSON::String{uri}, JSON::String{uri});
   });
 
   // Whatever the caller's document is read against, which is what it says of
   // itself where it says anything and what the caller handed over otherwise
-  const auto declared_root{declared_identifier(schema)};
-  state.base = !declared_root.empty() ? JSON::String{declared_root}
-               : !default_id.empty()  ? JSON::String{default_id}
-                                      : JSON::String{default_base};
+  // Framing has already settled this: it picks the keyword the dialect in
+  // force reserves for a name, resolves what that says against the base the
+  // caller gave, and hands back the canonical form. Reading the document again
+  // here would be guessing at the keyword and would keep a relative spelling
+  state.base =
+      !initial_frame.root().empty()
+          ? initial_frame.root()
+          : canonical_uri(!default_id.empty() ? default_id : default_base);
 
   // Besides whatever the document says of itself, it answers to what the
   // caller said it is: the address it was read from, and the name it was
