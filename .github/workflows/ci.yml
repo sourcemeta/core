@@ -130,6 +130,9 @@ jobs:
       - name: Setup MSYS2 (Windows)
         if: matrix.platform.msystem
         uses: msys2/setup-msys2@v2
+        # Avoid the mirror redirector's recurring package-database timeouts.
+        env:
+          __SETUP_MSYS2_USE_MAIN_MIRROR_ONLY: "true"
         with:
           msystem: ${{ matrix.platform.msystem }}
           update: true
