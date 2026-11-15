@@ -657,11 +657,12 @@ TEST(signed_hs256_rejects_excessive_lifetime_after_valid_signature) {
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Lifetime);
 }
 TEST(jwt_rejects_an_unrecognized_algorithm_before_key_selection) {
-  const auto token{sourcemeta::core::JWT::from(
-      sourcemeta::core::base64url_encode(R"({"alg":"none"})") + "." +
-      sourcemeta::core::base64url_encode(
-          R"({"iss":"issuer","aud":"api","exp":1100})") +
-      ".")};
+  const auto compact{sourcemeta::core::base64url_encode(R"({"alg":"none"})") +
+                     "." +
+                     sourcemeta::core::base64url_encode(
+                         R"({"iss":"issuer","aud":"api","exp":1100})") +
+                     "."};
+  const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(R"({"keys":[]})"))};

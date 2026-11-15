@@ -740,7 +740,7 @@ TEST(rejects_object_ec_y) {
 TEST(rejects_invalid_alphabet_ec_coordinate_x) {
   auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
   EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
-  document.assign("x", sourcemeta::core::JSON{"+"});
+  document.assign("x", sourcemeta::core::JSON{"++"});
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -768,7 +768,7 @@ TEST(rejects_short_ec_coordinate_x) {
 TEST(rejects_invalid_alphabet_ec_coordinate_y) {
   auto document{sourcemeta::core::parse_json(JWE_EC_PUBLIC_JWK)};
   EXPECT_TRUE(sourcemeta::core::JWK::from(document).has_value());
-  document.assign("y", sourcemeta::core::JSON{"+"});
+  document.assign("y", sourcemeta::core::JSON{"++"});
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
