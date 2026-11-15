@@ -762,16 +762,163 @@ struct BundleState {
 };
 
 // Whatever a name reaches, out of the queue where it is still waiting or out
+// of what has already landed, beside where it was found. Nothing is copied: a
+// remote sits in the queue until it is embedded and in the document after, so
+// one of the two holds it
+struct NameReaches {
+  const JSON *schema{nullptr};
+  Pointer where{};
+  // Whether it was found in what came out, which is the only side that has
+  // had copies put into it since it arrived
+  bool landed{false};
+};
+
+auto carried_under(const JSON &document, const std::string_view identifier,
+                   Pointer &where) -> const JSON * {
+  if (document.is_object()) {
+    const auto *declared{document.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
+    if (declared == nullptr) {
+      declared = document.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
+    }
+
+    if (declared != nullptr && declared->is_string() &&
+        declared->to_string() == identifier) {
+      return &document;
+    }
+
+    for (const auto &entry : document.as_object()) {
+      where.push_back(entry.first);
+      const auto *found{carried_under(entry.second, identifier, where)};
+      if (found != nullptr) {
+        return found;
+      }
+
+      where.pop_back();
+    }
+  } else if (document.is_array()) {
+    for (auto index{0U}; index < document.size(); index += 1) {
+      where.push_back(index);
+      const auto *found{carried_under(document.at(index), identifier, where)};
+      if (found != nullptr) {
+        return found;
+      }
+
+      where.pop_back();
+    }
+  }
+
+  return nullptr;
+}
+
+auto what_a_name_reaches(const BundleState &state,
+                         const std::string_view identifier) -> NameReaches {
+  for (const auto &entry : state.pending) {
+    if (entry.identifier == identifier) {
+      return {.schema = &entry.document};
+    }
+  }
+
+  for (const auto &entry : state.pending) {
+    Pointer where;
+    const auto *found{carried_under(entry.document, identifier, where)};
+    if (found != nullptr) {
+      return {.schema = found, .where = std::move(where)};
+    }
+  }
+
+  Pointer where;
+  const auto *found{carried_under(state.root, identifier, where)};
+  if (found == nullptr) {
+    return {};
+  }
+
+  return {.schema = found, .where = std::move(where), .landed = true};
+}
+
+// Whether what a name reaches says the same thing as a copy of it. Three
+// things are read past, because none of them is the copy saying anything
+// different: the place bundling fills, where that place sits within what was
+// reached; a name spelled two ways that come to the same name, which is what
+// section 8.2.1 of the JSON Schema specification asks of an identifier; and a
+// dialect written down on one side by whoever embedded it, where the other
+// inherits the same one
+auto says_the_same_as_it_arrived(const NameReaches &reached, const JSON &copy,
+                                 const Pointer &container,
+                                 const std::string_view dialect) -> bool {
+  if (*reached.schema == copy) {
+    return true;
+  }
+
+  if (!reached.schema->is_object() || !copy.is_object()) {
+    return false;
+  }
+
+  std::string_view filled;
+  if (reached.landed && container.starts_with(reached.where) &&
+      container.size() > reached.where.size() &&
+      container.at(reached.where.size()).is_property()) {
+    filled = container.at(reached.where.size()).to_property();
+  }
+
+  for (const auto &entry : reached.schema->as_object()) {
+    if (!filled.empty() && entry.first == filled &&
+        !copy.defines(entry.first)) {
+      continue;
+    }
+
+    const auto *other{copy.try_at(entry.first, entry.hash)};
+    if (other == nullptr) {
+      if (entry.first == "$schema" && entry.second.is_string() &&
+          entry.second.to_string() == dialect) {
+        continue;
+      }
+
+      return false;
+    }
+
+    if (*other == entry.second) {
+      continue;
+    }
+
+    const auto names_itself{entry.first == "$id" || entry.first == "id"};
+    if (names_itself && entry.second.is_string() && other->is_string() &&
+        canonical_uri(entry.second.to_string()) ==
+            canonical_uri(other->to_string())) {
+      continue;
+    }
+
+    return false;
+  }
+
+  // Anything the copy says that what it was held against does not is the copy
+  // saying something more, save for a dialect written down for it
+  for (const auto &entry : copy.as_object()) {
+    if (reached.schema->defines(entry.first, entry.hash)) {
+      continue;
+    }
+
+    if (entry.first == "$schema" && entry.second.is_string() &&
+        entry.second.to_string() == dialect) {
+      continue;
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
+// Whatever a name reaches, out of the queue where it is still waiting or out
 // of the document where it has already landed. Nothing is copied: a remote
 // sits in the queue until it is embedded and in the document after, so one of
 // the two always holds it
 auto elevate_embedded_resources(
-    JSON &remote, JSON &root, const Pointer &container,
+    BundleState &state, JSON &remote, JSON &root, const Pointer &container,
     const SchemaBaseDialect remote_dialect, const SchemaWalker &walker,
     const SchemaResolver &resolver, std::string_view default_dialect,
-    std::unordered_map<JSON::String, JSON::String> &bundled,
     std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback)
     -> void {
+  auto &bundled{state.bundled};
   const auto keyword{definitions_keyword(
       walker,
       vocabularies_with_embedded(remote, resolver, remote_dialect,
@@ -836,8 +983,27 @@ auto elevate_embedded_resources(
       declared_id = value.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
     }
     if (declared_id == nullptr || !declared_id->is_string() ||
-        declared_id->to_string() != key ||
-        !URI{declared_id->to_string()}.is_absolute()) {
+        !URI::is_uri(declared_id->to_string())) {
+      continue;
+    }
+
+    // What a container calls an entry is no guide to what it identifies, as a
+    // document written by hand holds one under whatever name reads well.
+    // Bundling moves only what bundling itself placed, which is keyed by the
+    // name it answers to, and leaves where the author put everything else. A
+    // copy of what the document already holds is still a copy wherever it
+    // sits though, and keeping both would leave one name reaching two schemas
+    if (declared_id->to_string() != key) {
+      const JSON::String carried{declared_id->to_string()};
+      if (bundled.contains(canonical_uri(carried))) {
+        const auto elsewhere{what_a_name_reaches(state, carried)};
+        if (elsewhere.schema != nullptr &&
+            says_the_same_as_it_arrived(elsewhere, value, container,
+                                        remote_dialect_uri)) {
+          to_remove.emplace_back(key, entry.hash);
+        }
+      }
+
       continue;
     }
 
@@ -855,8 +1021,7 @@ auto elevate_embedded_resources(
                             remaining};
     charge(remaining, entry_frame);
     const auto &identifier{entry_frame.root()};
-    if (identifier.empty() || identifier != key ||
-        !URI{identifier}.is_absolute()) {
+    if (identifier.empty() || identifier != key || !URI::is_uri(identifier)) {
       continue;
     }
 
@@ -865,7 +1030,7 @@ auto elevate_embedded_resources(
       // Staying put is the only way this one goes on being found, so the
       // document cannot also hold it elsewhere: one identity in two places is
       // not a document anything can read
-      if (bundled.contains(identifier_string)) {
+      if (bundled.contains(canonical_uri(identifier_string))) {
         throw SchemaError("A meta-schema that has to stay within the schema "
                           "that pins it cannot be embedded elsewhere too");
       }
@@ -873,13 +1038,14 @@ auto elevate_embedded_resources(
       // What stays behind is still in the document under the identity it
       // carries, so a reference to it from anywhere else is answered by what
       // is already here rather than by asking the resolver for another copy
-      bundled.emplace(identifier_string, identifier_string);
+      bundled.emplace(canonical_uri(identifier_string), identifier_string);
       continue;
     }
 
     const auto defines_dialect{
         value.defines("$schema"sv, JSONSCHEMA_HASH_SCHEMA)};
-    if (bundled.contains(identifier_string)) {
+    if (bundled.contains(canonical_uri(identifier_string))) {
+      auto agrees{false};
       if (container_exists && root_container->is_object()) {
         for (const auto &root_entry : root_container->as_object()) {
           // Same reasoning as above: rule out what cannot match, and what
@@ -899,7 +1065,7 @@ auto elevate_embedded_resources(
           if (stored_declared_id == nullptr ||
               !stored_declared_id->is_string() ||
               stored_declared_id->to_string() != identifier_string ||
-              !URI{stored_declared_id->to_string()}.is_absolute()) {
+              !URI::is_uri(stored_declared_id->to_string())) {
             continue;
           }
 
@@ -919,32 +1085,49 @@ auto elevate_embedded_resources(
             continue;
           }
 
-          if (defines_dialect) {
-            if (root_entry.second != value) {
-              throw SchemaError(
-                  "Conflicting embedded resources with the same identifier");
-            }
-          } else {
-            // The stored copy of the resource got its dialect stamped on
-            // extraction, so compare against a candidate that is stamped in
-            // the same way
-            auto candidate{value};
-            candidate.assign("$schema",
-                             JSON{declared_dialect(value, remote_dialect_uri)});
-            if (root_entry.second != candidate) {
-              throw SchemaError(
-                  "Conflicting embedded resources with the same identifier");
-            }
+          // One of the two may have had its dialect written down on the way
+          // in where the other inherits the same one, and a name may be
+          // spelled two ways that come to the same name. Neither is the two
+          // saying anything different
+          const NameReaches stored{.schema = &root_entry.second,
+                                   .where = container.concat(root_entry.first),
+                                   .landed = true};
+          if (!says_the_same_as_it_arrived(stored, value, container,
+                                           remote_dialect_uri)) {
+            throw SchemaError(
+                "Conflicting embedded resources with the same identifier");
           }
 
+          agrees = true;
           break;
+        }
+      }
+
+      // Nothing at the container could be held against it, so whatever
+      // answers to this name is still waiting in the queue or sits elsewhere
+      // in what came out. Holding the copy against that one is what tells a
+      // second copy of one resource from two resources claiming one name
+      if (!agrees) {
+        const auto elsewhere{what_a_name_reaches(state, identifier_string)};
+        if (elsewhere.schema != nullptr) {
+          auto candidate{value};
+          if (!defines_dialect) {
+            candidate.assign("$schema",
+                             JSON{declared_dialect(value, remote_dialect_uri)});
+          }
+
+          if (!says_the_same_as_it_arrived(elsewhere, value, container,
+                                           remote_dialect_uri)) {
+            throw SchemaError(
+                "Conflicting embedded resources with the same identifier");
+          }
         }
       }
 
       to_remove.emplace_back(key, entry.hash);
     } else {
       to_extract.emplace_back(key, entry.hash, !defines_dialect);
-      bundled.emplace(identifier_string, identifier_string);
+      bundled.emplace(canonical_uri(identifier_string), identifier_string);
     }
   }
 
@@ -1021,8 +1204,9 @@ auto expand_references(
   // from what has been placed, because elevating a carried resource turns on
   // whether a copy of it is already at the container, which carrying it says
   // nothing about
-  frame.for_each_resource_uri(
-      [&state](const auto &uri) -> void { state.reachable.emplace(uri); });
+  frame.for_each_resource_uri([&state](const auto &uri) -> void {
+    state.reachable.emplace(canonical_uri(uri));
+  });
 
   // Every schema this reaches, the one the caller handed over as much as every
   // remote gathered into it, is spelled out against the base it was read
@@ -1092,7 +1276,8 @@ auto expand_references(
       assert(!reference.base.empty());
       const JSON::String identifier{reference.base};
 
-      if (state.bundled.contains(identifier)) {
+      const auto canonical{canonical_uri(identifier)};
+      if (state.bundled.contains(canonical)) {
         // A target that went in without a name answers to nothing, so this
         // reference is settled against the finished document rather than here.
         // Spelling it out in full is what lets that pass recognise it, since a
@@ -1103,7 +1288,7 @@ auto expand_references(
           return;
         }
 
-        const auto &mapped_id{state.bundled.at(identifier)};
+        const auto &mapped_id{state.bundled.at(canonical)};
         if (mapped_id != identifier) {
           auto rebased{rebase_reference(mapped_id, reference.fragment)};
           if (reference.fragment.has_value()) {
@@ -1131,7 +1316,7 @@ auto expand_references(
       // A name that something already on its way in carries is answered by the
       // embedding, so there is nothing to fetch. What it is spelled as still
       // has to not depend on where the document it sits in came from
-      if (state.reachable.contains(identifier)) {
+      if (state.reachable.contains(canonical)) {
         if (reference.fragment.has_value()) {
           state.held_over.push_back(
               {.destination = JSON::String{reference.destination},
@@ -1367,8 +1552,8 @@ auto expand_references(
                                   JSON::String{reference.destination});
       }
 
-      state.bundled.emplace(identifier, effective_id);
-      state.bundled.emplace(effective_id, effective_id);
+      state.bundled.emplace(canonical, effective_id);
+      state.bundled.emplace(canonical_uri(effective_id), effective_id);
       reached.push_back(PendingEmbed{.document = std::move(remote),
                                      .identifier = std::move(effective_id),
                                      .dialect = remote_base_dialect,
@@ -1455,8 +1640,8 @@ auto embed_references(
     state.pending.pop_back();
     try {
       elevate_embedded_resources(
-          entry.document, state.root, state.container, entry.dialect, walker,
-          resolver, default_dialect, state.bundled, remaining, callback);
+          state, entry.document, state.root, state.container, entry.dialect,
+          walker, resolver, default_dialect, remaining, callback);
     } catch (const SchemaDialectImpossibleError &) {
       throw SchemaReferenceError("The referenced schema declares a dialect "
                                  "that does not define the keyword that "
@@ -1471,24 +1656,32 @@ auto embed_references(
     }
   }
 
-  // A reference held over named a place of something that was still on its
-  // way in, so whether that place is there is a question about the finished
-  // document. Framing it costs a pass, which is why nothing is paid where
-  // nothing was held over
+  // Two questions are left that only the finished document answers: whether a
+  // reference held over named a place that is really there, and whether two
+  // documents that carried one name left two different schemas answering to
+  // it. Both are read off what came out, which costs a pass, so nothing is
+  // paid where neither question was raised
   if (state.held_over.empty()) {
     return;
   }
 
-  const SchemaFrame settled{SchemaFrame::Mode::References,
-                            state.root,
-                            walker,
-                            resolver,
-                            default_dialect,
-                            default_id,
-                            SchemaFrame::IdentifierMode::Additional,
-                            paths,
-                            default_base,
-                            remaining};
+  std::optional<SchemaFrame> probe;
+  try {
+    probe.emplace(SchemaFrame::Mode::References, state.root, walker, resolver,
+                  default_dialect, default_id,
+                  SchemaFrame::IdentifierMode::Additional, paths, default_base,
+                  remaining);
+  } catch (const SchemaFrameError &) {
+    // Two documents met over one name and what each left behind says something
+    // different, which the copies settling by themselves would have taken care
+    // of. Reading what came out is the only thing that tells those apart, and
+    // a document where one name reaches two schemas is not one anything can
+    // read
+    throw SchemaError("Conflicting embedded resources with the same "
+                      "identifier");
+  }
+
+  const auto &settled{probe.value()};
   charge(remaining, settled);
   for (const auto &reference : state.held_over) {
     if (!settled.traverse(reference.destination).has_value()) {
@@ -1524,7 +1717,7 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                             remaining};
   charge(remaining, initial_frame);
   initial_frame.for_each_resource_uri([&bundled](const auto &uri) -> void {
-    bundled.emplace(JSON::String{uri}, JSON::String{uri});
+    bundled.emplace(canonical_uri(uri), JSON::String{uri});
   });
 
   // Besides whatever the document says of itself, it answers to what the

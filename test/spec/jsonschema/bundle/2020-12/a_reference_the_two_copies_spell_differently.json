@@ -1,0 +1,126 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://example.com/pet"
+      }
+    },
+    "$defs": {
+      "held": {
+        "$id": "https://example.com/shared",
+        "properties": {
+          "x": {
+            "$ref": "https://example.com/other"
+          }
+        }
+      },
+      "other": {
+        "$id": "https://example.com/other",
+        "type": "string"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/pet": {
+      "$id": "https://example.com/pet",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "label": {
+          "$ref": "https://example.com/shared"
+        }
+      },
+      "$defs": {
+        "shared": {
+          "$id": "https://example.com/shared",
+          "properties": {
+            "x": {
+              "$ref": "other"
+            }
+          }
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://example.com/pet"
+        }
+      },
+      "$defs": {
+        "held": {
+          "$id": "https://example.com/shared",
+          "properties": {
+            "x": {
+              "$ref": "https://example.com/other"
+            }
+          }
+        },
+        "other": {
+          "$id": "https://example.com/other",
+          "type": "string"
+        },
+        "https://example.com/pet": {
+          "$id": "https://example.com/pet",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "label": {
+              "$ref": "https://example.com/shared"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://example.com/pet"
+        }
+      },
+      "$defs": {
+        "held": {
+          "$id": "https://example.com/shared",
+          "properties": {
+            "x": {
+              "$ref": "https://example.com/other"
+            }
+          }
+        },
+        "other": {
+          "$id": "https://example.com/other",
+          "type": "string"
+        },
+        "https://example.com/pet": {
+          "$id": "https://example.com/pet",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "label": {
+              "$ref": "https://example.com/shared"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/pet",
+        "at": "/$defs/https:~1~1example.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/pet",
+        "at": "/$defs/https:~1~1example.com~1pet"
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/remote",
+    "properties": {
+      "pet": {
+        "$id": "https://example.com/pet",
+        "type": "string"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/remote",
+      "$defs": {
+        "whatever": {
+          "$id": "https://example.com/pet",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://www.sourcemeta.com/remote",
+      "properties": {
+        "pet": {
+          "$id": "https://example.com/pet",
+          "type": "string"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/remote"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://www.sourcemeta.com/remote",
+      "properties": {
+        "pet": {
+          "$id": "https://example.com/pet",
+          "type": "string"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/remote"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ]
+  }
+}

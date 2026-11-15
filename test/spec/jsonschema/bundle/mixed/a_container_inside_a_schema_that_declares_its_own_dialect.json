@@ -1,0 +1,134 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "properties": {
+            "y": {
+              "$ref": "https://example.com/remote"
+            }
+          },
+          "definitions": {
+            "held": {
+              "$id": "https://example.com/shared",
+              "dependencies": {
+                "a": [
+                  "b"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "container": "/components/schemas/Pet/definitions",
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/remote",
+      "properties": {
+        "z": {
+          "$ref": "https://example.com/shared"
+        }
+      },
+      "definitions": {
+        "shared": {
+          "$id": "https://example.com/shared",
+          "dependencies": {
+            "a": [
+              "b"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "components": {
+        "schemas": {
+          "Pet": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "properties": {
+              "y": {
+                "$ref": "https://example.com/remote"
+              }
+            },
+            "definitions": {
+              "held": {
+                "$id": "https://example.com/shared",
+                "dependencies": {
+                  "a": [
+                    "b"
+                  ]
+                }
+              },
+              "https://example.com/remote": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "$id": "https://example.com/remote",
+                "properties": {
+                  "z": {
+                    "$ref": "https://example.com/shared"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "components": {
+        "schemas": {
+          "Pet": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "properties": {
+              "y": {
+                "$ref": "https://example.com/remote"
+              }
+            },
+            "definitions": {
+              "held": {
+                "$id": "https://example.com/shared",
+                "dependencies": {
+                  "a": [
+                    "b"
+                  ]
+                }
+              },
+              "https://example.com/remote": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "$id": "https://example.com/remote",
+                "properties": {
+                  "z": {
+                    "$ref": "https://example.com/shared"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/remote",
+        "at": "/components/schemas/Pet/definitions/https:~1~1example.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/remote",
+        "at": "/components/schemas/Pet/definitions/https:~1~1example.com~1remote"
+      }
+    ]
+  }
+}
