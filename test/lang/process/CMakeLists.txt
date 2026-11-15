@@ -16,7 +16,7 @@ else()
     SOURCES process_error_test.cc process_spawn_test_unix.cc
       process_spawn_and_capture_test.cc process_spawn_input_test.cc
       process_usage_test.cc process_descriptors_test.cc
-      process_start_time_test.cc process_resources_test.cc)
+      process_start_time_test.cc)
 
   # Changing descriptor limits or closing standard streams must not affect the
   # test runner, including its coverage runtime and diagnostic streams.
@@ -24,10 +24,20 @@ else()
     VARIANT unit_resources_main SOURCES process_resources_main.cc)
   target_link_libraries(sourcemeta_core_process_unit_resources_main
     PRIVATE sourcemeta::core::process)
-  add_dependencies(sourcemeta_core_process_unit
-    sourcemeta_core_process_unit_resources_main)
-  target_compile_definitions(sourcemeta_core_process_unit
-    PRIVATE RESOURCES_BINARY="$<TARGET_FILE:sourcemeta_core_process_unit_resources_main>")
+  add_test(NAME core.process.resources COMMAND
+    "$<TARGET_FILE:sourcemeta_core_clitest>"
+    "${CMAKE_CURRENT_SOURCE_DIR}/process_resources.clitest"
+    --binary "$<TARGET_FILE:sourcemeta_core_process_unit_resources_main>"
+    --environment "HELPER=$<TARGET_FILE:sourcemeta_core_process_unit_capture_main>")
+  set_tests_properties(core.process.resources PROPERTIES TIMEOUT 180)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME core.process.resources_linux COMMAND
+      "$<TARGET_FILE:sourcemeta_core_clitest>"
+      "${CMAKE_CURRENT_SOURCE_DIR}/process_resources_linux.clitest"
+      --binary "$<TARGET_FILE:sourcemeta_core_process_unit_resources_main>"
+      --environment "HELPER=$<TARGET_FILE:sourcemeta_core_process_unit_capture_main>")
+    set_tests_properties(core.process.resources_linux PROPERTIES TIMEOUT 30)
+  endif()
 endif()
 
 target_link_libraries(sourcemeta_core_process_unit PRIVATE sourcemeta::core::process)

@@ -1,0 +1,37 @@
+// Each RUN isolates resource and signal changes from the test runner.
+WRITE empty.txt UNTIL EMPTY
+EMPTY
+
+RUN closed-input "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN closed-output "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN closed-error "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN closed-all "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN exhaust-first "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN exhaust-second "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN exhaust-output "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN exhaust-error "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN failed-spawns "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN ignored-child "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
+RUN pending-signal "$HELPER" STDIN /dev/null IN . INTO result.txt EXPECTING 0
+COMPARE result.txt AGAINST empty.txt
+
