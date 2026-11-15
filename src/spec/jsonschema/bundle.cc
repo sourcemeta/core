@@ -746,6 +746,9 @@ struct PendingEmbed {
 struct BundleState {
   JSON &root;
   Pointer container{};
+  // What the caller's own document is read against, which a name spelled
+  // relatively within it resolves from
+  JSON::String base{};
   // What the document already answers to, as the name a reference asks by
   // beside the name its target keeps
   std::unordered_map<JSON::String, JSON::String> bundled{};
@@ -773,26 +776,47 @@ struct NameReaches {
   bool landed{false};
 };
 
+auto declared_identifier(const JSON &schema) -> std::string_view {
+  if (!schema.is_object()) {
+    return {};
+  }
+
+  const auto *declared{schema.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
+  if (declared == nullptr || !declared->is_string()) {
+    declared = schema.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
+  }
+
+  return (declared != nullptr && declared->is_string()) ? declared->to_string()
+                                                        : std::string_view{};
+}
+
 auto carried_under(const JSON &document, const std::string_view identifier,
-                   Pointer &where) -> const JSON * {
+                   const std::string_view base, Pointer &where)
+    -> const JSON * {
   if (document.is_object()) {
     const auto *declared{document.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
     if (declared == nullptr || !declared->is_string()) {
       declared = document.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
     }
 
-    // The name is what the spelling means rather than how it is spelled, which
-    // is what section 8.2.1 of the JSON Schema specification asks of an
-    // identifier. Two documents that hold one resource need not have written
-    // its name the same way
-    if (declared != nullptr && declared->is_string() &&
-        canonical_uri(declared->to_string()) == identifier) {
-      return &document;
+    // A name is what its spelling means rather than how it is spelled, and a
+    // name spelled against something resolves against the one in force where
+    // it sits. Reading the spelling alone would leave a resource that names
+    // itself relatively answering to nothing, per section 8.2.1 of the JSON
+    // Schema specification
+    auto here{JSON::String{base}};
+    if (declared != nullptr && declared->is_string()) {
+      const auto spelled{declared->to_string()};
+      const auto resolved{restated_uri(spelled, base)};
+      here = resolved.value_or(JSON::String{spelled});
+      if (canonical_uri(here) == identifier) {
+        return &document;
+      }
     }
 
     for (const auto &entry : document.as_object()) {
       where.push_back(entry.first);
-      const auto *found{carried_under(entry.second, identifier, where)};
+      const auto *found{carried_under(entry.second, identifier, here, where)};
       if (found != nullptr) {
         return found;
       }
@@ -802,7 +826,8 @@ auto carried_under(const JSON &document, const std::string_view identifier,
   } else if (document.is_array()) {
     for (auto index{0U}; index < document.size(); index += 1) {
       where.push_back(index);
-      const auto *found{carried_under(document.at(index), identifier, where)};
+      const auto *found{
+          carried_under(document.at(index), identifier, base, where)};
       if (found != nullptr) {
         return found;
       }
@@ -824,14 +849,15 @@ auto what_a_name_reaches(const BundleState &state,
 
   for (const auto &entry : state.pending) {
     Pointer where;
-    const auto *found{carried_under(entry.document, identifier, where)};
+    const auto *found{
+        carried_under(entry.document, identifier, entry.identifier, where)};
     if (found != nullptr) {
       return {.schema = found, .where = std::move(where)};
     }
   }
 
   Pointer where;
-  const auto *found{carried_under(state.root, identifier, where)};
+  const auto *found{carried_under(state.root, identifier, state.base, where)};
   if (found == nullptr) {
     return {};
   }
@@ -935,6 +961,8 @@ auto elevate_embedded_resources(
     return;
   }
 
+  // What a name spelled against something within this document resolves from
+  const auto remote_identity{declared_identifier(remote)};
   const JSON::String keyword_string{keyword};
   // Which name the dialect reserves is only known once the dialect is, so the
   // hash cannot be a constant. Taking it once is what keeps the lookups below
@@ -994,8 +1022,19 @@ auto elevate_embedded_resources(
     if (declared_id == nullptr) {
       declared_id = value.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
     }
-    if (declared_id == nullptr || !declared_id->is_string() ||
-        !URI::is_uri(declared_id->to_string())) {
+    if (declared_id == nullptr || !declared_id->is_string()) {
+      continue;
+    }
+
+    // A name spelled against something resolves against the one in force
+    // where it sits, so reading the spelling alone would pass over an entry
+    // that names itself relatively. Asking for an absolute result is what
+    // still rules out the fragment-only identifiers that older drafts spell
+    // anchors with, before paying a frame
+    const auto spelled{declared_id->to_string()};
+    const auto settled{restated_uri(spelled, remote_identity)};
+    const JSON::String carried{settled.value_or(JSON::String{spelled})};
+    if (!URI::is_uri(carried)) {
       continue;
     }
 
@@ -1005,8 +1044,7 @@ auto elevate_embedded_resources(
     // name it answers to, and leaves where the author put everything else. A
     // copy of what the document already holds is still a copy wherever it
     // sits though, and keeping both would leave one name reaching two schemas
-    if (declared_id->to_string() != key) {
-      const JSON::String carried{declared_id->to_string()};
+    if (carried != key) {
       if (bundled.contains(canonical_uri(carried))) {
         const auto elsewhere{
             what_a_name_reaches(state, canonical_uri(carried))};
@@ -1717,7 +1755,13 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
   // Pre-scan the schema to find any already-embedded schemas and mark them
   // as bundled to avoid re-embedding them. This includes the root schema itself
   // and any schemas already embedded within it
+  // Whatever the caller's document is read against, which is what it says of
+  // itself where it says anything, and otherwise what the caller handed over
   BundleState state{.root = schema};
+  const auto declared_root{declared_identifier(schema)};
+  state.base = !declared_root.empty() ? JSON::String{declared_root}
+               : !default_id.empty()  ? JSON::String{default_id}
+                                      : JSON::String{default_base};
   auto &bundled{state.bundled};
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations,
                             schema,
