@@ -124,9 +124,11 @@ auto failed_spawns(const std::string &program) -> bool {
 
   int status{0};
   const auto child{waitpid(-1, &status, WNOHANG)};
-  if (child != -1 || errno != ECHILD) {
-    std::cerr << "Failed exec left a child: waitpid=" << child
-              << " errno=" << errno << '\n';
+  // WNOHANG returns zero when children exist but none can be reaped. That
+  // is not evidence of a zombie. Only a positive result reports a reaped child.
+  if (child > 0 || (child == -1 && errno != ECHILD)) {
+    std::cerr << "Unexpected child wait result after failed exec: waitpid="
+              << child << " errno=" << errno << '\n';
     return false;
   }
 
