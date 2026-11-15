@@ -1,0 +1,54 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "carrier": {
+        "$id": "https://example.com/carrier",
+        "$defs": {
+          "https://example.com/narrow": {
+            "$id": "https://example.com/narrow",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$vocabulary": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true,
+              "https://json-schema.org/draft/2020-12/vocab/applicator": true
+            }
+          },
+          "inner": {
+            "$id": "https://example.com/inner",
+            "$schema": "https://example.com/narrow"
+          }
+        }
+      },
+      "beside": {
+        "$id": "https://example.com/beside",
+        "$schema": "https://example.com/narrow",
+        "properties": {
+          "pointer": { "$ref": "https://example.com/remote" }
+        },
+        "$defs": {}
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/remote",
+      "type": "string"
+    }
+  },
+  "container": "/$defs/beside/$defs",
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/narrow"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/narrow"
+    }
+  }
+}

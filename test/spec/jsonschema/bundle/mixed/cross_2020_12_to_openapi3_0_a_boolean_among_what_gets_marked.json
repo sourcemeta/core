@@ -1,0 +1,126 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      },
+      "yes": {
+        "$ref": "https://www.sourcemeta.com/yes"
+      },
+      "no": {
+        "$ref": "https://www.sourcemeta.com/no"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "https://www.sourcemeta.com/yes": true,
+    "https://www.sourcemeta.com/no": false
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1pet"
+        },
+        "yes": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1yes"
+        },
+        "no": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1no"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/no": false,
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "nullable": true,
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        },
+        "https://www.sourcemeta.com/yes": true
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1pet"
+        },
+        "yes": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1yes"
+        },
+        "no": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1no"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/no": false,
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "nullable": true,
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        },
+        "https://www.sourcemeta.com/yes": true
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/no",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1no"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/yes",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1yes"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/no",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1no"
+      },
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/yes",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1yes"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/pet",
+      "$defs": 42,
+      "properties": {
+        "anon": {
+          "$ref": "https://www.sourcemeta.com/anon"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/anon": {
+      "type": "object",
+      "nullable": true
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that is not an object",
+      "location": "/x-definitions/https:~1~1www.sourcemeta.com~1pet/$defs"
+    },
+    "references": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that is not an object",
+      "location": "/x-definitions/https:~1~1www.sourcemeta.com~1pet/$defs"
+    }
+  }
+}

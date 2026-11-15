@@ -1,0 +1,67 @@
+{
+  "schema": {
+    "$ref": "https://www.sourcemeta.com/remote"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "type": "object",
+      "properties": {
+        "back": {
+          "$ref": "https://example.com/host"
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "defaultId": "https://example.com/host",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "allOf": [
+        {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1remote"
+        }
+      ],
+      "x-definitions": {
+        "https://www.sourcemeta.com/remote": {
+          "type": "object",
+          "properties": {
+            "back": {
+              "$ref": "https://example.com/host"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "allOf": [
+        {
+          "$ref": "#/x-definitions/https:~1~1www.sourcemeta.com~1remote"
+        }
+      ],
+      "x-definitions": {
+        "https://www.sourcemeta.com/remote": {
+          "type": "object",
+          "properties": {
+            "back": {
+              "$ref": "https://example.com/host"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/x-definitions/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ]
+  }
+}

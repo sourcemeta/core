@@ -1,0 +1,34 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "$ref": "https://example.com/b",
+    "$defs": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "type": "object"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/b": {
+      "$id": "https://example.com/b",
+      "$schema": "https://example.com/meta",
+      "type": "string"
+    }
+  },
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    }
+  }
+}

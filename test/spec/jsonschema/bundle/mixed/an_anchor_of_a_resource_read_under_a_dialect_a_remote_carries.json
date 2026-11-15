@@ -1,0 +1,162 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/carrier"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/asker"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/carrier": {
+      "$id": "https://www.sourcemeta.com/carrier",
+      "$schema": "https://example.com/meta",
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true
+          },
+          "type": "object"
+        }
+      },
+      "properties": {
+        "held": {
+          "$id": "https://example.com/inner",
+          "$anchor": "thing",
+          "type": "string"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/asker": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/asker",
+      "properties": {
+        "kind": {
+          "$ref": "https://example.com/inner#thing"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/carrier"
+        },
+        {
+          "$ref": "https://www.sourcemeta.com/asker"
+        }
+      ],
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true
+          },
+          "type": "object"
+        },
+        "https://www.sourcemeta.com/carrier": {
+          "$id": "https://www.sourcemeta.com/carrier",
+          "$schema": "https://example.com/meta",
+          "properties": {
+            "held": {
+              "$id": "https://example.com/inner",
+              "$anchor": "thing",
+              "type": "string"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/asker": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/asker",
+          "properties": {
+            "kind": {
+              "$ref": "https://example.com/inner#thing"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/carrier"
+        },
+        {
+          "$ref": "https://www.sourcemeta.com/asker"
+        }
+      ],
+      "$defs": {
+        "https://example.com/meta": {
+          "$id": "https://example.com/meta",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$vocabulary": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true,
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true
+          },
+          "type": "object"
+        },
+        "https://www.sourcemeta.com/carrier": {
+          "$id": "https://www.sourcemeta.com/carrier",
+          "$schema": "https://example.com/meta",
+          "properties": {
+            "held": {
+              "$id": "https://example.com/inner",
+              "$anchor": "thing",
+              "type": "string"
+            }
+          }
+        },
+        "https://www.sourcemeta.com/asker": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/asker",
+          "properties": {
+            "kind": {
+              "$ref": "https://example.com/inner#thing"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/meta",
+        "at": "/$defs/https:~1~1example.com~1meta"
+      },
+      {
+        "from": "https://www.sourcemeta.com/carrier",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1carrier"
+      },
+      {
+        "from": "https://www.sourcemeta.com/asker",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1asker"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/meta",
+        "at": "/$defs/https:~1~1example.com~1meta"
+      },
+      {
+        "from": "https://www.sourcemeta.com/carrier",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1carrier"
+      },
+      {
+        "from": "https://www.sourcemeta.com/asker",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1asker"
+      }
+    ]
+  }
+}

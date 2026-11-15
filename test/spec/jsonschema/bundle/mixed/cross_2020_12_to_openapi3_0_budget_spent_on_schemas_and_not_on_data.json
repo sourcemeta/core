@@ -1,0 +1,194 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/pet"
+      }
+    },
+    "$defs": {}
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "type": "object",
+      "nullable": true,
+      "example": {
+        "a01": 1,
+        "a02": 2,
+        "a03": 3,
+        "a04": 4,
+        "a05": 5,
+        "a06": 6,
+        "a07": 7,
+        "a08": 8,
+        "a09": 9,
+        "a10": 10,
+        "a11": 11,
+        "a12": 12,
+        "a13": 13,
+        "a14": 14,
+        "a15": 15,
+        "a16": 16,
+        "a17": 17,
+        "a18": 18,
+        "a19": 19,
+        "a20": 20,
+        "a21": 21,
+        "a22": 22,
+        "a23": 23,
+        "a24": 24,
+        "a25": 25,
+        "a26": 26,
+        "a27": 27,
+        "a28": 28,
+        "a29": 29,
+        "a30": 30,
+        "a31": 31,
+        "a32": 32,
+        "a33": 33,
+        "a34": 34,
+        "a35": 35,
+        "a36": 36,
+        "a37": 37,
+        "a38": 38,
+        "a39": 39,
+        "a40": 40
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "maxLocations": 20,
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "nullable": true,
+          "example": {
+            "a01": 1,
+            "a02": 2,
+            "a03": 3,
+            "a04": 4,
+            "a05": 5,
+            "a06": 6,
+            "a07": 7,
+            "a08": 8,
+            "a09": 9,
+            "a10": 10,
+            "a11": 11,
+            "a12": 12,
+            "a13": 13,
+            "a14": 14,
+            "a15": 15,
+            "a16": 16,
+            "a17": 17,
+            "a18": 18,
+            "a19": 19,
+            "a20": 20,
+            "a21": 21,
+            "a22": 22,
+            "a23": 23,
+            "a24": 24,
+            "a25": 25,
+            "a26": 26,
+            "a27": 27,
+            "a28": 28,
+            "a29": 29,
+            "a30": 30,
+            "a31": 31,
+            "a32": 32,
+            "a33": 33,
+            "a34": 34,
+            "a35": 35,
+            "a36": 36,
+            "a37": 37,
+            "a38": 38,
+            "a39": 39,
+            "a40": 40
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1pet"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/pet": {
+          "type": "object",
+          "nullable": true,
+          "example": {
+            "a01": 1,
+            "a02": 2,
+            "a03": 3,
+            "a04": 4,
+            "a05": 5,
+            "a06": 6,
+            "a07": 7,
+            "a08": 8,
+            "a09": 9,
+            "a10": 10,
+            "a11": 11,
+            "a12": 12,
+            "a13": 13,
+            "a14": 14,
+            "a15": 15,
+            "a16": 16,
+            "a17": 17,
+            "a18": 18,
+            "a19": 19,
+            "a20": 20,
+            "a21": 21,
+            "a22": 22,
+            "a23": 23,
+            "a24": 24,
+            "a25": 25,
+            "a26": 26,
+            "a27": 27,
+            "a28": 28,
+            "a29": 29,
+            "a30": 30,
+            "a31": 31,
+            "a32": 32,
+            "a33": 33,
+            "a34": 34,
+            "a35": 35,
+            "a36": 36,
+            "a37": 37,
+            "a38": 38,
+            "a39": 39,
+            "a40": 40
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pet",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1pet"
+      }
+    ]
+  }
+}

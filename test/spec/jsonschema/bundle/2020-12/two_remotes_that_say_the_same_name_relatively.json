@@ -1,0 +1,128 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "a": {
+        "$ref": "https://example.com/a/doc"
+      },
+      "b": {
+        "$ref": "https://example.com/b/doc"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/a/doc": {
+      "$id": "https://example.com/a/doc",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$defs": {
+        "shared": {
+          "$id": "shared",
+          "type": "string"
+        }
+      }
+    },
+    "https://example.com/b/doc": {
+      "$id": "https://example.com/b/doc",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$defs": {
+        "shared": {
+          "$id": "shared",
+          "type": "number"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "a": {
+          "$ref": "https://example.com/a/doc"
+        },
+        "b": {
+          "$ref": "https://example.com/b/doc"
+        }
+      },
+      "$defs": {
+        "https://example.com/a/doc": {
+          "$id": "https://example.com/a/doc",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "shared": {
+              "$id": "shared",
+              "type": "string"
+            }
+          }
+        },
+        "https://example.com/b/doc": {
+          "$id": "https://example.com/b/doc",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "shared": {
+              "$id": "shared",
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "a": {
+          "$ref": "https://example.com/a/doc"
+        },
+        "b": {
+          "$ref": "https://example.com/b/doc"
+        }
+      },
+      "$defs": {
+        "https://example.com/a/doc": {
+          "$id": "https://example.com/a/doc",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "shared": {
+              "$id": "shared",
+              "type": "string"
+            }
+          }
+        },
+        "https://example.com/b/doc": {
+          "$id": "https://example.com/b/doc",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "shared": {
+              "$id": "shared",
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/a/doc",
+        "at": "/$defs/https:~1~1example.com~1a~1doc"
+      },
+      {
+        "from": "https://example.com/b/doc",
+        "at": "/$defs/https:~1~1example.com~1b~1doc"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/a/doc",
+        "at": "/$defs/https:~1~1example.com~1a~1doc"
+      },
+      {
+        "from": "https://example.com/b/doc",
+        "at": "/$defs/https:~1~1example.com~1b~1doc"
+      }
+    ]
+  }
+}

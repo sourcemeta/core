@@ -1,0 +1,110 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      {
+        "$ref": "https://example.com/pet"
+      },
+      {
+        "$ref": "https://www.sourcemeta.com/remote"
+      }
+    ]
+  },
+  "resolver": {
+    "https://example.com/pet": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/pet",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/remote",
+      "$defs": {
+        "alias": {
+          "id": "https://example.com/pet",
+          "type": "number"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "allOf": [
+        {
+          "$ref": "https://example.com/pet"
+        },
+        {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      ],
+      "$defs": {
+        "https://example.com/pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/pet",
+          "type": "string"
+        },
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/remote",
+          "$defs": {
+            "alias": {
+              "id": "https://example.com/pet",
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "allOf": [
+        {
+          "$ref": "https://example.com/pet"
+        },
+        {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      ],
+      "$defs": {
+        "https://example.com/pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/pet",
+          "type": "string"
+        },
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/remote",
+          "$defs": {
+            "alias": {
+              "id": "https://example.com/pet",
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/pet",
+        "at": "/$defs/https:~1~1example.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/pet",
+        "at": "/$defs/https:~1~1example.com~1pet"
+      },
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ]
+  }
+}

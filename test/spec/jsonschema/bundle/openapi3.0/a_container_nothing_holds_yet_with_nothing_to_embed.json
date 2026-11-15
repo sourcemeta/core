@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "schema": {
+      "type": "object"
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "paths": [
+    "/schema"
+  ],
+  "container": "/storage/defs",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "schema": {
+        "type": "object"
+      }
+    },
+    "references": {
+      "schema": {
+        "type": "object"
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [],
+    "references": []
+  }
+}

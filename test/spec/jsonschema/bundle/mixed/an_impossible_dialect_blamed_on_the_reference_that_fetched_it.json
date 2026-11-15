@@ -1,0 +1,43 @@
+{
+  "schema": {
+    "type": "object",
+    "allOf": [
+      {
+        "$ref": "https://example.com/fetched"
+      },
+      {
+        "$ref": "https://example.com/declared#tag"
+      }
+    ]
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "resolver": {
+    "https://example.com/fetched": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/declared",
+      "type": "object",
+      "$defs": {
+        "inner": {
+          "$schema": "tag:spec.openapis.org,2021-09-28:oas/3.0/dialect",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "The referenced schema declares a dialect that does not define the keyword that declares it",
+      "identifier": "https://example.com/fetched",
+      "location": "/allOf/0/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "The referenced schema declares a dialect that does not define the keyword that declares it",
+      "identifier": "https://example.com/fetched",
+      "location": "/allOf/0/$ref"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}

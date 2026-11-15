@@ -1,0 +1,60 @@
+{
+  "schema": {
+    "$ref": "https://www.sourcemeta.com/remote"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://www.sourcemeta.com/remote",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "http://json-schema.org/draft-07/schema#",
+  "defaultId": "https://example.com/host",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      ],
+      "$id": "https://example.com/host",
+      "definitions": {
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://www.sourcemeta.com/remote",
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      ],
+      "$id": "https://example.com/host",
+      "definitions": {
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://www.sourcemeta.com/remote",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ]
+  }
+}

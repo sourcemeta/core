@@ -1,0 +1,46 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "allOf": [
+      {
+        "$ref": "https://example.com/alias"
+      },
+      {
+        "$ref": "https://example.com/x"
+      }
+    ]
+  },
+  "resolver": {
+    "https://example.com/alias": {
+      "$id": "https://example.com/meta",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true
+      }
+    },
+    "https://example.com/x": {
+      "$id": "https://example.com/x",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://example.com/reader"
+    },
+    "https://example.com/reader": {
+      "$id": "https://example.com/reader",
+      "$schema": "https://example.com/meta"
+    }
+  },
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    }
+  }
+}

@@ -4,10 +4,10 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
 
-#include <algorithm>   // std::ranges::find, std::ranges::any_of
-#include <array>       // std::array
-#include <cstddef>     // std::size_t
-#include <cstdint>     // std::uint64_t
+#include <algorithm> // std::ranges::find, std::ranges::any_of, std::ranges::sort
+#include <array>     // std::array
+#include <cstddef>   // std::size_t
+#include <cstdint>   // std::uint64_t
 #include <filesystem>  // std::filesystem
 #include <iostream>    // std::cerr
 #include <limits>      // std::numeric_limits
@@ -16,7 +16,7 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::pair
-#include <vector>      // std::vector
+#include <vector>      // std::erase_if, std::vector
 
 namespace {
 
@@ -210,14 +210,37 @@ auto to_json(const Insertions &insertions) -> sourcemeta::core::JSON {
   return result;
 }
 
+// The callback says nothing about the order it reports insertions in, so a
+// fixture that stated one would hold a solution to an order that is not part
+// of what bundling promises
+auto sorted_insertions(const sourcemeta::core::JSON &insertions)
+    -> sourcemeta::core::JSON {
+  std::vector<sourcemeta::core::JSON> entries{insertions.as_array().cbegin(),
+                                              insertions.as_array().cend()};
+  std::ranges::sort(entries, [](const auto &left, const auto &right) -> bool {
+    if (left.at("from") == right.at("from")) {
+      return left.at("at") < right.at("at");
+    }
+
+    return left.at("from") < right.at("from");
+  });
+
+  auto result{sourcemeta::core::JSON::make_array()};
+  for (auto &entry : entries) {
+    result.push_back(std::move(entry));
+  }
+
+  return result;
+}
+
 auto expect_insertions(const std::string_view mode, const Insertions &actual,
                        const sourcemeta::core::JSON &expected) -> void {
   auto actual_entry{sourcemeta::core::JSON::make_object()};
   actual_entry.assign("mode", sourcemeta::core::JSON{mode});
-  actual_entry.assign("inserted", to_json(actual));
+  actual_entry.assign("inserted", sorted_insertions(to_json(actual)));
   auto expected_entry{sourcemeta::core::JSON::make_object()};
   expected_entry.assign("mode", sourcemeta::core::JSON{mode});
-  expected_entry.assign("inserted", expected);
+  expected_entry.assign("inserted", sorted_insertions(expected));
 
   EXPECT_EQ(actual_entry, expected_entry);
 }
@@ -239,8 +262,12 @@ auto with_insertions(const Inputs &inputs, const Insertions &insertions)
   result.default_id = inputs.default_id;
   result.default_base = inputs.default_base;
   result.container = inputs.container;
+  // Where a fixture named no pointers of its own, this pass frames what the
+  // one before it framed, as naming none and naming nothing but the root ask
+  // for different documents to be framed. Neither selection points into what
+  // the fixture owns, so there is nothing to carry
   if (inputs.path_storage.empty()) {
-    result.paths.push_back(sourcemeta::core::EMPTY_WEAK_POINTER);
+    result.paths = inputs.paths;
     return result;
   }
 
@@ -254,13 +281,22 @@ auto with_insertions(const Inputs &inputs, const Insertions &insertions)
     // covered by the path that covers it. What has been gathered so far is
     // what each one is held against, so the invariant holds over the whole set
     // rather than over the ones the fixture started with
-    if (std::ranges::none_of(result.path_storage,
-                             [&insertion](const auto &path) -> bool {
-                               return insertion.second.starts_with(path) ||
-                                      path.starts_with(insertion.second);
-                             })) {
-      result.path_storage.push_back(insertion.second);
+    if (std::ranges::any_of(result.path_storage,
+                            [&insertion](const auto &path) -> bool {
+                              return insertion.second.starts_with(path);
+                            })) {
+      continue;
     }
+
+    // An insertion that contains one already gathered takes its place, while
+    // what the fixture itself asked to be framed is left alone
+    std::erase_if(result.path_storage,
+                  [&insertion, &inputs](const auto &path) -> bool {
+                    return path.starts_with(insertion.second) &&
+                           std::ranges::find(inputs.path_storage, path) ==
+                               inputs.path_storage.cend();
+                  });
+    result.path_storage.push_back(insertion.second);
   }
   result.paths.reserve(result.path_storage.size());
   for (const auto &path : result.path_storage) {
@@ -477,12 +513,34 @@ auto run_bundle_test(const sourcemeta::core::JSON &test) -> void {
     // The limit is a budget rather than semantics, and the output is larger
     // than the input it came from, so this pass spends whatever it needs
     const auto settled{with_insertions(inputs, insertions)};
+
+    // What bundling produced has to stand on its own, which the expected
+    // output cannot say by itself, as a reference that resolves nowhere reads
+    // the same as one that does. Meta-schemas are the exception, since the
+    // References mode leaves the ones it did not pull in where they are
+    const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References,
+        document,
+        sourcemeta::core::schema_walker,
+        resolver,
+        settled.default_dialect,
+        settled.default_id,
+        sourcemeta::core::SchemaFrame::IdentifierMode::Additional,
+        settled.paths,
+        settled.default_base};
+    EXPECT_TRUE(frame.standalone_ignoring_metaschemas());
+
     Insertions repeated;
     expect_equal(mode.name,
                  bundle_schema(document, resolver, settled, mode,
                                std::numeric_limits<std::uint64_t>::max(),
                                repeated),
                  document);
+
+    // An output that stands on its own has nothing left to go and get, which
+    // the comparison above cannot say on its own, as a pass that reports work
+    // it did not need to do leaves the document exactly as it found it
+    EXPECT_TRUE(repeated.empty());
   }
 }
 

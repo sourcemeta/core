@@ -1,0 +1,77 @@
+{
+  "schema": {
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/remote"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/remote",
+      "properties": {
+        "back": {
+          "$ref": "https://www.sourcemeta.com/base.json"
+        }
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "defaultBase": "https://www.sourcemeta.com/base.json",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/remote",
+          "properties": {
+            "back": {
+              "$ref": "https://www.sourcemeta.com/base.json"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "https://www.sourcemeta.com/remote"
+        }
+      },
+      "$defs": {
+        "https://www.sourcemeta.com/remote": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://www.sourcemeta.com/remote",
+          "properties": {
+            "back": {
+              "$ref": "https://www.sourcemeta.com/base.json"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/remote",
+        "at": "/$defs/https:~1~1www.sourcemeta.com~1remote"
+      }
+    ]
+  }
+}

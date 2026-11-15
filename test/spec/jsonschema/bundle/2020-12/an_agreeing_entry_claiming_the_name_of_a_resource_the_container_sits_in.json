@@ -1,0 +1,95 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "nested": {
+        "$id": "https://example.com/nested",
+        "properties": {
+          "a": { "$ref": "https://example.com/extra" }
+        }
+      },
+      "z": { "$ref": "https://example.com/remote" }
+    }
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/remote",
+      "$defs": {
+        "https://example.com/nested": {
+          "$id": "https://example.com/nested",
+          "properties": {
+            "a": { "$ref": "https://example.com/extra" }
+          }
+        }
+      }
+    },
+    "https://example.com/extra": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/extra",
+      "type": "string"
+    }
+  },
+  "container": "/properties/nested/$defs",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "nested": {
+          "$id": "https://example.com/nested",
+          "properties": {
+            "a": { "$ref": "https://example.com/extra" }
+          },
+          "$defs": {
+            "https://example.com/extra": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/extra",
+              "type": "string"
+            },
+            "https://example.com/remote": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/remote"
+            }
+          }
+        },
+        "z": { "$ref": "https://example.com/remote" }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "nested": {
+          "$id": "https://example.com/nested",
+          "properties": {
+            "a": { "$ref": "https://example.com/extra" }
+          },
+          "$defs": {
+            "https://example.com/extra": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/extra",
+              "type": "string"
+            },
+            "https://example.com/remote": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/remote"
+            }
+          }
+        },
+        "z": { "$ref": "https://example.com/remote" }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      { "from": "https://example.com/extra", "at": "/properties/nested/$defs/https:~1~1example.com~1extra" },
+      { "from": "https://example.com/remote", "at": "/properties/nested/$defs/https:~1~1example.com~1remote" }
+    ],
+    "references": [
+      { "from": "https://example.com/extra", "at": "/properties/nested/$defs/https:~1~1example.com~1extra" },
+      { "from": "https://example.com/remote", "at": "/properties/nested/$defs/https:~1~1example.com~1remote" }
+    ]
+  }
+}

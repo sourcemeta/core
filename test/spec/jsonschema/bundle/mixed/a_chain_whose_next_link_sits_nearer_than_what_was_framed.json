@@ -1,0 +1,55 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/root",
+    "$defs": {
+      "one": {
+        "$id": "https://example.com/meta-one",
+        "$schema": "https://example.com/meta-two",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    },
+    "properties": {
+      "holder": {
+        "$id": "https://example.com/holder",
+        "definitions": {
+          "two": {
+            "$id": "https://example.com/meta-two",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$vocabulary": {
+              "https://json-schema.org/draft/2020-12/vocab/core": true
+            }
+          }
+        },
+        "properties": {
+          "x": {
+            "$ref": "https://example.com/remote"
+          }
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://example.com/meta-one",
+      "$id": "https://example.com/remote"
+    }
+  },
+  "container": "/properties/holder/definitions",
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta-one"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta-one"
+    }
+  },
+  "inserted": {}
+}

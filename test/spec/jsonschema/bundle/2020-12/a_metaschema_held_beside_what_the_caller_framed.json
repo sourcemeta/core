@@ -1,0 +1,52 @@
+{
+  "schema": {
+    "$defs": {
+      "https://example.com/meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$ref": "https://www.sourcemeta.com/pet"
+        }
+      }
+    },
+    "bundled": {}
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pet": {
+      "$schema": "https://example.com/meta",
+      "$id": "https://www.sourcemeta.com/pet",
+      "properties": {
+        "inner": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "container": "/bundled",
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the metaschema of the schema",
+      "identifier": "https://example.com/meta"
+    }
+  }
+}

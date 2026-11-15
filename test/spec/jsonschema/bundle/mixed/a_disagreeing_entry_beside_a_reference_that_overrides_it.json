@@ -1,0 +1,117 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "a": {
+        "$ref": "https://example.com/remote"
+      }
+    },
+    "$defs": {
+      "mine": {
+        "$id": "https://example.com/ignored",
+        "type": "integer"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$ref": "https://example.com/second",
+      "x-definitions": {
+        "https://example.com/ignored": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/ignored",
+          "type": "boolean"
+        }
+      }
+    },
+    "https://example.com/second": {
+      "type": "string"
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "a": {
+          "$ref": "#/$defs/https:~1~1example.com~1remote"
+        }
+      },
+      "$defs": {
+        "mine": {
+          "$id": "https://example.com/ignored",
+          "type": "integer"
+        },
+        "https://example.com/second": {
+          "type": "string",
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        },
+        "https://example.com/remote": {
+          "$ref": "#/$defs/https:~1~1example.com~1second",
+          "x-definitions": {
+            "https://example.com/ignored": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/ignored",
+              "type": "boolean"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "a": {
+          "$ref": "#/$defs/https:~1~1example.com~1remote"
+        }
+      },
+      "$defs": {
+        "mine": {
+          "$id": "https://example.com/ignored",
+          "type": "integer"
+        },
+        "https://example.com/second": {
+          "type": "string",
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        },
+        "https://example.com/remote": {
+          "$ref": "#/$defs/https:~1~1example.com~1second",
+          "x-definitions": {
+            "https://example.com/ignored": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/ignored",
+              "type": "boolean"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/remote",
+        "at": "/$defs/https:~1~1example.com~1remote"
+      },
+      {
+        "from": "https://example.com/second",
+        "at": "/$defs/https:~1~1example.com~1second"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/remote",
+        "at": "/$defs/https:~1~1example.com~1remote"
+      },
+      {
+        "from": "https://example.com/second",
+        "at": "/$defs/https:~1~1example.com~1second"
+      }
+    ]
+  }
+}

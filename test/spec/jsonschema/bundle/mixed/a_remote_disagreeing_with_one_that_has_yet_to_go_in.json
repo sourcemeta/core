@@ -1,0 +1,42 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      {
+        "$ref": "https://www.sourcemeta.com/carrier"
+      },
+      {
+        "$ref": "https://example.com/shared"
+      }
+    ]
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/carrier": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/carrier",
+      "$defs": {
+        "https://example.com/shared": {
+          "$id": "https://example.com/shared",
+          "type": "integer"
+        }
+      }
+    },
+    "https://example.com/shared": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/shared",
+      "type": "string"
+    }
+  },
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaError",
+      "message": "Conflicting embedded resources with the same identifier"
+    },
+    "references": {
+      "type": "SchemaError",
+      "message": "Conflicting embedded resources with the same identifier"
+    }
+  },
+  "result": {},
+  "inserted": {}
+}
