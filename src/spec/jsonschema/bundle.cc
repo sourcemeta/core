@@ -747,7 +747,8 @@ struct BundleState {
   JSON &root;
   Pointer container{};
   // What the caller's own document is read against, which a name spelled
-  // relatively within it resolves from
+  // relatively within it resolves from, beside the dialect that decides which
+  // keyword writes a name down there
   JSON::String base{};
   // What the document already answers to, as the name a reference asks by
   // beside the name its target keeps
@@ -776,6 +777,45 @@ struct NameReaches {
   bool landed{false};
 };
 
+// Whether anything a pointer passes through on its way down names itself,
+// which is what makes the place it reaches answer to something other than the
+// document holding it. Asking this costs a lookup per step, where asking the
+// frame costs a walk of the whole document
+// Both spellings are asked for, which is not what a dialect says: each
+// reserves one of them and leaves the other as payload. Settling that properly
+// needs the dialect in force at each step, and the dialect changes within a
+// document, so only framing knows it. A walk cannot, and framing every
+// document is the cost this scan exists to avoid. The risk taken is a schema
+// that writes the other spelling as data, which would read here as a name
+auto a_step_names_itself(const JSON &document, const Pointer &pointer) -> bool {
+  const auto *current{&document};
+  for (const auto &token : pointer) {
+    if (token.is_property()) {
+      if (!current->is_object() || !current->defines(token.to_property())) {
+        return false;
+      }
+
+      current = &current->at(token.to_property());
+    } else {
+      if (!current->is_array() || current->size() <= token.to_index()) {
+        return false;
+      }
+
+      current = &current->at(token.to_index());
+    }
+
+    if (current->is_object() &&
+        (current->defines("$id"sv, JSONSCHEMA_HASH_ID) ||
+         current->defines("id"sv, JSONSCHEMA_HASH_LEGACY_ID))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Both spellings are asked for, for the reason given above this file's other
+// walk: the dialect that would settle it is not known here
 auto declared_identifier(const JSON &schema) -> std::string_view {
   if (!schema.is_object()) {
     return {};
@@ -1018,10 +1058,15 @@ auto elevate_embedded_resources(
     if (!value.is_object()) {
       continue;
     }
-    const auto *declared_id{value.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
-    if (declared_id == nullptr) {
-      declared_id = value.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
-    }
+    // A dialect reserves one keyword for a name and leaves the other as
+    // payload, so asking for both would read data as a name. Which dialect is
+    // in force here is what the entry says of itself, falling back to what it
+    // inherits from the document holding it, as a carried resource is free to
+    // read under something else entirely
+    const auto entry_dialect{declared_dialect(value, remote_dialect_uri)};
+    const auto names{
+        id_keyword(to_base_dialect(entry_dialect).value_or(remote_dialect))};
+    const auto *declared_id{value.try_at(names.name, names.hash)};
     if (declared_id == nullptr || !declared_id->is_string()) {
       continue;
     }
@@ -1109,7 +1154,8 @@ auto elevate_embedded_resources(
           }
           const auto *stored_declared_id{
               root_entry.second.try_at("$id"sv, JSONSCHEMA_HASH_ID)};
-          if (stored_declared_id == nullptr) {
+          if (stored_declared_id == nullptr ||
+              !stored_declared_id->is_string()) {
             stored_declared_id =
                 root_entry.second.try_at("id"sv, JSONSCHEMA_HASH_LEGACY_ID);
           }
@@ -1489,16 +1535,15 @@ auto expand_references(
                                      reference.destination, reported);
         }
 
-        // Where what it named carries a name of its own, that name is what
-        // reaches it from anywhere, and goes on doing so wherever the bundling
-        // puts it. Saying where it sits instead would only hold while it sat
-        // there, which is not something a reference into a remote can rely on.
-        // Nothing that declares no identifier can be answering to one, and
-        // ruling that out costs a property lookup where asking the frame costs
-        // a walk of the whole remote
-        if (named_value != nullptr && named_value->is_object() &&
-            (named_value->defines("$id"sv, JSONSCHEMA_HASH_ID) ||
-             named_value->defines("id"sv, JSONSCHEMA_HASH_LEGACY_ID))) {
+        // Where the place it named sits within something that carries a name
+        // of its own, that name is what reaches it from anywhere, and goes on
+        // doing so wherever the bundling puts it. Saying where it sits instead
+        // would only hold while it sat there, and elevating a carried resource
+        // moves it. The place the pointer ends on is not the only one that can
+        // carry such a name, so every step down is asked, which costs a lookup
+        // each where asking the frame costs a walk of the whole remote
+        if (fragment_pointer.has_value() &&
+            a_step_names_itself(remote, fragment_pointer.value())) {
           const SchemaFrame located{SchemaFrame::Mode::Locations,
                                     remote,
                                     walker,
@@ -1610,7 +1655,7 @@ auto expand_references(
                                      .identifier = std::move(effective_id),
                                      .dialect = remote_base_dialect,
                                      .origin = identifier,
-                                     .origin_reference = to_pointer(pointer)});
+                                     .origin_reference = reported});
     });
   } catch (const SchemaDialectImpossibleError &) {
     throw SchemaReferenceError("The referenced schema declares a dialect that "
@@ -1758,10 +1803,6 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
   // Whatever the caller's document is read against, which is what it says of
   // itself where it says anything, and otherwise what the caller handed over
   BundleState state{.root = schema};
-  const auto declared_root{declared_identifier(schema)};
-  state.base = !declared_root.empty() ? JSON::String{declared_root}
-               : !default_id.empty()  ? JSON::String{default_id}
-                                      : JSON::String{default_base};
   auto &bundled{state.bundled};
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations,
                             schema,
@@ -1777,6 +1818,13 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
   initial_frame.for_each_resource_uri([&bundled](const auto &uri) -> void {
     bundled.emplace(canonical_uri(uri), JSON::String{uri});
   });
+
+  // Whatever the caller's document is read against, which is what it says of
+  // itself where it says anything and what the caller handed over otherwise
+  const auto declared_root{declared_identifier(schema)};
+  state.base = !declared_root.empty() ? JSON::String{declared_root}
+               : !default_id.empty()  ? JSON::String{default_id}
+                                      : JSON::String{default_base};
 
   // Besides whatever the document says of itself, it answers to what the
   // caller said it is: the address it was read from, and the name it was
