@@ -354,3 +354,74 @@ TEST(encrypt_rejects_an_octet_secret_for_an_agreement_algorithm) {
                    sourcemeta::core::JWK::from_octets(std::string(32, 'k')))
                    .has_value());
 }
+
+TEST(encrypt_accepts_valid_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_TRUE(sourcemeta::core::jwe_encrypt(
+                  sourcemeta::core::parse_json(
+                      R"JSON({"alg":"dir","enc":"A128GCM"})JSON"),
+                  PLAINTEXT, key)
+                  .has_value());
+}
+
+TEST(encrypt_rejects_missing_algorithm_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(
+                   sourcemeta::core::parse_json(R"JSON({"enc":"A128GCM"})JSON"),
+                   PLAINTEXT, key)
+                   .has_value());
+}
+
+TEST(encrypt_rejects_null_encryption_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(
+          sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":null})JSON"),
+          PLAINTEXT, key)
+          .has_value());
+}
+
+TEST(encrypt_rejects_boolean_encryption_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(
+          sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":false})JSON"),
+          PLAINTEXT, key)
+          .has_value());
+}
+
+TEST(encrypt_rejects_number_encryption_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(
+          sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":42})JSON"),
+          PLAINTEXT, key)
+          .has_value());
+}
+
+TEST(encrypt_rejects_array_encryption_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(
+          sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":[]})JSON"),
+          PLAINTEXT, key)
+          .has_value());
+}
+
+TEST(encrypt_rejects_object_encryption_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_encrypt(
+          sourcemeta::core::parse_json(R"JSON({"alg":"dir","enc":{}})JSON"),
+          PLAINTEXT, key)
+          .has_value());
+}
+
+TEST(encrypt_rejects_unknown_encryption_header) {
+  const auto key{sourcemeta::core::JWK::from_octets(std::string(16, 'k'))};
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(
+                   sourcemeta::core::parse_json(
+                       R"JSON({"alg":"dir","enc":"unknown"})JSON"),
+                   PLAINTEXT, key)
+                   .has_value());
+}
