@@ -7,8 +7,8 @@
 #include <string_view>
 
 // The fixture suite pins what the walk's own allowance reports. What it cannot
-// express is a resolver or a callback of the caller's that throws, which is
-// what these cover
+// express is a resolver, a walker, or a callback of the caller's that throws,
+// which is what these cover
 // Framing asks for the dialect a document declares, so throwing for that is
 // what puts the error inside the construction this operation bounds
 static auto throwing_resolver(std::string_view identifier)
@@ -33,6 +33,17 @@ static auto leaf_resolver(std::string_view identifier)
   return sourcemeta::core::schema_resolver(identifier);
 }
 
+static auto
+throwing_walker(std::string_view keyword,
+                const sourcemeta::core::SchemaVocabularies &vocabularies)
+    -> const sourcemeta::core::SchemaWalkerResult & {
+  if (keyword == "items") {
+    throw sourcemeta::core::SchemaFrameLimitError{13};
+  }
+
+  return sourcemeta::core::schema_walker(keyword, vocabularies);
+}
+
 TEST(a_limit_error_from_the_resolver_keeps_its_own_allowance) {
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://www.sourcemeta.com/dialect",
@@ -46,6 +57,22 @@ TEST(a_limit_error_from_the_resolver_keeps_its_own_allowance) {
     FAIL();
   } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
     EXPECT_EQ(error.limit(), 5);
+  }
+}
+
+TEST(a_limit_error_from_the_walker_keeps_its_own_allowance) {
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "type": "string" }
+  })JSON");
+
+  try {
+    sourcemeta::core::schema_dependencies(document, throwing_walker,
+                                          sourcemeta::core::schema_resolver,
+                                          [](const auto &) -> void {});
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
+    EXPECT_EQ(error.limit(), 13);
   }
 }
 
