@@ -1,0 +1,27 @@
+{
+  "schema": {
+    "selected": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/doc",
+      "items": {
+        "$ref": "#missing"
+      }
+    }
+  },
+  "defaultBase": "https://www.sourcemeta.com/doc",
+  "paths": [
+    "/selected"
+  ],
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/doc"
+  ],
+  "dependencies": [],
+  "fetched": [],
+  "error": {
+    "type": "SchemaReferenceError",
+    "message": "Could not resolve schema reference",
+    "identifier": "https://www.sourcemeta.com/doc#missing",
+    "location": "/selected/items/$ref"
+  }
+}

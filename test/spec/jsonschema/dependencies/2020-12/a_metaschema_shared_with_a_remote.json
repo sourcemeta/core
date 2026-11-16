@@ -48,7 +48,6 @@
   "locations": 3,
   "fetched": [
     "https://www.sourcemeta.com/custom-meta",
-    "https://www.sourcemeta.com/r",
-    "https://www.sourcemeta.com/custom-meta"
+    "https://www.sourcemeta.com/r"
   ]
 }

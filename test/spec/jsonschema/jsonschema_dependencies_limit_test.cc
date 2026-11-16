@@ -66,3 +66,47 @@ TEST(a_limit_error_from_the_callback_keeps_its_own_allowance) {
     EXPECT_EQ(error.limit(), 7);
   }
 }
+
+TEST(a_limit_error_from_the_accounted_predicate_keeps_its_own_allowance) {
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "$ref": "https://www.sourcemeta.com/leaf" }
+  })JSON");
+
+  sourcemeta::core::SchemaDependenciesOptions options;
+  options.max_locations = 1000;
+  options.accounted = [](const std::string_view) -> bool {
+    throw sourcemeta::core::SchemaFrameLimitError{9};
+  };
+
+  try {
+    sourcemeta::core::schema_dependencies(
+        document, sourcemeta::core::schema_walker, leaf_resolver,
+        [](const auto &) -> void {}, options);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
+    EXPECT_EQ(error.limit(), 9);
+  }
+}
+
+TEST(a_limit_error_from_the_accounted_callback_keeps_its_own_allowance) {
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "$ref": "https://www.sourcemeta.com/leaf" }
+  })JSON");
+
+  sourcemeta::core::SchemaDependenciesOptions options;
+  options.max_locations = 1000;
+  options.accounted_callback = [](const std::string_view) -> void {
+    throw sourcemeta::core::SchemaFrameLimitError{11};
+  };
+
+  try {
+    sourcemeta::core::schema_dependencies(
+        document, sourcemeta::core::schema_walker, leaf_resolver,
+        [](const auto &) -> void {}, options);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameLimitError &error) {
+    EXPECT_EQ(error.limit(), 11);
+  }
+}

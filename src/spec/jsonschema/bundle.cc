@@ -8,6 +8,7 @@
 #include <cassert>       // assert
 #include <cstddef>       // std::size_t
 #include <cstdint>       // std::uint64_t
+#include <exception>     // std::rethrow_exception
 #include <functional>    // std::cref
 #include <iterator>      // std::make_move_iterator
 #include <map>           // std::map
@@ -2012,14 +2013,7 @@ auto guard_callback(const SchemaBundleOptions::Callback &callback)
     return callback;
   }
 
-  return [&callback](const std::string_view identifier,
-                     const sourcemeta::core::WeakPointer &location) -> void {
-    try {
-      callback(identifier, location);
-    } catch (const SchemaFrameLimitError &error) {
-      throw ForeignFrameLimitError{error};
-    }
-  };
+  return guard_foreign(callback);
 }
 
 } // namespace
@@ -2030,13 +2024,19 @@ auto schema_bundle(JSON &schema, const SchemaWalker &walker,
                    std::string_view default_id,
                    const SchemaBundleOptions &options) -> std::uint64_t {
   auto remaining{options.max_locations};
+  // Framing and the dialect lookups it takes reach for the resolver and the
+  // walker of their own accord, inside handlers that translate failures of the
+  // library's own making, so whatever the caller's own components throw is
+  // marked on the way out and rethrown untouched at the boundary below
+  const SchemaResolver foreign{guard_foreign(resolver)};
+  const SchemaWalker guarded{guard_foreign(walker)};
   try {
-    bundle_internal(
-        schema, walker, resolver_within_allowance(resolver), options.mode,
-        default_dialect, default_id, options.default_container, options.paths,
-        options.default_base, remaining, guard_callback(options.callback));
-  } catch (const ForeignFrameLimitError &foreign) {
-    throw foreign.error;
+    bundle_internal(schema, guarded, foreign, options.mode, default_dialect,
+                    default_id, options.default_container, options.paths,
+                    options.default_base, remaining,
+                    guard_callback(options.callback));
+  } catch (const ForeignError &caller) {
+    std::rethrow_exception(caller.error);
   } catch (const SchemaFrameLimitError &) {
     // Every frame spends from what is left rather than from the whole, so the
     // one that ran out reports what it was handed. The caller set the limit

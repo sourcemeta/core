@@ -1,0 +1,23 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://www.example.com/entry",
+    "dependencies": {
+      "alpha": {
+        "type": "string"
+      }
+    }
+  },
+  "resolver": {
+    "http://json-schema.org/draft-07/schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    }
+  },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.example.com/entry"
+  ],
+  "dependencies": [],
+  "locations": 2,
+  "fetched": []
+}

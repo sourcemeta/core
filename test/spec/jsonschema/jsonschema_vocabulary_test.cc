@@ -5,8 +5,11 @@
 
 #include <format> // std::format
 
+#include <optional>      // std::nullopt
 #include <sstream>       // std::ostringstream
-#include <string>        // std::string
+#include <stdexcept>     // std::logic_error
+#include <string>        // std::string, std::stoull
+#include <string_view>   // std::string_view
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move, std::pair
 #include <variant>       // std::variant
@@ -71,6 +74,46 @@ static auto vocabularies(const sourcemeta::core::JSON &document,
                                       document, sourcemeta::core::schema_walker,
                                       resolver, default_dialect};
   return frame.vocabularies(frame.root_location().value().get(), resolver);
+}
+
+static auto endless_metaschema_resolver(std::string_view identifier)
+    -> sourcemeta::core::SchemaResolverResult {
+  constexpr std::string_view PREFIX{"https://www.sourcemeta.com/endless/"};
+  if (!identifier.starts_with(PREFIX)) {
+    return sourcemeta::core::schema_resolver(identifier);
+  }
+
+  // A resolver that never runs out of links would otherwise keep an unbounded
+  // chain lookup going until the process runs out of memory, so this stops
+  // just past the depth a chain is allowed rather than waiting for that
+  const auto link{std::stoull(std::string{identifier.substr(PREFIX.size())})};
+  if (link > 100) {
+    throw std::logic_error{"The chain lookup was never cut short"};
+  }
+
+  return sourcemeta::core::parse_json(std::format(R"JSON({{
+    "$id": "{}{}",
+    "$schema": "{}{}"
+  }})JSON",
+                                                  PREFIX, link, PREFIX,
+                                                  link + 1));
+}
+
+static auto no_answers(const std::string_view)
+    -> sourcemeta::core::SchemaResolverResult {
+  return std::nullopt;
+}
+
+static auto draft7_answered_as_2020_12(const std::string_view identifier)
+    -> sourcemeta::core::SchemaResolverResult {
+  if (identifier == "http://json-schema.org/draft-07/schema" ||
+      identifier == "http://json-schema.org/draft-07/schema#") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    })JSON");
+  }
+
+  return sourcemeta::core::schema_resolver(identifier);
 }
 
 TEST(core_vocabularies_boolean_without_default) {
@@ -1159,6 +1202,108 @@ TEST(base_dialect_unresolved_where_the_chain_leaves_the_known) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta-1");
   }
+}
+
+// An embedded meta-schema may hand its chain over to the resolver, which can
+// answer every link with a fresh one, so walking the chain is held to the same
+// depth as the dialect lookup that started it
+TEST(base_dialect_an_embedded_chain_the_resolver_extends_for_ever) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://www.sourcemeta.com/endless/1",
+    "$defs": {
+      "endless-1": {
+        "$id": "https://www.sourcemeta.com/endless/1",
+        "$schema": "https://www.sourcemeta.com/endless/2"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, endless_metaschema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not determine the base dialect of the schema");
+  }
+}
+
+// Per JSON Schema 2020-12 Section 4.3.5, a URI naming a resource with an empty
+// fragment is "considered to be non-canonical", so the identifiers of the
+// drafts before 2019-09 name the same schema with that fragment dropped. That
+// equivalence is the media type's rather than the generic one, which Section
+// 8.2.1 is explicit about, so it is settled here rather than left to a URI
+// library and a document spelling one of those identifiers without the
+// fragment needs no resolver to be read
+TEST(base_dialect_a_fragmentless_draft7_without_a_resolver) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema"
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Root, document,
+      sourcemeta::core::schema_walker, no_answers, ""};
+  EXPECT_TRUE(frame.root_location().has_value());
+  EXPECT_EQ(frame.root_location().value().get().base_dialect,
+            sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_7);
+}
+
+TEST(base_dialect_a_declared_draft7_spelling_without_a_resolver) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Root, document,
+      sourcemeta::core::schema_walker, no_answers, ""};
+  EXPECT_TRUE(frame.root_location().has_value());
+  EXPECT_EQ(frame.root_location().value().get().base_dialect,
+            sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_7);
+}
+
+// A spelling that settles the chain is never taken as a link, so an answer the
+// resolver holds for it, whatever dialect that answer declares, cannot steer
+// the determination away from the official dialect the spelling names
+TEST(base_dialect_a_fragmentless_draft7_despite_an_overriding_answer) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema"
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Root, document,
+      sourcemeta::core::schema_walker, draft7_answered_as_2020_12, ""};
+  EXPECT_TRUE(frame.root_location().has_value());
+  EXPECT_EQ(frame.root_location().value().get().base_dialect,
+            sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_DRAFT_7);
+}
+
+// A spelling that settles the chain is never taken as a link either, so a copy
+// of that schema the document embeds is never read through, and however its
+// own chain cycles onwards, the official dialect the spelling names settles
+TEST(base_dialect_a_respelled_official_root_with_an_embedded_cyclic_copy) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "HTTPS://JSON-SCHEMA.ORG/draft/2020-12/schema",
+    "$defs": {
+      "copy": {
+        "$id": "https://json-schema.org/draft/2020-12/schema",
+        "$schema": "https://www.sourcemeta.com/custom-a"
+      },
+      "a": {
+        "$id": "https://www.sourcemeta.com/custom-a",
+        "$schema": "https://www.sourcemeta.com/custom-b"
+      },
+      "b": {
+        "$id": "https://www.sourcemeta.com/custom-b",
+        "$schema": "https://www.sourcemeta.com/custom-a"
+      }
+    }
+  })JSON")};
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Root, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver, ""};
+  EXPECT_TRUE(frame.root_location().has_value());
+  EXPECT_EQ(frame.root_location().value().get().base_dialect,
+            sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12);
 }
 
 TEST(get_known_absent_vocabulary) {

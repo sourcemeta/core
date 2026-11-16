@@ -1,0 +1,13 @@
+{
+  "schema": {
+    "minLength": 1
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "accounted": [],
+  "accountedReported": [],
+  "dependencies": [],
+  "locations": 1,
+  "fetched": [
+    "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+  ]
+}
