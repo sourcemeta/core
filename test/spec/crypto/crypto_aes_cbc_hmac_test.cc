@@ -226,3 +226,193 @@ TEST(aes_cbc_hmac_decrypt_rejects_an_empty_ciphertext) {
                    KEY_256, IV, ASSOCIATED_DATA, "", result.value().tag())
                    .has_value());
 }
+
+TEST(aes_cbc_hmac_rejects_authenticated_zero_padding_a128cbc_hs256) {
+  // Python cryptography (AES-CBC without padding) and hashlib/hmac generated
+  // this authenticated vector. It decrypts to fifteen 'A' bytes followed by
+  // 00; RFC 5652 Section 6.3 forbids a zero padding length.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("e94ec8dd0636f4f080f8637884f55965")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes("12b1b79458d58e0f6223d08a5995f1b9")
+          .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_256, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_oversized_padding_a128cbc_hs256) {
+  // The valid tag authenticates two blocks: fifteen 'A' bytes followed by
+  // seventeen 11 (hex) bytes. The claimed padding fits the decrypted input
+  // but exceeds the AES block size, so the block-size check must reject it.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes(
+          "e730e508b5f4026f8b71f3c019a53366dc44d677f4c21ce1b7e9cf37471859e2")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes("c859990d14225c0f4a98d1df0b733352")
+          .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_256, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_inconsistent_padding_a128cbc_hs256) {
+  // The valid tag allows padding validation to examine thirteen 'A' bytes
+  // followed by 03 02 03. The length is valid, but the second claimed padding
+  // byte differs from 03, violating RFC 5652 Section 6.3.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("99f3d8b001bf2327fde9064fe4d2de6b")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes("4f943dc08046036d48669c9ae7160ad9")
+          .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_256, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_accepts_authenticated_full_block_padding_a128cbc_hs256) {
+  // This independently generated vector has a valid RFC 7518 authentication
+  // tag and decrypts to sixteen 10 (hex) padding bytes. Removing the whole
+  // padding block must produce an empty plaintext (RFC 5652 Section 6.3).
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("9c54d571702cfa0f03f36215676bab78")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes("c7cabdbae54d780c171afeb616e7398a")
+          .value()};
+  const auto opened{sourcemeta::core::aes_cbc_hmac_decrypt(
+      KEY_256, IV, ASSOCIATED_DATA, ciphertext, tag)};
+  EXPECT_TRUE(opened.has_value());
+  EXPECT_TRUE(opened.value().empty());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_zero_padding_a192cbc_hs384) {
+  // Python cryptography (AES-CBC without padding) and hashlib/hmac generated
+  // this authenticated vector. It decrypts to fifteen 'A' bytes followed by
+  // 00; RFC 5652 Section 6.3 forbids a zero padding length.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("1e7d0539bcb1c279a92efe2b9e113c49")
+          .value()};
+  const auto tag{sourcemeta::core::hex_to_bytes(
+                     "908ae4162e8582c2764b6a865baf4b59ebb48d715c60f1a1")
+                     .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_384, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_oversized_padding_a192cbc_hs384) {
+  // The valid tag authenticates two blocks: fifteen 'A' bytes followed by
+  // seventeen 11 (hex) bytes. The claimed padding fits the decrypted input
+  // but exceeds the AES block size, so the block-size check must reject it.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes(
+          "b80c41c1398ca0c76ae91a0897f13e8573b8c4a157614fd012dc57416a87d36f")
+          .value()};
+  const auto tag{sourcemeta::core::hex_to_bytes(
+                     "69caa33064fe6720826fd0118412feae94961f3b3015b419")
+                     .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_384, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_inconsistent_padding_a192cbc_hs384) {
+  // The valid tag allows padding validation to examine thirteen 'A' bytes
+  // followed by 03 02 03. The length is valid, but the second claimed padding
+  // byte differs from 03, violating RFC 5652 Section 6.3.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("ff624af6ef36d999a74cef2e804d6fe8")
+          .value()};
+  const auto tag{sourcemeta::core::hex_to_bytes(
+                     "64836f25a4113342de91e1fd4e5f86e956322c4447e1d09b")
+                     .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_384, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_accepts_authenticated_full_block_padding_a192cbc_hs384) {
+  // This independently generated vector has a valid RFC 7518 authentication
+  // tag and decrypts to sixteen 10 (hex) padding bytes. Removing the whole
+  // padding block must produce an empty plaintext (RFC 5652 Section 6.3).
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("38fd20e8100f2ed8b8e95015efdedfb1")
+          .value()};
+  const auto tag{sourcemeta::core::hex_to_bytes(
+                     "950617c9e3d5c0f900f7fa99501b0438af4cbdf7e94dbbdd")
+                     .value()};
+  const auto opened{sourcemeta::core::aes_cbc_hmac_decrypt(
+      KEY_384, IV, ASSOCIATED_DATA, ciphertext, tag)};
+  EXPECT_TRUE(opened.has_value());
+  EXPECT_TRUE(opened.value().empty());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_zero_padding_a256cbc_hs512) {
+  // Python cryptography (AES-CBC without padding) and hashlib/hmac generated
+  // this authenticated vector. It decrypts to fifteen 'A' bytes followed by
+  // 00; RFC 5652 Section 6.3 forbids a zero padding length.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("8ecd061ea6d151194e370b9452200eba")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes(
+          "1b07a240ae21af32a3bc5634ae3c618bbca7ce06bab87fa42094edd6b8618cbb")
+          .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_512, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_oversized_padding_a256cbc_hs512) {
+  // The valid tag authenticates two blocks: fifteen 'A' bytes followed by
+  // seventeen 11 (hex) bytes. The claimed padding fits the decrypted input
+  // but exceeds the AES block size, so the block-size check must reject it.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes(
+          "3640b885e9e5888ac7bf7f1af42c1d4a33447c1bf811c35f5fb0b3c26f90b674")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes(
+          "880bc74b195252a1053fe50fd45fe1a32bfb1fc6b410ac90261091c94334b1c2")
+          .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_512, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_rejects_authenticated_inconsistent_padding_a256cbc_hs512) {
+  // The valid tag allows padding validation to examine thirteen 'A' bytes
+  // followed by 03 02 03. The length is valid, but the second claimed padding
+  // byte differs from 03, violating RFC 5652 Section 6.3.
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("1cab42f18566506fd5591f3b9289d559")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes(
+          "e0054d5f68ce190a27b8542a573daa28af75655618f18b870e5ca6fdd4b83a0b")
+          .value()};
+  EXPECT_FALSE(sourcemeta::core::aes_cbc_hmac_decrypt(
+                   KEY_512, IV, ASSOCIATED_DATA, ciphertext, tag)
+                   .has_value());
+}
+
+TEST(aes_cbc_hmac_accepts_authenticated_full_block_padding_a256cbc_hs512) {
+  // This independently generated vector has a valid RFC 7518 authentication
+  // tag and decrypts to sixteen 10 (hex) padding bytes. Removing the whole
+  // padding block must produce an empty plaintext (RFC 5652 Section 6.3).
+  const auto ciphertext{
+      sourcemeta::core::hex_to_bytes("a00f1ede67c6f803526f2e3c4ea929bc")
+          .value()};
+  const auto tag{
+      sourcemeta::core::hex_to_bytes(
+          "99b8e26bce0c261b2eed5f07a0dd3083d9617d745826c3e08ced87fad69cfe22")
+          .value()};
+  const auto opened{sourcemeta::core::aes_cbc_hmac_decrypt(
+      KEY_512, IV, ASSOCIATED_DATA, ciphertext, tag)};
+  EXPECT_TRUE(opened.has_value());
+  EXPECT_TRUE(opened.value().empty());
+}
