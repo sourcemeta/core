@@ -7,12 +7,14 @@
 
 #include <array>         // std::array
 #include <deque>         // std::deque
+#include <exception>     // std::exception_ptr, std::current_exception
 #include <functional>    // std::equal_to, std::hash
 #include <optional>      // std::optional
 #include <string_view>   // std::string_view
 #include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
-#include <utility>       // std::pair, std::move, std::unreachable
+#include <utility>       // std::pair, std::move, std::forward,
+                         // std::unreachable
 #include <vector>        // std::vector
 
 namespace sourcemeta::core {
@@ -391,26 +393,30 @@ struct EmbeddedMetaschemaLink {
   std::string_view container;
 };
 
-// A limit error that the caller's own resolver or callback raised carries an
-// allowance of theirs rather than the one set for this operation, so marking
-// it on the way out is what keeps it from being restated as this one. Framing
-// reaches for the resolver of its own accord, so an operation that bounds its
-// framing cannot tell the two apart without this
-struct ForeignFrameLimitError {
-  SchemaFrameLimitError error;
+// A caller-supplied resolver, walker, or callback may throw anything of its
+// own, including a type that spells the same as one an operation raises and
+// handles itself, while framing and the dialect lookups it takes reach for
+// those components of their own accord. Marking whatever the caller throws on
+// the way out is what holds an operation's handlers to failures of the
+// library's own making, and the boundary that unwraps this rethrows the very
+// exception that was thrown, dynamic type and all. This carries no error of
+// its own, so it deliberately derives from nothing: a handler that means to
+// catch what the caller threw unwraps this rather than naming a base of it
+struct ForeignError {
+  std::exception_ptr error;
 };
 
-// The result borrows the resolver, so it must not outlive it
-inline auto resolver_within_allowance(const SchemaResolver &resolver)
-    -> SchemaResolver {
-  return
-      [&resolver](const std::string_view identifier) -> SchemaResolverResult {
-        try {
-          return resolver(identifier);
-        } catch (const SchemaFrameLimitError &error) {
-          throw ForeignFrameLimitError{error};
-        }
-      };
+// The result borrows the function, so it must not outlive it
+template <typename Function>
+inline auto guard_foreign(const Function &function) {
+  return [&function]<typename... Arguments>(
+             Arguments &&...arguments) -> decltype(auto) {
+    try {
+      return function(std::forward<Arguments>(arguments)...);
+    } catch (...) {
+      throw ForeignError{std::current_exception()};
+    }
+  };
 }
 
 } // namespace sourcemeta::core

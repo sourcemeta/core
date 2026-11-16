@@ -1,0 +1,27 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "properties": {
+      "one": {
+        "$ref": "https://www.sourcemeta.com/missing"
+      },
+      "two": {
+        "$ref": "https://www.sourcemeta.com/missing"
+      }
+    }
+  },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry"
+  ],
+  "dependencies": [],
+  "fetched": [
+    "https://www.sourcemeta.com/missing"
+  ],
+  "error": {
+    "type": "SchemaResolutionError",
+    "message": "Could not resolve the reference to an external schema",
+    "identifier": "https://www.sourcemeta.com/missing"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "items": {
+      "$ref": "http://json-schema.org/draft-07/schema"
+    }
+  },
+  "resolver": {
+    "http://json-schema.org/draft-07/schema": {
+      "type": "object"
+    }
+  },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry"
+  ],
+  "dependencies": [],
+  "fetched": [],
+  "error": {
+    "type": "SchemaReferenceError",
+    "message": "The JSON document is not a valid JSON Schema",
+    "identifier": "http://json-schema.org/draft-07/schema",
+    "location": "/items/$ref"
+  }
+}

@@ -23,7 +23,9 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_bundle_depth_test.cc
     jsonschema_dependencies_depth_test.cc
     jsonschema_dependencies_accounted_test.cc
-    jsonschema_dependencies_limit_test.cc)
+    jsonschema_dependencies_limit_test.cc
+    jsonschema_bundle_caller_errors_test.cc
+    jsonschema_dependencies_caller_errors_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonschema_unit
   PRIVATE sourcemeta::core::json)

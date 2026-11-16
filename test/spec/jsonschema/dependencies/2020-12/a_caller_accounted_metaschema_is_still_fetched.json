@@ -1,0 +1,50 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/entry",
+    "items": {
+      "$ref": "https://www.sourcemeta.com/remote"
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/remote": {
+      "$schema": "https://www.sourcemeta.com/custom-meta",
+      "$id": "https://www.sourcemeta.com/remote",
+      "type": "string"
+    },
+    "https://www.sourcemeta.com/custom-meta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/custom-meta",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      }
+    }
+  },
+  "accounted": [
+    "https://www.sourcemeta.com/custom-meta"
+  ],
+  "accountedReported": [
+    "https://www.sourcemeta.com/entry",
+    "https://www.sourcemeta.com/remote"
+  ],
+  "dependencies": [
+    {
+      "origin": "https://www.sourcemeta.com/entry",
+      "pointer": "/items/$ref",
+      "destination": "https://www.sourcemeta.com/remote",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/remote",
+      "pointer": "/$schema",
+      "destination": "https://www.sourcemeta.com/custom-meta",
+      "resolved": false
+    }
+  ],
+  "locations": 3,
+  "fetched": [
+    "https://www.sourcemeta.com/remote",
+    "https://www.sourcemeta.com/custom-meta"
+  ]
+}
