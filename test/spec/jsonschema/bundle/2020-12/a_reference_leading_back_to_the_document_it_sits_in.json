@@ -1,0 +1,51 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "pet": {
+        "$ref": "./host#/$defs/shared"
+      }
+    },
+    "$defs": {
+      "shared": {
+        "type": "string"
+      }
+    }
+  },
+  "resolver": {},
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/shared"
+        }
+      },
+      "$defs": {
+        "shared": {
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/shared"
+        }
+      },
+      "$defs": {
+        "shared": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [],
+    "references": []
+  }
+}

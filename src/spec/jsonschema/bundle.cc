@@ -42,9 +42,10 @@ auto is_skippable_metaschema_reference(const SchemaBundleOptions::Mode mode,
 // relative references that are empty or include only the number sign ('#')
 // separator followed by a fragment identifier". Those stay as spelled, as they
 // need no base URI beyond the one already in effect. Any other relative
-// reference names another document, so bundling restates it as the URI it
-// resolves to, which is what lets it keep naming its target once the bundled
-// document travels somewhere else
+// reference is restated, as the URI it resolves to where it leads to another
+// document and as a same-document reference where it leads back to this one,
+// which is what lets it keep naming its target once the bundled document
+// travels somewhere else
 //
 // A dynamic reference needs no exception here. JSON Schema 2020-12, section
 // 8.2.3.2 has it "resolved against the current URI base" like any other before
@@ -62,6 +63,53 @@ auto spells_another_document_relatively(const SchemaFrame::Reference &reference)
   const URI original{reference.original};
   return original.is_relative() && !original.is_fragment_only() &&
          !original.empty();
+}
+
+// Which of the two a restatement writes. RFC 3986, section 4.4 tells a
+// same-document reference by where it leads rather than by how it is spelled:
+// "When a URI reference refers to a URI that is, aside from its fragment
+// component (if any), identical to the base URI, that reference is called a
+// 'same-document' reference". So a spelling that carries a path is one of
+// those as much as a bare fragment is, whenever what it resolves to is the
+// document writing it.
+//
+// Which base that is asked of is the one in effect where the reference sits
+// rather than the one the document was read under, as a reference out of a
+// resource that declares an identifier of its own resolves against that
+// identifier. One leading anywhere but there is no same-document reference,
+// however much of the enclosing document it lands in
+auto leads_back_to_its_own_document(const SchemaFrame &frame,
+                                    const WeakPointer &pointer,
+                                    const SchemaFrame::Reference &reference)
+    -> bool {
+  const auto holder{pointer.initial()};
+  // The entry that says what this place resolves against, which is the
+  // resource a schema introduces where it declares an identifier and the
+  // subschema it is otherwise. An anchor or a plain pointer registered at the
+  // same place answers for how that place is reached instead
+  auto holding{frame.traverse(holder, SchemaFrame::LocationType::Resource)};
+  if (!holding.has_value()) {
+    holding = frame.traverse(holder, SchemaFrame::LocationType::Subschema);
+  }
+
+  return holding.has_value() && reference.base == holding.value().get().base;
+}
+
+// How such a reference is spelled. Section 5.1 holds that "aside from
+// fragment-only references (Section 4.4), relative references are only usable
+// when a base URI is known", so this is the one spelling of a place within
+// this document that goes on naming it wherever the document is kept, while
+// spelling out the base it was read under would name a document that nothing
+// holds any more
+auto same_document_reference(const std::optional<std::string_view> &fragment)
+    -> JSON::String {
+  if (!fragment.has_value()) {
+    return {};
+  }
+
+  JSON::String result{"#"};
+  result.append(fragment.value());
+  return result;
 }
 
 // The absolute form of a reference whose target answers to an identifier other
@@ -1743,8 +1791,11 @@ auto expand_references(
         }
 
         if (spells_another_document_relatively(reference)) {
-          ref_rewrites.emplace_back(to_pointer(pointer),
-                                    JSON::String{reference.destination});
+          ref_rewrites.emplace_back(
+              to_pointer(pointer),
+              leads_back_to_its_own_document(frame, pointer, reference)
+                  ? same_document_reference(reference.fragment)
+                  : JSON::String{reference.destination});
         }
       });
 
