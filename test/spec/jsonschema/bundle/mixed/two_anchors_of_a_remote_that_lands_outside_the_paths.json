@@ -1,0 +1,105 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Name": {
+          "$ref": "https://example.com/fetched#tag"
+        },
+        "Use": {
+          "$ref": "https://example.com/fetched#tag2"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/fetched": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/fetched",
+      "properties": {
+        "name": {
+          "$anchor": "tag",
+          "type": "string"
+        },
+        "other": {
+          "$anchor": "tag2",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "container": "/components/schemas",
+  "paths": [
+    "/components/schemas/Name",
+    "/components/schemas/Use"
+  ],
+  "defaultBase": "https://example.com/openapi.json",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "components": {
+        "schemas": {
+          "Name": {
+            "$ref": "https://example.com/fetched#tag"
+          },
+          "Use": {
+            "$ref": "https://example.com/fetched#tag2"
+          },
+          "https://example.com/fetched": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/fetched",
+            "properties": {
+              "name": {
+                "$anchor": "tag",
+                "type": "string"
+              },
+              "other": {
+                "$anchor": "tag2",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "components": {
+        "schemas": {
+          "Name": {
+            "$ref": "https://example.com/fetched#tag"
+          },
+          "Use": {
+            "$ref": "https://example.com/fetched#tag2"
+          },
+          "https://example.com/fetched": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/fetched",
+            "properties": {
+              "name": {
+                "$anchor": "tag",
+                "type": "string"
+              },
+              "other": {
+                "$anchor": "tag2",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/fetched",
+        "at": "/components/schemas/https:~1~1example.com~1fetched"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/fetched",
+        "at": "/components/schemas/https:~1~1example.com~1fetched"
+      }
+    ]
+  }
+}

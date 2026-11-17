@@ -1,0 +1,97 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Use": {
+          "$ref": "https://example.com/b"
+        }
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/b": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/b",
+      "properties": {
+        "a": {
+          "$ref": "https://example.com/a"
+        }
+      }
+    },
+    "https://example.com/a": {
+      "type": "object"
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "container": "/components/schemas",
+  "paths": [
+    "/components/schemas/Use"
+  ],
+  "defaultBase": "https://example.com/openapi.json",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "components": {
+        "schemas": {
+          "Use": {
+            "$ref": "https://example.com/b"
+          },
+          "https://example.com/a": {
+            "type": "object"
+          },
+          "https://example.com/b": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/b",
+            "properties": {
+              "a": {
+                "$ref": "https://example.com/openapi.json#/components/schemas/https:~1~1example.com~1a"
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "components": {
+        "schemas": {
+          "Use": {
+            "$ref": "https://example.com/b"
+          },
+          "https://example.com/a": {
+            "type": "object"
+          },
+          "https://example.com/b": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/b",
+            "properties": {
+              "a": {
+                "$ref": "https://example.com/openapi.json#/components/schemas/https:~1~1example.com~1a"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/a",
+        "at": "/components/schemas/https:~1~1example.com~1a"
+      },
+      {
+        "from": "https://example.com/b",
+        "at": "/components/schemas/https:~1~1example.com~1b"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/a",
+        "at": "/components/schemas/https:~1~1example.com~1a"
+      },
+      {
+        "from": "https://example.com/b",
+        "at": "/components/schemas/https:~1~1example.com~1b"
+      }
+    ]
+  }
+}
