@@ -58,6 +58,7 @@
   ],
   "locations": 14,
   "fetched": [
-    "https://www.sourcemeta.com/other.json"
+    "https://www.sourcemeta.com/other.json",
+    "https://www.sourcemeta.com/named.json"
   ]
 }
