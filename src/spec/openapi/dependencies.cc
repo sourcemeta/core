@@ -130,10 +130,9 @@ struct Deferred {
   // What the position spelling it reaches for, which is what reporting it
   // takes once something has answered for the far end
   OpenAPIObjectKind expected;
-  // What the document spelled, fragment and all, as whether it names a place
-  // within something the span holds is a question the document part alone
-  // cannot answer
-  JSON::String spelled;
+  // Whether it names a place within the document above rather than the whole
+  // of it, which the document part alone cannot answer
+  bool within;
   // The revision of the description that made it, which is what the dialect
   // its far end may be written against turns on
   OpenAPIVersion version;
@@ -273,11 +272,10 @@ auto names_a_place_within(const JSON::StringView spelled,
 // place no schema can have, and a reference of a Schema Object into one is
 // left to the kinds below, which hold it to the dialect of the revision
 // naming it as well
-auto reaches_within_the_span(const Walk &walk, const JSON::StringView spelled,
+auto reaches_within_the_span(const Walk &walk, const bool within,
                              const JSON::StringView document) -> bool {
   const auto known{walk.accounted.find(document)};
-  if (!names_a_place_within(spelled, document) ||
-      known == walk.accounted.cend()) {
+  if (!within || known == walk.accounted.cend()) {
     return false;
   }
 
@@ -388,12 +386,12 @@ auto report(Walk &walk, const Origin &origin, const Pointer &pointer,
   // rather than one the caller has to fetch, while the document holding it is
   // reached all the same, and naming a whole document is the different matter
   // that the kinds below settle
-  if (reaches_within_the_span(walk, spelled, destination)) {
+  const auto within{names_a_place_within(spelled, destination)};
+  if (reaches_within_the_span(walk, within, destination)) {
     report_site(walk, origin, pointer, destination, expected);
     return;
   }
 
-  const auto within{names_a_place_within(spelled, destination)};
   const JSON::String key{destination};
   if (!sourcemeta::core::URI{key}.scheme().has_value()) {
     throw OpenAPIReferenceError{
@@ -447,7 +445,7 @@ auto report(Walk &walk, const Origin &origin, const Pointer &pointer,
                  .pointer = pointer,
                  .destination = key,
                  .expected = expected,
-                 .spelled = JSON::String{spelled},
+                 .within = within,
                  .version = version,
                  .reached = reached});
     return;
@@ -764,10 +762,8 @@ auto reach_description(Walk &walk, const Deferred &deferred) -> bool {
     return false;
   }
 
-  const auto within{
-      names_a_place_within(deferred.spelled, deferred.destination)};
   auto remote{walk.schema_resolver(deferred.destination)};
-  if (!remote.has_value() && within) {
+  if (!remote.has_value() && deferred.within) {
     remote = walk.resolver(deferred.destination);
   }
 
@@ -779,7 +775,7 @@ auto reach_description(Walk &walk, const Deferred &deferred) -> bool {
   // or a Schema Object at the root", so naming the whole of a description names
   // a root that is an Object of this specification rather than a schema
   // See https://spec.openapis.org/oas/v3.2.1.html#openapi-description-structure
-  if (!within) {
+  if (!deferred.within) {
     throw OpenAPIReferenceError{
         "A Schema Object may only reference a JSON Schema document",
         deferred.origin, deferred.pointer, deferred.destination};
@@ -816,7 +812,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
                  .pointer = to_pointer(dependency.pointer),
                  .destination = JSON::String{dependency.destination},
                  .expected = OpenAPIObjectKind::Schema,
-                 .spelled = JSON::String{dependency.spelled},
+                 .within = dependency.fragment.has_value(),
                  .version = entry.version,
                  .reached = Reached::Schema});
   };
@@ -824,8 +820,9 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
   schemas.default_id = entry.identifier;
   schemas.default_base = entry.identifier;
   schemas.max_locations = walk.remaining;
-  schemas.accounted = [&walk](const std::string_view identifier,
-                              const std::string_view spelled) -> bool {
+  schemas.accounted =
+      [&walk](const std::string_view identifier,
+              const std::optional<std::string_view> fragment) -> bool {
     const auto known{walk.accounted.find(identifier)};
     if (known == walk.accounted.cend()) {
       return false;
@@ -836,7 +833,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
     // specification rather than a schema, which the kinds at the end refuse
     // rather than this answering for
     return known->second.reached != Reached::Description ||
-           names_a_place_within(spelled, identifier);
+           fragment.has_value();
   };
   // What the schema walk reached is accounted without a claim as to which
   // dialect it goes by, as the document at the far end of such a name is not
@@ -909,7 +906,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
                    .pointer = EMPTY_POINTER,
                    .destination = JSON::String{error.identifier()},
                    .expected = OpenAPIObjectKind::Schema,
-                   .spelled = JSON::String{error.identifier()},
+                   .within = false,
                    .version = entry.version,
                    .reached = Reached::Schema,
                    .foreign = std::current_exception()});
@@ -1040,7 +1037,7 @@ auto openapi_dependencies(const JSON &document, const SchemaWalker &walker,
 
       // A document answering to the name settles it the same way whether it
       // was there to begin with or arrived later
-      if (reaches_within_the_span(walk, entry.spelled, entry.destination)) {
+      if (reaches_within_the_span(walk, entry.within, entry.destination)) {
         continue;
       }
 

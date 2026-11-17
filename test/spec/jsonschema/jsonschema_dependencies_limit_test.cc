@@ -4,6 +4,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include <optional>
 #include <string_view>
 
 // The fixture suite pins what the walk's own allowance reports. What it cannot
@@ -103,7 +104,7 @@ TEST(a_limit_error_from_the_accounted_predicate_keeps_its_own_allowance) {
   sourcemeta::core::SchemaDependenciesOptions options;
   options.max_locations = 1000;
   options.accounted = [](const std::string_view,
-                         const std::string_view) -> bool {
+                         const std::optional<std::string_view>) -> bool {
     throw sourcemeta::core::SchemaFrameLimitError{9};
   };
 
