@@ -159,7 +159,7 @@ auto restate_external_documentation(JSON &subschema, const SchemaFrame &frame,
                             &dialect_documents](const auto &location) -> void {
     if (location.dialect != current_dialect) {
       current_dialect = location.dialect;
-      dialect_documents = dialect_defines(
+      dialect_documents = schema_defines_keyword(
           walker, frame.vocabularies(location, resolver), "externalDocs");
     }
 
@@ -245,7 +245,8 @@ auto boolean_can_be_restated(const SchemaWalker &walker,
                              const SchemaVocabularies &vocabularies,
                              const JSON &schema) -> bool {
   assert(schema.is_boolean());
-  return schema.to_boolean() || dialect_defines(walker, vocabularies, "not"sv);
+  return schema.to_boolean() ||
+         schema_defines_keyword(walker, vocabularies, "not"sv);
 }
 
 // A schema that cannot name itself answers to nothing once it is embedded, so
@@ -323,11 +324,12 @@ auto mark_dialect_of_every_subschema(JSON &schema, const SchemaWalker &walker,
 // The key this assigns is the only record of where the schema landed, which a
 // reference that names a place rather than an identifier has to be told
 auto canonical_uri(const std::string_view uri) -> JSON::String {
-  try {
-    return URI::canonicalize(uri);
-  } catch (const URIParseError &) {
-    return JSON::String{uri};
+  auto settled{URI::try_canonicalize(uri)};
+  if (settled.has_value()) {
+    return std::move(settled.value());
   }
+
+  return JSON::String{uri};
 }
 
 // Every meta-schema that anything within this schema pins. A schema that
@@ -1518,7 +1520,7 @@ auto expand_references(
       // frame happens to reach it first cannot do
       if (remote.is_object() &&
           remote.defines("$schema"sv, JSONSCHEMA_HASH_SCHEMA) &&
-          !dialect_defines(walker, remote_vocabularies, "$schema"sv)) {
+          !schema_defines_keyword(walker, remote_vocabularies, "$schema"sv)) {
         throw SchemaReferenceError("The referenced schema declares a dialect "
                                    "that does not define the keyword that "
                                    "declares it",

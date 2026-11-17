@@ -692,3 +692,28 @@ TEST(another_scheme_keeps_a_port_that_is_a_default_elsewhere) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "ftp://example.com:443/foo");
 }
+
+TEST(static_try_from_string) {
+  const std::string uri{"hTtP://exAmpLe.com:80/TEST"};
+  const auto result{sourcemeta::core::URI::try_canonicalize(uri)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "http://example.com/TEST");
+}
+
+TEST(static_try_refuses_an_input_that_is_no_uri) {
+  const auto result{sourcemeta::core::URI::try_canonicalize("not a uri")};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(static_try_refuses_non_ascii) {
+  // The static entry point parses as a plain URI, so IRI input is rejected
+  const auto result{sourcemeta::core::URI::try_canonicalize(
+      "https://example.com/caf\xC3\xA9")};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(static_try_keeps_a_relative_reference) {
+  const auto result{sourcemeta::core::URI::try_canonicalize("../entry")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "../entry");
+}
