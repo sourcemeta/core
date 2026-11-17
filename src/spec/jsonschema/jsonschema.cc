@@ -240,6 +240,12 @@ auto sourcemeta::core::schema_identifier_keyword(
   return sourcemeta::core::id_keyword(base_dialect).name;
 }
 
+auto sourcemeta::core::schema_defines_keyword(
+    const SchemaWalker &walker, const SchemaVocabularies &vocabularies,
+    const std::string_view keyword) -> bool {
+  return walker(keyword, vocabularies).type != SchemaKeywordType::Unknown;
+}
+
 auto sourcemeta::core::schema_reidentify(sourcemeta::core::JSON &schema,
                                          std::string_view new_identifier,
                                          const SchemaBaseDialect base_dialect)
@@ -319,7 +325,7 @@ static auto base_dialect_of_spelling(const std::string_view dialect)
     return exact;
   }
 
-  const auto settled{sourcemeta::core::maybe_canonicalize(dialect)};
+  const auto settled{sourcemeta::core::URI::try_canonicalize(dialect)};
   if (!settled.has_value()) {
     return std::nullopt;
   }
@@ -453,7 +459,7 @@ auto sourcemeta::core::metaschema_try_embedded(
 static auto resolve_settled(const sourcemeta::core::SchemaResolver &resolver,
                             const std::string_view identifier)
     -> sourcemeta::core::SchemaResolverResult {
-  const auto settled{sourcemeta::core::maybe_canonicalize(identifier)};
+  const auto settled{sourcemeta::core::URI::try_canonicalize(identifier)};
   if (!settled.has_value() || settled.value() == identifier) {
     return std::nullopt;
   }

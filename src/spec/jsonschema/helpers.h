@@ -113,15 +113,6 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect) -> SchemaKeyword {
 #endif
 }
 
-// Whether the dialect in force gives a keyword any meaning at all, which is
-// what the vocabularies it draws on say rather than what its base dialect
-// happens to name
-inline auto dialect_defines(const SchemaWalker &walker,
-                            const SchemaVocabularies &vocabularies,
-                            const std::string_view keyword) -> bool {
-  return walker(keyword, vocabularies).type != SchemaKeywordType::Unknown;
-}
-
 // A base dialect names the keyword that introduces an identifier, but a
 // dialect built on top of it may leave that keyword out of its own
 // vocabularies, in which case nothing the schema writes can introduce one.
@@ -131,7 +122,8 @@ inline auto dialect_defines_identifier(const SchemaWalker &walker,
                                        const SchemaVocabularies &vocabularies,
                                        const SchemaBaseDialect base_dialect)
     -> bool {
-  return dialect_defines(walker, vocabularies, id_keyword(base_dialect).name);
+  return schema_defines_keyword(walker, vocabularies,
+                                id_keyword(base_dialect).name);
 }
 
 // Asking whether a URI is already known happens from whatever view the caller
@@ -275,17 +267,6 @@ ref_overrides_adjacent_keywords(const SchemaBaseDialect base_dialect) -> bool {
   }
 }
 
-// An identifier that reads as no URI has no canonical form to be compared
-// against, which is as good as not matching whatever it is held up to
-inline auto maybe_canonicalize(const std::string_view identifier)
-    -> std::optional<sourcemeta::core::JSON::String> {
-  try {
-    return sourcemeta::core::URI::canonicalize(identifier);
-  } catch (const sourcemeta::core::URIParseError &) {
-    return std::nullopt;
-  }
-}
-
 inline auto embedded_metaschema_identifier_matches(
     const sourcemeta::core::JSON &candidate, const SchemaKeyword keyword,
     const std::string_view identifier,
@@ -300,15 +281,14 @@ inline auto embedded_metaschema_identifier_matches(
     return true;
   }
 
-  if (canonical.has_value()) {
-    try {
-      return sourcemeta::core::URI::canonicalize(current) == canonical.value();
-    } catch (const sourcemeta::core::URIParseError &) {
-      return false;
-    }
+  // An identifier that reads as no URI has no canonical form to be compared
+  // against, which is as good as not matching whatever it is held up to
+  if (!canonical.has_value()) {
+    return false;
   }
 
-  return false;
+  const auto settled{sourcemeta::core::URI::try_canonicalize(current)};
+  return settled.has_value() && settled.value() == canonical.value();
 }
 
 inline auto embedded_metaschema_matches(
@@ -339,7 +319,7 @@ embedded_metaschema_candidate(const sourcemeta::core::JSON &document,
     return {nullptr, ""};
   }
 
-  const auto canonical{maybe_canonicalize(identifier)};
+  const auto canonical{sourcemeta::core::URI::try_canonicalize(identifier)};
 
   constexpr std::array<SchemaKeyword, 2> CONTAINERS{
       {{.name = "$defs"sv, .hash = JSONSCHEMA_HASH_DEFS},
@@ -381,7 +361,7 @@ inline auto embedded_metaschema_link_valid(const sourcemeta::core::JSON &link,
     return false;
   }
 
-  const auto canonical{maybe_canonicalize(identifier)};
+  const auto canonical{sourcemeta::core::URI::try_canonicalize(identifier)};
 
   return embedded_metaschema_identifier_matches(link, id_keyword(base_dialect),
                                                 identifier, canonical);
