@@ -2079,9 +2079,15 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
         // embedded Schema Object no way of keeping that URI leaves nothing in
         // the result answering to it. Leaving it here would hand back a
         // description that does not hold what it names, so it goes on to be
-        // pointed at where that schema landed instead
-        assert(reference.mapping);
-        deferred[reference.destination].push_back(reference);
+        // pointed at where that schema landed instead.
+        //
+        // A reference of a Schema Object wants nothing of that, as bringing
+        // the schemas of a description in is what settles where it leads, and
+        // it settles it the same way however many positions name one schema
+        if (reference.mapping) {
+          deferred[reference.destination].push_back(reference);
+        }
+
         continue;
       }
 
@@ -2208,8 +2214,12 @@ auto bundle_internal(JSON &document, const SchemaWalker &walker,
                             ? std::optional<Pointer>{declared.value().second}
                             : target_of(reference.destination)};
       if (!target.has_value()) {
-        if (names_a_schema) {
-          assert(reference.mapping);
+        // A mapping is the one name here that a schema of its own may answer
+        // for, as what it reaches is resolved for schemas rather than by the
+        // shell, so it goes on to be told where that schema landed. Every
+        // other name, a reference of a Schema Object among them, has landed
+        // on a document that holds no place answering to it
+        if (reference.mapping) {
           deferred[reference.destination].push_back(reference);
           continue;
         }

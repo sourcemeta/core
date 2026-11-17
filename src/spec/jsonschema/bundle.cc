@@ -548,11 +548,34 @@ struct PositionalCopy {
   bool carries_its_dialect;
 };
 
+// A wrapper format keeps the container outside every schema it frames, so a
+// landing there is reached by nothing the caller asked for. Reading what came
+// out means reading those too, as that is what whatever consumes the result
+// does with them
+auto paths_reaching_the_landings(const SchemaFrame::Paths &paths,
+                                 const std::vector<Pointer> &landed)
+    -> SchemaFrame::Paths {
+  SchemaFrame::Paths result{paths};
+  for (const auto &landing : landed) {
+    const auto pointer{to_weak_pointer(landing)};
+    // Framing takes paths that do not sit inside one another, so a landing
+    // the caller already covers is left to the path that covers it
+    if (std::ranges::none_of(paths, [&pointer](const auto &path) -> bool {
+          return pointer.starts_with(path) || path.starts_with(pointer);
+        })) {
+      result.push_back(pointer);
+    }
+  }
+
+  return result;
+}
+
 auto settle_positional_references(
     JSON &schema, const SchemaWalker &walker, const SchemaResolver &resolver,
     std::string_view default_dialect, std::string_view default_id,
     const SchemaFrame::Paths &paths, std::string_view default_base,
-    const PositionalReferences &positional, std::uint64_t &remaining,
+    const PositionalReferences &positional,
+    const std::vector<Pointer> &landings, std::uint64_t &remaining,
     const SchemaBundleOptions::Callback &callback) -> void {
   if (positional.unnamed.empty()) {
     return;
@@ -561,18 +584,10 @@ auto settle_positional_references(
   // What the caller asked to be framed does not have to reach the container,
   // as a wrapper format keeps one outside every schema it frames. So each
   // landing is framed in its own right, which is also what the walk does when
-  // it recurses into a remote
-  SchemaFrame::Paths settling{paths};
-  for (const auto &landing : positional.landings) {
-    const auto pointer{to_weak_pointer(landing.second)};
-    // Framing takes paths that do not sit inside one another, so a landing
-    // the caller already covers is left to the path that covers it
-    if (std::ranges::none_of(paths, [&pointer](const auto &path) -> bool {
-          return pointer.starts_with(path) || path.starts_with(pointer);
-        })) {
-      settling.push_back(pointer);
-    }
-  }
+  // it recurses into a remote. A reference to a schema that answers to nothing
+  // is as likely to sit within a landing as within what the caller wrote, so
+  // the ones that kept their name are read back as well
+  const auto settling{paths_reaching_the_landings(paths, landings)};
 
   const SchemaFrame frame{SchemaFrame::Mode::References,
                           schema,
@@ -760,6 +775,10 @@ struct BundleState {
   // question as what has been placed at the container
   std::unordered_set<JSON::String> reachable{};
   std::vector<HeldOverReference> held_over{};
+  // Where each document landed, which reading what came out has to be told
+  // wherever the container sits outside everything the caller asked to be
+  // framed, as nothing a frame never reaches answers to the name it carries
+  std::vector<Pointer> landed{};
   // Whether room was made beside a root that was one reference. The branch
   // that made it is not somewhere anything was written, so a refusal naming a
   // place has to leave it out
@@ -1223,7 +1242,8 @@ auto elevate_embedded_resources(
                    JSON{declared_dialect(value, remote_dialect_uri)});
     }
 
-    embed_schema(root, container, key, std::move(value), callback);
+    state.landed.push_back(container.concat(
+        embed_schema(root, container, key, std::move(value), callback)));
   }
 
   for (const auto &[key, hash] : to_remove) {
@@ -1785,9 +1805,9 @@ auto embed_references(
     }
     const auto key{embed_schema(state.root, state.container, entry.identifier,
                                 std::move(entry.document), callback)};
+    state.landed.push_back(state.container.concat(key));
     if (state.positional.unnamed.contains(entry.identifier)) {
-      state.positional.landings.emplace(entry.identifier,
-                                        state.container.concat(key));
+      state.positional.landings.emplace(entry.identifier, state.landed.back());
     }
   }
 
@@ -1800,12 +1820,13 @@ auto embed_references(
     return;
   }
 
+  const auto reading{paths_reaching_the_landings(paths, state.landed)};
   std::optional<SchemaFrame> probe;
   try {
     probe.emplace(SchemaFrame::Mode::References, state.root, walker, resolver,
                   default_dialect, default_id,
-                  SchemaFrame::IdentifierMode::Additional, paths, default_base,
-                  remaining);
+                  SchemaFrame::IdentifierMode::Additional, reading,
+                  default_base, remaining);
   } catch (const SchemaFrameError &) {
     // Two documents met over one name and what each left behind says something
     // different, which the copies settling by themselves would have taken care
@@ -1940,9 +1961,9 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                          ? container_parent.value().get().dialect
                          : default_dialect,
                      remaining, callback);
-    settle_positional_references(schema, walker, resolver, default_dialect,
-                                 default_id, paths, default_base,
-                                 state.positional, remaining, callback);
+    settle_positional_references(
+        schema, walker, resolver, default_dialect, default_id, paths,
+        default_base, state.positional, state.landed, remaining, callback);
     return;
   }
 
@@ -2004,9 +2025,9 @@ auto bundle_internal(JSON &schema, const SchemaWalker &walker,
                    default_id, paths, default_base,
                    schema_root_frame->root_location().value().get().dialect,
                    remaining, callback);
-  settle_positional_references(schema, walker, resolver, default_dialect,
-                               default_id, paths, default_base,
-                               state.positional, remaining, callback);
+  settle_positional_references(
+      schema, walker, resolver, default_dialect, default_id, paths,
+      default_base, state.positional, state.landed, remaining, callback);
 }
 
 auto guard_callback(const SchemaBundleOptions::Callback &callback)
