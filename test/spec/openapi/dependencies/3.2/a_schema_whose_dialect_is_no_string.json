@@ -1,0 +1,39 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Cat": {
+          "$ref": "https://www.sourcemeta.com/other.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "$schema": 42,
+      "type": "object"
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Cat/$ref",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "schema",
+      "resolved": true
+    }
+  ],
+  "fetched": [],
+  "error": {
+    "type": "SchemaKeywordError",
+    "message": "The dialect value is invalid",
+    "keyword": "$schema",
+    "value": "42"
+  }
+}

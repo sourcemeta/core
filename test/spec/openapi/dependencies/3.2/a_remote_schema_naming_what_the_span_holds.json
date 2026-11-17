@@ -39,7 +39,7 @@
       "$id": "https://www.sourcemeta.com/mid.json",
       "properties": {
         "a": {
-          "$ref": "https://www.sourcemeta.com/named.json"
+          "$ref": "https://www.sourcemeta.com/named.json#/paths/~1here"
         }
       }
     }

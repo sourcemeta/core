@@ -4,6 +4,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -43,7 +44,8 @@ TEST(a_reference_the_caller_comes_to_account_for_settles_at_the_end) {
   // the other reference names, which it only knows once the walk says so
   std::unordered_set<std::string> held;
   sourcemeta::core::SchemaDependenciesOptions options;
-  options.accounted = [&held](const std::string_view identifier) -> bool {
+  options.accounted = [&held](const std::string_view identifier,
+                              const std::optional<std::string_view>) -> bool {
     return held.contains(std::string{identifier});
   };
   options.accounted_callback =
@@ -70,7 +72,8 @@ TEST(a_reference_the_caller_never_accounts_for_ends_analysis) {
 
   std::unordered_set<std::string> held;
   sourcemeta::core::SchemaDependenciesOptions options;
-  options.accounted = [&held](const std::string_view identifier) -> bool {
+  options.accounted = [&held](const std::string_view identifier,
+                              const std::optional<std::string_view>) -> bool {
     return held.contains(std::string{identifier});
   };
   options.accounted_callback =

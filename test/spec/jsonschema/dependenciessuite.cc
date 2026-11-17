@@ -11,6 +11,7 @@
 #include <iostream>    // std::cerr
 #include <limits>      // std::numeric_limits
 #include <memory>      // std::shared_ptr, std::make_shared
+#include <optional>    // std::optional
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -147,7 +148,8 @@ auto make_options(const Inputs &inputs)
   options.paths = inputs.paths;
   options.default_base = inputs.default_base;
   options.max_locations = inputs.max_locations;
-  options.accounted = [&inputs](const std::string_view identifier) -> bool {
+  options.accounted = [&inputs](const std::string_view identifier,
+                                const std::optional<std::string_view>) -> bool {
     return std::ranges::find(inputs.accounted, identifier) !=
            inputs.accounted.cend();
   };

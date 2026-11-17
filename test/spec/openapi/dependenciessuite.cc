@@ -31,17 +31,15 @@ const std::vector<std::string> KNOWN_DEPENDENCY_KEYS{
 // Every exception that analysis throws, named after the class itself so that a
 // fixture states which one it means rather than leaving the runner to guess
 // from the fields that happen to be there
-const std::vector<std::string> KNOWN_ERROR_TYPES{"OpenAPIResolutionError",
-                                                 "OpenAPIReferenceError",
-                                                 "OpenAPIFrameLimitError",
-                                                 "SchemaResolutionError",
-                                                 "SchemaReferenceError",
-                                                 "SchemaDialectImpossibleError",
-                                                 "OpenAPIError"};
+const std::vector<std::string> KNOWN_ERROR_TYPES{
+    "OpenAPIResolutionError", "OpenAPIReferenceError",
+    "OpenAPIFrameLimitError", "SchemaResolutionError",
+    "SchemaReferenceError",   "SchemaDialectImpossibleError",
+    "SchemaKeywordError",     "OpenAPIError"};
 
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "type", "message",  "identifier", "limit",
-    "base", "location", "keyword",    "dialect"};
+    "type",     "message", "identifier", "limit", "base",
+    "location", "keyword", "dialect",    "value"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 using Asked = std::vector<sourcemeta::core::JSON::String>;
@@ -195,8 +193,10 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
   EXPECT_EQ(error.defines("location"),
             carries_base || type == "SchemaReferenceError" ||
                 type == "SchemaDialectImpossibleError");
-  EXPECT_EQ(error.defines("keyword"), type == "SchemaDialectImpossibleError");
+  EXPECT_EQ(error.defines("keyword"), type == "SchemaDialectImpossibleError" ||
+                                          type == "SchemaKeywordError");
   EXPECT_EQ(error.defines("dialect"), type == "SchemaDialectImpossibleError");
+  EXPECT_EQ(error.defines("value"), type == "SchemaKeywordError");
 }
 
 auto check_error(const sourcemeta::core::JSON &test,
@@ -265,6 +265,16 @@ auto check_error(const sourcemeta::core::JSON &test,
       EXPECT_EQ(error.dialect(), expected.at("dialect").to_string());
       EXPECT_EQ(sourcemeta::core::to_string(error.location()),
                 expected.at("location").to_string());
+    }
+  } else if (type == "SchemaKeywordError") {
+    try {
+      [[maybe_unused]] const auto locations{
+          collect(test, schema_resolver, resolver, base, reported)};
+      FAIL();
+    } catch (const sourcemeta::core::SchemaKeywordError &error) {
+      EXPECT_STREQ(error.what(), message.c_str());
+      EXPECT_EQ(error.keyword(), expected.at("keyword").to_string());
+      EXPECT_EQ(error.value(), expected.at("value").to_string());
     }
   } else if (type == "OpenAPIFrameLimitError") {
     try {

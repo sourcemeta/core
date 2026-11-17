@@ -1,0 +1,42 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Cat": {
+          "$ref": "https://www.sourcemeta.com/other.json"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": "3.2.0",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "components": {
+        "schemas": {
+          "Cat": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "expected": [],
+  "fetched": [],
+  "error": {
+    "type": "OpenAPIResolutionError",
+    "message": "Could not resolve the reference to an external document",
+    "identifier": "https://www.sourcemeta.com/other.json",
+    "base": "",
+    "location": "/components/schemas/Cat/$ref"
+  }
+}

@@ -45,14 +45,15 @@
       "destination": "https://www.sourcemeta.com/mid.json",
       "kind": "schema",
       "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/mid.json",
+      "pointer": "/properties/owner/$ref",
+      "destination": "https://www.sourcemeta.com/api.json",
+      "kind": "schema",
+      "resolved": true
     }
   ],
   "fetched": [],
-  "error": {
-    "type": "OpenAPIReferenceError",
-    "message": "A Schema Object may only reference a JSON Schema document",
-    "identifier": "https://www.sourcemeta.com/api.json",
-    "base": "https://www.sourcemeta.com/mid.json",
-    "location": ""
-  }
+  "locations": 10
 }
