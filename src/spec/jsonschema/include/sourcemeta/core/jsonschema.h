@@ -89,7 +89,7 @@ auto schema_walker(const std::string_view keyword,
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto schema_defines_keyword(const SchemaWalker &walker,
                             const SchemaVocabularies &vocabularies,
-                            std::string_view keyword) -> bool;
+                            const std::string_view keyword) -> bool;
 
 /// @ingroup jsonschema
 ///
