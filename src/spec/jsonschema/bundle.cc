@@ -574,9 +574,9 @@ auto settle_positional_references(
     JSON &schema, const SchemaWalker &walker, const SchemaResolver &resolver,
     std::string_view default_dialect, std::string_view default_id,
     const SchemaFrame::Paths &paths, std::string_view default_base,
-    const PositionalReferences &positional, const std::vector<Pointer> &landed,
-    std::uint64_t &remaining, const SchemaBundleOptions::Callback &callback)
-    -> void {
+    const PositionalReferences &positional,
+    const std::vector<Pointer> &landings, std::uint64_t &remaining,
+    const SchemaBundleOptions::Callback &callback) -> void {
   if (positional.unnamed.empty()) {
     return;
   }
@@ -587,7 +587,7 @@ auto settle_positional_references(
   // it recurses into a remote. A reference to a schema that answers to nothing
   // is as likely to sit within a landing as within what the caller wrote, so
   // the ones that kept their name are read back as well
-  const auto settling{paths_reaching_the_landings(paths, landed)};
+  const auto settling{paths_reaching_the_landings(paths, landings)};
 
   const SchemaFrame frame{SchemaFrame::Mode::References,
                           schema,
