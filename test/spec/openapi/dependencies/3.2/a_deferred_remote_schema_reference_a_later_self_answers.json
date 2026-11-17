@@ -1,0 +1,107 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/a.json"
+        }
+      }
+    }
+  },
+  "schemaResolver": {
+    "https://www.sourcemeta.com/a.json": {
+      "$id": "https://www.sourcemeta.com/a.json",
+      "allOf": [
+        {
+          "$ref": "https://www.sourcemeta.com/b.json"
+        }
+      ],
+      "properties": {
+        "x": {
+          "$ref": "https://www.sourcemeta.com/named.json#/components/schemas/Cat"
+        }
+      }
+    },
+    "https://www.sourcemeta.com/b.json": {
+      "$id": "https://www.sourcemeta.com/b.json",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Dog"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "petType",
+        "mapping": {
+          "dog": "https://www.sourcemeta.com/other.json#/components/schemas/Dog"
+        }
+      },
+      "$defs": {
+        "Dog": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "openapiResolver": {
+    "https://www.sourcemeta.com/other.json": {
+      "openapi": "3.2.0",
+      "$self": "https://www.sourcemeta.com/named.json",
+      "info": {
+        "title": "Other",
+        "version": "1.0.0"
+      },
+      "paths": {},
+      "components": {
+        "schemas": {
+          "Cat": {
+            "type": "object"
+          },
+          "Dog": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "origin": "",
+      "pointer": "/components/schemas/Pet/$ref",
+      "destination": "https://www.sourcemeta.com/a.json",
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/a.json",
+      "pointer": "/allOf/0/$ref",
+      "destination": "https://www.sourcemeta.com/b.json",
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/b.json",
+      "pointer": "/discriminator/mapping/dog",
+      "destination": "https://www.sourcemeta.com/other.json",
+      "kind": "schema",
+      "resolved": true
+    },
+    {
+      "origin": "https://www.sourcemeta.com/a.json",
+      "pointer": "/properties/x/$ref",
+      "destination": "https://www.sourcemeta.com/named.json",
+      "kind": "schema",
+      "resolved": false
+    }
+  ],
+  "locations": 17,
+  "fetched": [
+    "https://www.sourcemeta.com/named.json",
+    "https://www.sourcemeta.com/other.json"
+  ]
+}

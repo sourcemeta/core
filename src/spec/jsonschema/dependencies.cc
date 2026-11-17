@@ -46,6 +46,10 @@ struct Deferred {
   JSON::String origin;
   Pointer pointer;
   JSON::String destination;
+  // What the reference spelled, fragment and all, as whether it names a place
+  // within what the caller holds is a question the document part alone cannot
+  // answer
+  JSON::String spelled;
 };
 
 // What the walk carries from one document to the next
@@ -65,10 +69,15 @@ struct Walk {
 
 // Whatever the caller holds counts here too, and whatever this comes to
 // account for is handed back, which is how several walks of one span agree on
-// what has been read and what a reference still needs
-auto is_accounted(const Walk &walk, const JSON::StringView identifier) -> bool {
+// what has been read and what a reference still needs. Whatever the walk read
+// answers for itself, as what it holds is a schema document whole, so only the
+// caller is told what the reference spelled, it being the one that may hold
+// something a reference can name a place within and not the whole of
+auto is_accounted(const Walk &walk, const JSON::StringView identifier,
+                  const JSON::StringView spelled) -> bool {
   return walk.accounted.contains(identifier) ||
-         (walk.accounted_predicate && walk.accounted_predicate(identifier));
+         (walk.accounted_predicate &&
+          walk.accounted_predicate(identifier, spelled));
 }
 
 auto account(Walk &walk, const JSON::StringView identifier) -> void {
@@ -177,7 +186,7 @@ auto examine(Walk &walk, const SchemaFrame &frame,
     // own. Where the reference sits is reported all the same, as that is a
     // dependency of this document on another however the far end got here.
     // Reading no further is also what keeps a cycle from going round for ever
-    if (is_accounted(walk, reference.base)) {
+    if (is_accounted(walk, reference.base, reference.destination)) {
       // A document that names itself by the URI it came from reaches no
       // further than the part of it that analysis was pointed at, which is out
       // of scope rather than a dependency on anything
@@ -185,6 +194,7 @@ auto examine(Walk &walk, const SchemaFrame &frame,
         walk.callback({.origin = origin,
                        .pointer = pointer,
                        .destination = reference.base,
+                       .spelled = reference.destination,
                        .document = nullptr});
       }
 
@@ -201,7 +211,8 @@ auto examine(Walk &walk, const SchemaFrame &frame,
       walk.deferred.emplace_back(
           Deferred{.origin = JSON::String{origin},
                    .pointer = to_pointer(pointer),
-                   .destination = JSON::String{reference.base}});
+                   .destination = JSON::String{reference.base},
+                   .spelled = JSON::String{reference.destination}});
       return;
     }
 
@@ -222,6 +233,7 @@ auto examine(Walk &walk, const SchemaFrame &frame,
     walk.callback({.origin = origin,
                    .pointer = pointer,
                    .destination = reference.base,
+                   .spelled = reference.destination,
                    .document = &remote.value()});
     account(walk, reference.base);
 
@@ -317,10 +329,11 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
     // another such reference goes on to end analysis below. Reporting it takes
     // until here rather than where it sits, as nothing before this settles it
     for (const auto &deferred : walk.deferred) {
-      if (is_accounted(walk, deferred.destination)) {
+      if (is_accounted(walk, deferred.destination, deferred.spelled)) {
         walk.callback({.origin = deferred.origin,
                        .pointer = to_weak_pointer(deferred.pointer),
                        .destination = deferred.destination,
+                       .spelled = deferred.spelled,
                        .document = nullptr});
       }
     }
@@ -332,7 +345,7 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
     // what they name
     const Deferred *unresolved{nullptr};
     for (const auto &deferred : walk.deferred) {
-      if (is_accounted(walk, deferred.destination)) {
+      if (is_accounted(walk, deferred.destination, deferred.spelled)) {
         continue;
       }
 
@@ -344,6 +357,7 @@ auto schema_dependencies(const JSON &schema, const SchemaWalker &walker,
         options.unresolved({.origin = deferred.origin,
                             .pointer = to_weak_pointer(deferred.pointer),
                             .destination = deferred.destination,
+                            .spelled = deferred.spelled,
                             .document = nullptr});
       }
     }

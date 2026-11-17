@@ -36,6 +36,12 @@ struct SchemaDependency {
   const sourcemeta::core::WeakPointer &pointer;
   /// The identifier of the document that the reference leads to
   std::string_view destination;
+  /// What the reference spelled, fragment and all, which is the identifier
+  /// above wherever it named a whole document. A caller holding something
+  /// other than a schema under that identifier reads this one, as whether a
+  /// reference names a place within such a document or the whole of it is a
+  /// question the identifier alone cannot answer
+  std::string_view spelled;
   /// The schema that the identifier was resolved to, which is there only where
   /// this is the reference that had analysis resolve it. Analysis lets go of
   /// what it read as soon as it is done with it, so a reference that reaches a
@@ -55,8 +61,11 @@ using SchemaDependencyCallback = std::function<void(const SchemaDependency &)>;
 /// for as long as analysis runs, so the caller owns them across the call,
 /// while the identifier and the base are copied
 struct SchemaDependenciesOptions {
-  /// A predicate to ask whether the caller already accounts for a URI
-  using AccountedPredicate = std::function<bool(std::string_view)>;
+  /// A predicate to ask whether the caller already accounts for a URI, which
+  /// takes the identifier of the document and what the reference asking for it
+  /// spelled, fragment and all
+  using AccountedPredicate =
+      std::function<bool(std::string_view, std::string_view)>;
   /// A callback to report every URI that analysis comes to account for
   using AccountedCallback = std::function<void(std::string_view)>;
   /// A callback to report every reference that nothing came to answer for
@@ -97,10 +106,13 @@ struct SchemaDependenciesOptions {
   /// that a reference leads nowhere. Answering yes for one keeps the document
   /// it names from being fetched or read, while the references naming it are
   /// reported as any other, carrying nothing to fetch, so a caller answers for
-  /// what it holds rather than for what it would rather analysis left alone. A
-  /// dialect that a document declares is asked of the resolver by the framing
-  /// that reading takes, which happens before any of this, so answering yes
-  /// for one does not keep it from being resolved
+  /// what it holds rather than for what it would rather analysis left alone.
+  /// What the reference spelled comes with the identifier, so a caller holding
+  /// something other than a schema under one may answer for a reference naming
+  /// a place within it and leave the whole of it to be refused. A dialect that
+  /// a document declares is asked of the resolver by the framing that reading
+  /// takes, which happens before any of this, so answering yes for one does
+  /// not keep it from being resolved
   AccountedPredicate accounted{};
   /// Reports every reference that nothing came to answer for, each of them
   /// where it sits, just before analysis ends over the first of them. The

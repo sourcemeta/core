@@ -147,7 +147,8 @@ auto make_options(const Inputs &inputs)
   options.paths = inputs.paths;
   options.default_base = inputs.default_base;
   options.max_locations = inputs.max_locations;
-  options.accounted = [&inputs](const std::string_view identifier) -> bool {
+  options.accounted = [&inputs](const std::string_view identifier,
+                                const std::string_view) -> bool {
     return std::ranges::find(inputs.accounted, identifier) !=
            inputs.accounted.cend();
   };

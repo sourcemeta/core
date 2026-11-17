@@ -102,7 +102,8 @@ TEST(a_limit_error_from_the_accounted_predicate_keeps_its_own_allowance) {
 
   sourcemeta::core::SchemaDependenciesOptions options;
   options.max_locations = 1000;
-  options.accounted = [](const std::string_view) -> bool {
+  options.accounted = [](const std::string_view,
+                         const std::string_view) -> bool {
     throw sourcemeta::core::SchemaFrameLimitError{9};
   };
 

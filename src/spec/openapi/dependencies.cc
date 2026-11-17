@@ -45,8 +45,8 @@ auto is_description(const JSON &document) -> bool {
   }
 
   // Telling a description by the field takes the field being the one this
-  // specification defines, which the OpenAPI Object has be a string, so a
-  // value of any other type tells of none. What a reference of this
+  // specification defines, and the OpenAPI Object has that one be a string,
+  // so a value of any other type tells of none. What a reference of this
   // specification reaches is read as a description before anything asks what
   // it looks like, and that reading is what turns such a document down
   const auto *version{document.try_at("openapi")};
@@ -526,17 +526,18 @@ auto report(Walk &walk, const Origin &origin, const Pointer &pointer,
   }
 }
 
-// What a Schema Object names has to be a schema document at every hop, not
-// only the first, so this holds the whole closure below one to that
-auto schema_resolver_within(const Walk &walk, const JSON::StringView origin)
-    -> SchemaResolver {
-  return [&walk,
-          origin](const JSON::StringView identifier) -> SchemaResolverResult {
+// The walk below reads a schema and nothing else, so a description is no
+// answer for it however it came to be held, and reading one as a schema is
+// what OpenAPI 3.1.1 Section 4.3.1 warns resolves references to unintended
+// URIs. Declining one leaves the name to this walk, which reads the
+// description as what it is and holds the reference that made it to the kinds,
+// as that answer cannot turn on which of the two resolvers happened to hold it
+// See https://spec.openapis.org/oas/v3.1.1.html#parsing-documents
+auto schema_resolver_within(const Walk &walk) -> SchemaResolver {
+  return [&walk](const JSON::StringView identifier) -> SchemaResolverResult {
     auto result{walk.schema_resolver(identifier)};
     if (result.has_value() && is_description(result.value())) {
-      throw OpenAPIReferenceError{
-          "A Schema Object may only reference a JSON Schema document",
-          JSON::String{origin}, EMPTY_POINTER, JSON::String{identifier}};
+      return std::nullopt;
     }
 
     return result;
@@ -753,6 +754,51 @@ auto register_schema(Walk &walk, const Fetched &entry) -> void {
   }
 }
 
+// A name the walk below could not settle may be one of a description, as a
+// Schema Object naming a place within one names a place it has, while that walk
+// can read none. Either resolver may answer for it, as which of the two holds a
+// document says nothing of what it is, and reading it as the description it is
+// leaves the name settled for every reference that made it
+auto reach_description(Walk &walk, const Deferred &deferred) -> bool {
+  if (walk.accounted.contains(deferred.destination)) {
+    return false;
+  }
+
+  const auto within{
+      names_a_place_within(deferred.spelled, deferred.destination)};
+  auto remote{walk.schema_resolver(deferred.destination)};
+  if (!remote.has_value() && within) {
+    remote = walk.resolver(deferred.destination);
+  }
+
+  if (!remote.has_value() || !is_description(remote.value())) {
+    return false;
+  }
+
+  // OpenAPI 3.2.1 has every document of a span hold "either an OpenAPI Object
+  // or a Schema Object at the root", so naming the whole of a description names
+  // a root that is an Object of this specification rather than a schema
+  // See https://spec.openapis.org/oas/v3.2.1.html#openapi-description-structure
+  if (!within) {
+    throw OpenAPIReferenceError{
+        "A Schema Object may only reference a JSON Schema document",
+        deferred.origin, deferred.pointer, deferred.destination};
+  }
+
+  report_to_caller(walk, {.origin = deferred.origin,
+                          .pointer = deferred.pointer,
+                          .destination = deferred.destination,
+                          .document = &remote.value(),
+                          .expected = deferred.expected});
+  account(walk, deferred.destination, Reached::Description);
+  walk.descriptions.emplace_back(
+      Fetched{.identifier = deferred.destination,
+              .document = std::move(remote).to_owned(),
+              .version = deferred.version,
+              .closure_read = false});
+  return true;
+}
+
 // What a Schema Object names is a schema rather than a description, so what it
 // reaches in turn is for the schema walk to follow. That walk reports the whole
 // closure below this document, so what comes back is passed straight on, and
@@ -770,7 +816,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
                  .pointer = to_pointer(dependency.pointer),
                  .destination = JSON::String{dependency.destination},
                  .expected = OpenAPIObjectKind::Schema,
-                 .spelled = JSON::String{dependency.destination},
+                 .spelled = JSON::String{dependency.spelled},
                  .version = entry.version,
                  .reached = Reached::Schema});
   };
@@ -778,8 +824,19 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
   schemas.default_id = entry.identifier;
   schemas.default_base = entry.identifier;
   schemas.max_locations = walk.remaining;
-  schemas.accounted = [&walk](const std::string_view identifier) -> bool {
-    return walk.accounted.contains(identifier);
+  schemas.accounted = [&walk](const std::string_view identifier,
+                              const std::string_view spelled) -> bool {
+    const auto known{walk.accounted.find(identifier)};
+    if (known == walk.accounted.cend()) {
+      return false;
+    }
+
+    // A description holds Schema Objects among its own, so it answers for a
+    // reference naming a place within it. The whole of one is a root of this
+    // specification rather than a schema, which the kinds at the end refuse
+    // rather than this answering for
+    return known->second.reached != Reached::Description ||
+           names_a_place_within(spelled, identifier);
   };
   // What the schema walk reached is accounted without a claim as to which
   // dialect it goes by, as the document at the far end of such a name is not
@@ -796,8 +853,7 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
     charge(
         walk,
         schema_dependencies(
-            entry.document, walk.walker,
-            schema_resolver_within(walk, entry.identifier),
+            entry.document, walk.walker, schema_resolver_within(walk),
             [&walk, &entry](const SchemaDependency &dependency) -> void {
               report_to_caller(walk, {.origin = dependency.origin,
                                       .pointer = to_pointer(dependency.pointer),
@@ -863,10 +919,16 @@ auto read_closure(Walk &walk, const Fetched &entry) -> void {
     // The name the error spells is kept in the terms it was raised in, while
     // every other reference it stood for is this walk's to spell, as an error
     // of theirs would otherwise name a reference that is not the one it was
-    // raised over
+    // raised over. One a description answers for is settled here instead, as
+    // the walk below was never in a position to read it
+    const auto foreign{std::current_exception()};
     for (auto &deferred : unsettled) {
+      if (reach_description(walk, deferred)) {
+        continue;
+      }
+
       if (deferred.destination == error.identifier()) {
-        deferred.foreign = std::current_exception();
+        deferred.foreign = foreign;
       }
 
       walk.deferred.emplace_back(std::move(deferred));
