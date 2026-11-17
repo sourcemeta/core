@@ -1,0 +1,89 @@
+{
+  "document": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "A": {
+          "$ref": "https://example.com/target#/properties/name"
+        },
+        "B": {
+          "$ref": "https://example.com/target#/properties/name"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/entry.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/target": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/target",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "$defs": {
+        "Named": {
+          "$anchor": "Named",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "openapi": "3.2.0",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "A": {
+          "$ref": "https://example.com/target#/properties/name"
+        },
+        "B": {
+          "$ref": "https://example.com/target#/properties/name"
+        },
+        "target": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/target",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "$defs": {
+            "Named": {
+              "$anchor": "Named",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/target",
+      "at": "/components/schemas/target"
+    }
+  ],
+  "reads": {
+    "https://example.com/target": 1
+  },
+  "schemaReads": {
+    "https://example.com/target": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

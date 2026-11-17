@@ -1,0 +1,72 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$id": "https://example.com/schemas/pet",
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "oneOf": [
+            {
+              "$ref": "https://example.com/shared.json#/components/schemas/Bool"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {
+    "https://example.com/shared.json": {
+      "openapi": "3.1.1",
+      "info": {
+        "title": "Shared",
+        "version": "1.0.0"
+      },
+      "components": {
+        "schemas": {
+          "Bool": true
+        }
+      }
+    }
+  },
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$id": "https://example.com/schemas/pet",
+          "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "oneOf": [
+            {
+              "$ref": "https://example.com/openapi.json#/components/schemas/Bool"
+            }
+          ]
+        },
+        "Bool": true
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/shared.json#/components/schemas/Bool",
+      "at": "/components/schemas/Bool"
+    }
+  ],
+  "reads": {
+    "https://example.com/shared.json": 1
+  },
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": false,
+  "operations": []
+}

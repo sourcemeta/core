@@ -1,0 +1,36 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "properties": {
+      "self": {
+        "$ref": "./host"
+      }
+    }
+  },
+  "resolver": {},
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "self": {
+          "$ref": ""
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host",
+      "properties": {
+        "self": {
+          "$ref": ""
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [],
+    "references": []
+  }
+}

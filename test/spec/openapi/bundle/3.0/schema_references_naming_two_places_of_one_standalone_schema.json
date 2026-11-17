@@ -1,0 +1,79 @@
+{
+  "document": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "A": {
+          "$ref": "https://example.com/target#/properties/name"
+        },
+        "B": {
+          "$ref": "https://example.com/target#/properties/label"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/entry.json",
+  "openapiResolver": {},
+  "schemaResolver": {
+    "https://example.com/target": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Entry",
+      "version": "1.0.0"
+    },
+    "paths": {},
+    "components": {
+      "schemas": {
+        "A": {
+          "$ref": "#/components/schemas/target/properties/name"
+        },
+        "B": {
+          "$ref": "#/components/schemas/target/properties/label"
+        },
+        "target": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": [
+    {
+      "from": "https://example.com/target",
+      "at": "/components/schemas/target"
+    }
+  ],
+  "reads": {
+    "https://example.com/target": 1
+  },
+  "schemaReads": {
+    "https://example.com/target": 1
+  },
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}

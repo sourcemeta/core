@@ -1,0 +1,55 @@
+{
+  "document": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": {
+              "cat": "./openapi.json#/components/schemas/Cat"
+            }
+          }
+        },
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultBase": "https://example.com/openapi.json",
+  "openapiResolver": {},
+  "schemaResolver": {},
+  "result": {
+    "openapi": "3.1.1",
+    "info": {
+      "title": "Example",
+      "version": "1.0.0"
+    },
+    "components": {
+      "schemas": {
+        "Pet": {
+          "discriminator": {
+            "propertyName": "petType",
+            "mapping": {
+              "cat": "#/components/schemas/Cat"
+            }
+          }
+        },
+        "Cat": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "inserted": [],
+  "reads": {},
+  "schemaReads": {},
+  "standalone": true,
+  "relocatable": true,
+  "operations": []
+}
