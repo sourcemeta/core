@@ -623,3 +623,134 @@ TEST(jsonpath_filter_search_over_non_string_subject) {
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->at("a").to_string(), "xby");
 }
+
+// RFC 9535 Section 2.3.5.1 reads a test expression over a query of either
+// kind, so a negated test of the query the root identifier opens weighs the
+// same for every candidate
+TEST(jsonpath_filter_negated_absolute_existence) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "b": 1, "c": 2 })JSON")};
+  const sourcemeta::core::JSONPath path{"$[?!$.a]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+  EXPECT_EQ(nodes.at(1).value->to_integer(), 2);
+}
+
+// RFC 9535 Section 2.4.5 counts the nodes a query selects, which a segment
+// of several index selectors takes one of each
+TEST(jsonpath_filter_count_over_an_index_pair) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 2 ], [ 3 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count(@[0,1]) == 2]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(0).to_integer(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(1).to_integer(), 2);
+}
+
+TEST(jsonpath_filter_count_over_a_slice) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 2, 3 ], [ 4 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count(@[0:2]) == 2]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->size(), 3);
+}
+
+// RFC 9535 Section 2.3.4.2.2 walks a slice of negative step from the end
+// towards the start, which takes as many nodes as the array holds
+TEST(jsonpath_filter_count_over_a_reversed_slice) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 2, 3 ], [ 4 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count(@[::-1]) == 3]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->size(), 3);
+}
+
+// RFC 9535 Section 2.3.5.2 applies a filter selector to the members of an
+// object, which a count of its own may weigh
+TEST(jsonpath_filter_count_over_a_filter_of_object_members) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "x": { "b": 1 }, "y": { "c": 2 } } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count(@[?@.b]) == 1]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("x").at("b").to_integer(), 1);
+}
+
+TEST(jsonpath_filter_count_over_a_filter_of_array_elements) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ [ { "b": 1 }, { "b": 2 }, { "c": 3 } ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count(@[?@.b]) == 2]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->size(), 3);
+}
+
+// RFC 9535 Section 2.3.5.2 selects nothing out of a node that holds no
+// members or elements of its own, which leaves a count of zero
+TEST(jsonpath_filter_count_over_a_filter_of_a_scalar) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1 ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count(@[?@.b]) == 0]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+}
+
+// RFC 9535 Section 2.3.3.2 counts a negative index from the end of the
+// array, which names no element when it reaches past the start
+TEST(jsonpath_filter_singular_negative_index_past_the_start) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ [ 1, 2 ], [ 7, 8, 9 ] ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?@[-3] == 7]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at(0).to_integer(), 7);
+}
+
+// RFC 9535 Section 2.4.5 counts the nodes of any query, including one the
+// root identifier opens, which weighs the same for every candidate
+TEST(jsonpath_filter_count_over_an_absolute_query) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": { "a": 2 } })JSON")};
+  const sourcemeta::core::JSONPath path{"$[?count($..a) == 2]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+  EXPECT_EQ(nodes.at(1).value->at("a").to_integer(), 2);
+}
+
+// RFC 9535 Section 2.4.6: "If the first argument is not a string ... the
+// result is LogicalFalse", which covers the argument that names no node
+TEST(jsonpath_filter_match_over_an_absent_subject) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ { "a": "x" } ])JSON")};
+  const sourcemeta::core::JSONPath path{R"($[?match(@.missing, "x")])"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 0);
+}
+
+// RFC 9535 Section 2.4.6 takes the expression to match against from a value,
+// which a singular query may stand for, and answers false where that query
+// names no node
+TEST(jsonpath_filter_match_against_an_absent_expression) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": "x" }, { "a": "x", "pattern": "x" } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?match(@.a, @.pattern)]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("pattern").to_string(), "x");
+}
+
+// RFC 9535 Section 2.4.6: "if ... the second argument is not a string
+// conforming to [RFC9485], the result is LogicalFalse"
+TEST(jsonpath_filter_match_against_an_expression_of_no_regular_expression) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ { "a": "x", "pattern": "(" }, { "a": "x", "pattern": "x" } ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?match(@.a, @.pattern)]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->at("pattern").to_string(), "x");
+}

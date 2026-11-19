@@ -31,6 +31,20 @@ constexpr std::int64_t JSONPATH_MAXIMUM_INTEGER{9007199254740991};
 // recursive filter expression productions are capped in nesting depth
 constexpr std::size_t JSONPATH_MAXIMUM_NESTING_DEPTH{64};
 
+// Clang keeps an arm for the values that never arrive and counts it as one
+// that nothing took, so the last two enumerators of the switch over the
+// functions are written as the default there, while the compilers reading a
+// case label are the ones holding that switch to naming them all. The
+// directives stay out of the function because one inside a body reads as a
+// line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_JSONPATH_FUNCTION_MATCH_SEARCH default
+#else
+#define SOURCEMETA_CORE_JSONPATH_FUNCTION_MATCH_SEARCH                         \
+  case JSONPath::FilterFunctionName::Match:                                    \
+  case JSONPath::FilterFunctionName::Search
+#endif
+
 class JSONPathParser {
 public:
   JSONPathParser(const std::string_view input) : input_{input} {}
@@ -1058,8 +1072,7 @@ private:
         }
 
         return;
-      case JSONPath::FilterFunctionName::Match:
-      case JSONPath::FilterFunctionName::Search:
+      SOURCEMETA_CORE_JSONPATH_FUNCTION_MATCH_SEARCH:
         if (call.arguments.size() != 2 ||
             !is_value_type_operand(call.arguments.front()) ||
             !is_value_type_operand(call.arguments.back())) {
@@ -1083,6 +1096,8 @@ private:
   std::size_t position_{0};
   std::size_t depth_{0};
 };
+
+#undef SOURCEMETA_CORE_JSONPATH_FUNCTION_MATCH_SEARCH
 
 } // namespace
 

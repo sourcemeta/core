@@ -9,6 +9,7 @@
 #include <cstddef>    // std::size_t
 #include <cstdint>    // std::int64_t
 #include <functional> // std::cref
+#include <limits>     // std::numeric_limits
 #include <optional>   // std::optional
 #include <string>     // std::to_string
 #include <utility>    // std::unreachable
@@ -18,6 +19,29 @@
 namespace sourcemeta::core {
 
 namespace {
+
+// Clang keeps an arm for the value that never arrives and counts it as one
+// that nothing took, so the last enumerator of every switch below is written
+// as the default there, while the compilers reading a case label are the ones
+// holding those switches to naming them all. The directives stay out of the
+// functions because one inside a body reads as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER default
+#define SOURCEMETA_CORE_JSONPATH_WORK_VISIT default
+#define SOURCEMETA_CORE_JSONPATH_FUNCTION_VALUE default
+#define SOURCEMETA_CORE_JSONPATH_COMPARISON_GREATER_EQUAL default
+#define SOURCEMETA_CORE_JSONPATH_EXPRESSION_NEGATION default
+#else
+#define SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER                               \
+  case JSONPath::SelectorKind::Filter
+#define SOURCEMETA_CORE_JSONPATH_WORK_VISIT case WorkKind::Visit
+#define SOURCEMETA_CORE_JSONPATH_FUNCTION_VALUE                                \
+  case JSONPath::FilterFunctionName::Value
+#define SOURCEMETA_CORE_JSONPATH_COMPARISON_GREATER_EQUAL                      \
+  case JSONPath::FilterComparisonOperator::GreaterEqual
+#define SOURCEMETA_CORE_JSONPATH_EXPRESSION_NEGATION                           \
+  case JSONPath::FilterExpressionKind::Negation
+#endif
 
 // One step of the current traversal location. The full pointer is only
 // materialized when a result node fires, so the walk itself performs raw
@@ -234,9 +258,29 @@ inline auto slice_bounds(const JSONPath::SelectorSlice &slice,
   return true;
 }
 
+// The limit of a collector that takes in every node a query selects, which
+// is what the count function asks for
+constexpr std::size_t JSONPATH_NO_NODE_LIMIT{
+    std::numeric_limits<std::size_t>::max()};
+
+// The three places a filter expression runs a query differ only in how many
+// nodes they need, so one collector serves them all. It keeps the last node
+// it took in and stops the walk once it has as many as it was asked for
+struct FilterCollector {
+  std::size_t limit{JSONPATH_NO_NODE_LIMIT};
+  std::size_t count{0};
+  const JSON *last{nullptr};
+
+  auto visit(const JSON &node) -> bool {
+    this->last = &node;
+    this->count += 1;
+    return this->count < this->limit;
+  }
+};
+
 // Walk the nodes selected by a filter query without tracking locations. The
-// visitor returns whether to continue, and the traversal reports whether it
-// ran to completion without the visitor stopping it. The walk is iterative
+// collector says whether to continue, and the traversal reports whether it
+// ran to completion without the collector stopping it. The walk is iterative
 // over an explicit stack, so document depth cannot exhaust the machine
 // stack, as RFC 9535 Section 4.1 warns about naive recursive descendants
 struct FilterWorkItem {
@@ -244,10 +288,9 @@ struct FilterWorkItem {
   std::size_t cursor;
 };
 
-template <typename Visitor>
 auto filter_query_visit_iterative(
     const std::vector<JSONPath::Segment> &segments, const std::size_t cursor,
-    const JSON &origin, const JSON &root, const Visitor &visitor) -> bool {
+    const JSON &origin, const JSON &root, FilterCollector &collector) -> bool {
   // Filters nest, so invocations share the pool as a segmented stack, each
   // one operating strictly above its entry depth
   thread_local std::vector<FilterWorkItem> pool;
@@ -259,7 +302,7 @@ auto filter_query_visit_iterative(
     const auto item{pool.back()};
     pool.pop_back();
     if (item.cursor == total) {
-      if (!visitor(*item.node)) {
+      if (!collector.visit(*item.node)) {
         completed = false;
         break;
       }
@@ -378,7 +421,7 @@ auto filter_query_visit_iterative(
 
           break;
         }
-        case JSONPath::SelectorKind::Filter: {
+        SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
           const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
           if (type == JSON::Type::Object) {
             const auto &object{current.as_object()};
@@ -433,18 +476,17 @@ auto filter_query_visit_iterative(
 // native call frames
 constexpr std::size_t JSONPATH_EVALUATION_RECURSION_LIMIT{256};
 
-template <typename Visitor>
 auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
                         const std::size_t cursor, const JSON &current,
-                        const JSON &root, const Visitor &visitor,
+                        const JSON &root, FilterCollector &collector,
                         const std::size_t depth = 0) -> bool {
   if (depth >= JSONPATH_EVALUATION_RECURSION_LIMIT) {
     return filter_query_visit_iterative(segments, cursor, current, root,
-                                        visitor);
+                                        collector);
   }
 
   if (cursor == segments.size()) {
-    return visitor(current);
+    return collector.visit(current);
   }
 
   const auto &segment{*(segments.data() + cursor)};
@@ -456,7 +498,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           std::get_if<JSONPath::SelectorName>(segment.selectors.data())};
       const auto *child{current.try_at(entry->name, entry->hash)};
       if (child != nullptr) {
-        return filter_query_visit(segments, cursor + 1, *child, root, visitor,
+        return filter_query_visit(segments, cursor + 1, *child, root, collector,
                                   depth + 1);
       }
     }
@@ -476,7 +518,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
         return filter_query_visit(
             segments, cursor + 1,
             *(first_element(array) + static_cast<std::size_t>(index)), root,
-            visitor, depth + 1);
+            collector, depth + 1);
       }
     }
 
@@ -492,7 +534,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
         if (type == JSON::Type::Object) {
           const auto *child{current.try_at(entry->name, entry->hash)};
           if (child != nullptr &&
-              !filter_query_visit(segments, cursor + 1, *child, root, visitor,
+              !filter_query_visit(segments, cursor + 1, *child, root, collector,
                                   depth + 1)) {
             return false;
           }
@@ -506,7 +548,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           auto [member, members_end]{member_range(object)};
           for (; member != members_end; ++member) {
             if (!filter_query_visit(segments, cursor + 1, member->second, root,
-                                    visitor, depth + 1)) {
+                                    collector, depth + 1)) {
               return false;
             }
           }
@@ -515,7 +557,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           auto [element, elements_end]{element_range(array)};
           for (; element != elements_end; ++element) {
             if (!filter_query_visit(segments, cursor + 1, *element, root,
-                                    visitor, depth + 1)) {
+                                    collector, depth + 1)) {
               return false;
             }
           }
@@ -533,7 +575,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
               !filter_query_visit(
                   segments, cursor + 1,
                   *(first_element(array) + static_cast<std::size_t>(index)),
-                  root, visitor, depth + 1)) {
+                  root, collector, depth + 1)) {
             return false;
           }
         }
@@ -557,7 +599,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
               if (!filter_query_visit(
                       segments, cursor + 1,
                       *(array_base + static_cast<std::size_t>(index)), root,
-                      visitor, depth + 1)) {
+                      collector, depth + 1)) {
                 return false;
               }
             }
@@ -566,7 +608,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
               if (!filter_query_visit(
                       segments, cursor + 1,
                       *(array_base + static_cast<std::size_t>(index)), root,
-                      visitor, depth + 1)) {
+                      collector, depth + 1)) {
                 return false;
               }
             }
@@ -575,7 +617,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
 
         break;
       }
-      case JSONPath::SelectorKind::Filter: {
+      SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
         const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
         if (type == JSON::Type::Object) {
           const auto &object{current.as_object()};
@@ -583,7 +625,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           for (; member != members_end; ++member) {
             if (filter_matches(entry->expression, member->second, root) &&
                 !filter_query_visit(segments, cursor + 1, member->second, root,
-                                    visitor, depth + 1)) {
+                                    collector, depth + 1)) {
               return false;
             }
           }
@@ -593,7 +635,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           for (; element != elements_end; ++element) {
             if (filter_matches(entry->expression, *element, root) &&
                 !filter_query_visit(segments, cursor + 1, *element, root,
-                                    visitor, depth + 1)) {
+                                    collector, depth + 1)) {
               return false;
             }
           }
@@ -609,8 +651,8 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
       const auto &object{current.as_object()};
       auto [member, members_end]{member_range(object)};
       for (; member != members_end; ++member) {
-        if (!filter_query_visit(segments, cursor, member->second, root, visitor,
-                                depth + 1)) {
+        if (!filter_query_visit(segments, cursor, member->second, root,
+                                collector, depth + 1)) {
           return false;
         }
       }
@@ -618,7 +660,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
       const auto &array{current.as_array()};
       auto [element, elements_end]{element_range(array)};
       for (; element != elements_end; ++element) {
-        if (!filter_query_visit(segments, cursor, *element, root, visitor,
+        if (!filter_query_visit(segments, cursor, *element, root, collector,
                                 depth + 1)) {
           return false;
         }
@@ -727,34 +769,29 @@ inline auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
     case JSONPath::FilterFunctionName::Count: {
       const auto &query{
           std::get<JSONPath::FilterQuery>(call.arguments.front().value)};
-      std::int64_t count{0};
+      FilterCollector collector{.limit = JSONPATH_NO_NODE_LIMIT};
       filter_query_visit(query.segments, 0, query.relative ? candidate : root,
-                         root, [&count](const JSON &) -> bool {
-                           count += 1;
-                           return true;
-                         });
-      storage.emplace(count);
+                         root, collector);
+      storage.emplace(static_cast<std::int64_t>(collector.count));
       return &storage.value();
     }
     // RFC 9535 Section 2.4.8: the value function yields the value of a
     // single node and nothing otherwise
-    case JSONPath::FilterFunctionName::Value: {
+    SOURCEMETA_CORE_JSONPATH_FUNCTION_VALUE: {
       const auto &query{
           std::get<JSONPath::FilterQuery>(call.arguments.front().value)};
-      const JSON *single{nullptr};
-      std::size_t count{0};
+      FilterCollector collector{.limit = 2};
       filter_query_visit(query.segments, 0, query.relative ? candidate : root,
-                         root, [&single, &count](const JSON &node) -> bool {
-                           single = &node;
-                           count += 1;
-                           return count < 2;
-                         });
-      return count == 1 ? single : nullptr;
+                         root, collector);
+      return collector.count == 1 ? collector.last : nullptr;
     }
     // The two functions that answer with a truth value rather than with a node
-    // are weighed where a test stands rather than here
+    // are weighed where a test stands rather than here. Clang settles that no
+    // other value arrives, so only GCC and MSVC need to be told as much
+#if !defined(__clang__)
     default:
       std::unreachable();
+#endif
   }
 }
 
@@ -850,7 +887,7 @@ inline auto filter_compare(const JSONPath::FilterComparison &comparison,
       return filter_less(left, right) || filter_equals(left, right);
     case JSONPath::FilterComparisonOperator::Greater:
       return filter_less(right, left);
-    case JSONPath::FilterComparisonOperator::GreaterEqual:
+    SOURCEMETA_CORE_JSONPATH_COMPARISON_GREATER_EQUAL:
       return filter_less(right, left) || filter_equals(left, right);
   }
 
@@ -870,9 +907,10 @@ inline auto filter_test_matches(const JSONPath::FilterTest &test,
   bool result{false};
   if (test.subject.index() == 0) {
     const auto &query{*std::get_if<JSONPath::FilterQuery>(&test.subject)};
-    result = !filter_query_visit(query.segments, 0,
-                                 query.relative ? candidate : root, root,
-                                 [](const JSON &) -> bool { return false; });
+    FilterCollector collector{.limit = 1};
+    filter_query_visit(query.segments, 0, query.relative ? candidate : root,
+                       root, collector);
+    result = collector.count != 0;
   } else {
     result = evaluate_logical_function(
         *std::get_if<JSONPath::FilterFunctionCall>(&test.subject), candidate,
@@ -920,7 +958,7 @@ inline auto filter_matches(const JSONPath::FilterExpression &expression,
 
       return false;
     }
-    case JSONPath::FilterExpressionKind::Negation:
+    SOURCEMETA_CORE_JSONPATH_EXPRESSION_NEGATION:
       return !filter_matches(
           std::get_if<JSONPath::FilterNegation>(&expression.value)
               ->children.front(),
@@ -954,7 +992,7 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
         state.frames.truncate(item.frame_depth);
         state.frames.push_index(item.index);
         break;
-      case WorkKind::Visit:
+      SOURCEMETA_CORE_JSONPATH_WORK_VISIT:
         state.frames.truncate(item.frame_depth);
         break;
     }
@@ -1090,7 +1128,7 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
 
           break;
         }
-        case JSONPath::SelectorKind::Filter: {
+        SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
           const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
           if (type == JSON::Type::Object) {
             const auto &object{current.as_object()};
@@ -1280,7 +1318,7 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
 
         break;
       }
-      case JSONPath::SelectorKind::Filter: {
+      SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
         const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
         if (type == JSON::Type::Object) {
           const auto &object{current.as_object()};
@@ -1370,6 +1408,12 @@ inline auto evaluate_segments(const std::vector<JSONPath::Segment> &segments,
     evaluate_selectors(segments, cursor, current, state, depth + 1);
   }
 }
+
+#undef SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER
+#undef SOURCEMETA_CORE_JSONPATH_WORK_VISIT
+#undef SOURCEMETA_CORE_JSONPATH_FUNCTION_VALUE
+#undef SOURCEMETA_CORE_JSONPATH_COMPARISON_GREATER_EQUAL
+#undef SOURCEMETA_CORE_JSONPATH_EXPRESSION_NEGATION
 
 } // namespace
 

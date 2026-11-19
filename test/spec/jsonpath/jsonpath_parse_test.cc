@@ -597,3 +597,128 @@ TEST(jsonpath_parse_function_name_without_parentheses) {
 TEST(jsonpath_parse_zero_with_an_exponent_past_every_scale) {
   EXPECT_JSONPATH_PARSE_ERROR("$[?@.a == 0e2147483648]", 23);
 }
+
+// RFC 9535 Section 2.3.3 closes an index selector with the bracket of its
+// segment, which an input that stops on the digits never reaches
+TEST(parse_rejects_an_index_that_runs_to_the_end_of_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[12", 5);
+}
+
+// RFC 9535 Section 2.3.1.1 writes a code point past the basic plane as a high
+// surrogate followed by an escaped low surrogate, so an input that stops on
+// the escape of the second one names half a code point
+TEST(parse_rejects_a_high_surrogate_whose_pair_runs_out_of_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$['\\uD800\\", 11);
+}
+
+// RFC 9535 Section 2.3.5.1 closes a parenthesized expression, which an input
+// that stops within one never reaches
+TEST(parse_rejects_a_parenthesized_expression_left_open) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?(@.a", 8);
+}
+
+// RFC 9535 Section 2.3.5.1 reads a test expression over a query of either
+// kind, so the one the root identifier opens stands under a negation too
+TEST(jsonpath_parse_negated_absolute_query_test) {
+  EXPECT_JSONPATH_VALID("$[?!$.a]");
+}
+
+// RFC 9535 Section 2.4.1 spells a function name in lowercase letters, so a
+// name that opens with a capital is none of the ones a test admits
+TEST(parse_rejects_a_negated_function_name_opening_with_a_capital) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?!Match(@.a,'b')]", 5);
+}
+
+// RFC 9535 Section 2.3.5.1 writes the inequality operator as the exclamation
+// mark together with the equals sign, so the mark alone compares nothing
+TEST(parse_rejects_an_exclamation_mark_without_its_equals_sign) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a!b]", 7);
+}
+
+TEST(parse_rejects_an_equals_sign_that_ends_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a=", 7);
+}
+
+// RFC 9535 Section 2.3.5.1 reads a comparison as the operator followed by
+// what it compares against, which an input that stops on the operator lacks
+TEST(parse_rejects_a_less_than_operator_that_ends_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a<", 8);
+}
+
+// RFC 9535 Section 2.3.5.1: "comparable = literal / singular-query /
+// function-expr", so a literal stands on the left of a comparison as well
+TEST(jsonpath_parse_string_literal_on_the_left_of_a_comparison) {
+  EXPECT_JSONPATH_VALID("$[?\"a\" == @.b]");
+}
+
+TEST(jsonpath_parse_negative_number_on_the_left_of_a_comparison) {
+  EXPECT_JSONPATH_VALID("$[?-1 == @.a]");
+}
+
+TEST(parse_rejects_an_integer_literal_that_ends_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1", 10);
+}
+
+TEST(parse_rejects_a_fraction_that_ends_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1.5", 12);
+}
+
+TEST(parse_rejects_an_exponent_that_ends_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?@.a==1e5", 12);
+}
+
+// RFC 9535 Section 2.3.5.1 admits the three literal names and a function
+// expression where a word opens an expression, and none of them is a word
+// that the input stops in the middle of
+TEST(parse_rejects_a_word_that_runs_to_the_end_of_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?tru", 7);
+}
+
+// RFC 9535 Section 2.4.1 draws a function name from lowercase letters,
+// digits, and the underscore, so a capital ends the name rather than
+// continuing it
+TEST(parse_rejects_a_literal_name_followed_by_a_capital) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?trueX]", 8);
+}
+
+TEST(parse_rejects_a_word_carrying_a_digit_that_names_no_function) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?a1]", 6);
+}
+
+TEST(parse_rejects_a_word_carrying_an_underscore_that_names_no_function) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?a_b]", 7);
+}
+
+// RFC 9535 Section 2.4.1 follows a function name with its parentheses, which
+// an input that stops on the name never reaches
+TEST(parse_rejects_a_negated_function_name_that_ends_the_input) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?!length", 11);
+}
+
+// RFC 9535 Section 2.4.1 separates arguments with commas and closes them
+// with a parenthesis, so a second argument standing on its own closes
+// nothing
+TEST(parse_rejects_an_argument_list_missing_its_separator) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?length(@.a x)]", 15);
+}
+
+// RFC 9535 Section 2.4.4 declares the length parameter as a value, which a
+// number literal is one of
+TEST(jsonpath_parse_length_of_a_negative_number_literal) {
+  EXPECT_JSONPATH_VALID("$[?length(-1) == 1]");
+}
+
+TEST(parse_rejects_an_argument_opening_with_a_capital) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?length(True)]", 11);
+}
+
+// RFC 9535 Section 2.4.6 declares both match parameters as values, and
+// Section 2.4.3 holds a query handed to such a parameter to selecting at
+// most one node
+TEST(parse_rejects_match_over_a_query_that_selects_many_nodes) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?match(@.*, 'a')]", 19);
+}
+
+TEST(parse_rejects_match_against_a_query_that_selects_many_nodes) {
+  EXPECT_JSONPATH_PARSE_ERROR("$[?match(@.a, @.*)]", 19);
+}
