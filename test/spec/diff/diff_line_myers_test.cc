@@ -1271,3 +1271,226 @@ TEST(recursion_left_with_a_shared_tail) {
                                " b\n"
                                "+d\n");
 }
+
+// The lines that both inputs share can sit at different offsets, where the
+// shortest edit script moves the one that does not fit
+TEST(rotated_lines) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\n", "b\nc\na\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,3 @@\n"
+                               "-a\n"
+                               " b\n"
+                               " c\n"
+                               "+a\n");
+}
+
+// Inputs whose lines are in opposite orders share only one of them
+TEST(reversed_lines) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\nd\n", "d\nc\nb\na\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,4 +1,4 @@\n"
+                               "-a\n"
+                               "-b\n"
+                               "-c\n"
+                               " d\n"
+                               "+c\n"
+                               "+b\n"
+                               "+a\n");
+}
+
+// Two inputs of alternating lines share all but the one at either end
+TEST(alternating_lines) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\na\nb\na\n", "b\na\nb\na\nb\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,2 +1 @@\n"
+                               "-a\n"
+                               " b\n"
+                               "@@ -5 +4,2 @@\n"
+                               " a\n"
+                               "+b\n");
+}
+
+TEST(three_lines_replaced_by_two) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\n", "x\ny\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,2 @@\n"
+                               "-a\n"
+                               "-b\n"
+                               "-c\n"
+                               "+x\n"
+                               "+y\n");
+}
+
+TEST(two_lines_replaced_by_three) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\n", "x\ny\nz\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,2 +1,3 @@\n"
+                               "-a\n"
+                               "-b\n"
+                               "+x\n"
+                               "+y\n"
+                               "+z\n");
+}
+
+// Every other line of the original survives, which leaves the search no run
+// of its own to settle on
+TEST(interleaved_replacements) {
+  const auto result{
+      sourcemeta::core::diff("a\nb\nc\nd\ne\nf\ng\n", "b\nx\nd\ny\nf\nz\na\n",
+                             sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,7 +1,7 @@\n"
+                               "-a\n"
+                               " b\n"
+                               "-c\n"
+                               "+x\n"
+                               " d\n"
+                               "-e\n"
+                               "+y\n"
+                               " f\n"
+                               "-g\n"
+                               "+z\n"
+                               "+a\n");
+}
+
+// A line that closes an input without a terminator is only ever the last of
+// them, which the lines before it are read against
+TEST(incomplete_inputs_entirely_replaced) {
+  const auto result{
+      sourcemeta::core::diff("a\nb", "c\nd", sourcemeta::core::Diff::Mode::Line,
+                             sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,2 +1,2 @@\n"
+                               "-a\n"
+                               "-b\n"
+                               "\\ No newline at end of file\n"
+                               "+c\n"
+                               "+d\n"
+                               "\\ No newline at end of file\n");
+}
+
+// A deleted line slides towards the end of the input while the lines around
+// it allow, which the line without a terminator stops
+TEST(incomplete_input_slides_a_deletion) {
+  const auto result{sourcemeta::core::diff(
+      "a\na\nb", "a\nb", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,2 @@\n"
+                               " a\n"
+                               "-a\n"
+                               " b\n"
+                               "\\ No newline at end of file\n");
+}
+
+TEST(incomplete_input_keeps_its_last_line) {
+  const auto result{sourcemeta::core::diff(
+      "a\na\na", "a\na", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,2 @@\n"
+                               " a\n"
+                               "-a\n"
+                               " a\n"
+                               "\\ No newline at end of file\n");
+}
+
+TEST(incomplete_input_slides_before_its_last_line) {
+  const auto result{sourcemeta::core::diff(
+      "a\na\nb\nc", "q\na\nb\nc", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,3 @@\n"
+                               "+q\n"
+                               " a\n"
+                               "-a\n"
+                               " b\n");
+}
+
+// A run that slides into the next changed line stops there rather than
+// reading past it
+TEST(a_slide_stops_at_the_next_change) {
+  const auto result{sourcemeta::core::diff(
+      "a\nx\na\nz\n", "w\na\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,4 +1,2 @@\n"
+                               "+w\n"
+                               " a\n"
+                               "-x\n"
+                               "-a\n"
+                               "-z\n");
+}
+
+TEST(only_the_middle_line_is_shared) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\n", "e\nb\nf\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,3 @@\n"
+                               "-a\n"
+                               "+e\n"
+                               " b\n"
+                               "-c\n"
+                               "+f\n");
+}
+
+// The line both inputs end on in the original sits one line earlier than in
+// the modified input, which the search reaches from either end
+TEST(a_shared_line_before_an_added_tail) {
+  const auto result{sourcemeta::core::diff(
+      "p\nq\nL\n", "r\ns\nL\nM\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,3 +1,4 @@\n"
+                               "-p\n"
+                               "-q\n"
+                               "+r\n"
+                               "+s\n"
+                               " L\n"
+                               "+M\n");
+}
+
+// A middle snake that the search reaches from the end leaves the lines above
+// it untouched, so the part of the problem after it can share a head of its
+// own for the recursion to take off
+TEST(recursion_right_with_a_shared_head) {
+  const auto result{sourcemeta::core::diff(
+      "a\nb\nc\nb\na\n", "b\na\nd\na\nb\n", sourcemeta::core::Diff::Mode::Line,
+      sourcemeta::core::Diff::Algorithm::Myers)};
+  EXPECT_EQ(render(result, 1), "--- a\n"
+                               "+++ b\n"
+                               "@@ -1,5 +1,5 @@\n"
+                               "-a\n"
+                               "-b\n"
+                               "-c\n"
+                               " b\n"
+                               " a\n"
+                               "+d\n"
+                               "+a\n"
+                               "+b\n");
+}
