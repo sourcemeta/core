@@ -860,3 +860,11 @@ TEST(email_autolink_right_after_another_address) {
   EXPECT_EQ(sourcemeta::core::markdown_to_html("x@y.z+a@b.c\n"),
             "<p><a href=\"mailto:x@y.z\">x@y.z</a>+a@b.c</p>\n");
 }
+
+// GFM section 6.9 recognises an autolink after whitespace, which GFM
+// section 2.1 counts a carriage return as, and GFM section 6.2 reads one
+// written as a character reference
+TEST(email_autolink_after_a_carriage_return_reference) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("&#13;a@b.com\n"),
+            "<p>\r<a href=\"mailto:a@b.com\">a@b.com</a></p>\n");
+}

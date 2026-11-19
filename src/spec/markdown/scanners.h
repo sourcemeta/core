@@ -140,7 +140,9 @@ inline auto is_attribute_name_character(const char character) noexcept -> bool {
          character == ':' || character == '.' || character == '-';
 }
 
-// The value of an attribute, at the equals sign or the whitespace before it
+// The value of an attribute, at the equals sign or the whitespace before it.
+// The unquoted value ends at whitespace, of which the lines this reads carry
+// every kind but the carriage return
 inline auto
 scan_attribute_value_specification(const std::string_view input,
                                    const std::size_t offset) noexcept
@@ -499,8 +501,9 @@ inline auto scan_html_block_end(const std::string_view input,
       return line.find("?>") != std::string_view::npos;
     case 4:
       return line.find('>') != std::string_view::npos;
-    // The blocks of the last two conditions only end on a blank line, which
-    // the caller settles without asking here
+    // The fifth condition is the last one the caller asks about, as the blocks
+    // of the two after it only end on a blank line, which it settles without
+    // asking here
     default:
       assert(condition == 5);
       return line.find("]]>") != std::string_view::npos;

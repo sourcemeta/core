@@ -817,7 +817,8 @@ TEST(title_ending_in_a_backslash) {
 }
 
 // GFM section 4.7 needs the label of a link reference definition to hold a
-// character that is not whitespace, which a line tabulation is
+// character that is not whitespace, and GFM section 2.1 counts the line
+// tabulation as whitespace, which leaves this label holding nothing
 TEST(reference_definition_whose_label_is_a_line_tabulation) {
   const auto result{sourcemeta::core::markdown_to_html("[\v]: /url\n\n[\v]\n")};
   EXPECT_EQ(result, "<p>[\v]</p>\n");
