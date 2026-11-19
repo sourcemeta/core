@@ -487,3 +487,10 @@ TEST(heading_after_a_table_ends_it) {
                     "<tbody>\n<tr>\n<td>1</td>\n</tr>\n</tbody>\n</table>\n"
                     "<h1>Title</h1>\n");
 }
+
+// GFM section 4.10 needs the header row and the delimiter row to match in cell
+// count, and a row of one pipe holds no cells at all
+TEST(header_row_of_a_lone_pipe) {
+  const auto result{sourcemeta::core::markdown_to_html("|\n|---|\n")};
+  EXPECT_EQ(result, "<p>|\n|---|</p>\n");
+}

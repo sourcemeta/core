@@ -406,3 +406,10 @@ TEST(emphasis_between_a_letter_and_other_punctuation) {
                     "\xC2\xA1"
                     "bar*</p>\n");
 }
+
+// GFM section 6.4 leaves the delimiters a closer did not take in place, where
+// they can only close, so the next closer reads past them
+TEST(closer_left_over_by_an_earlier_one_opens_nothing) {
+  const auto result{sourcemeta::core::markdown_to_html("*a** b*")};
+  EXPECT_EQ(result, "<p><em>a</em>* b*</p>\n");
+}

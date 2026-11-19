@@ -495,3 +495,24 @@ TEST(invalid_utf8_in_a_link_reference_label_is_replaced) {
       sourcemeta::core::markdown_to_html("[\xFF]: /url\n\n[\xFF]")};
   EXPECT_EQ(result, "<p><a href=\"/url\">\xEF\xBF\xBD</a></p>\n");
 }
+
+// GFM section 2.1 counts a tab among the Unicode whitespace that the flanking
+// rules of GFM section 6.4 read around a delimiter run
+TEST(tab_before_an_emphasis_opener) {
+  const auto result{sourcemeta::core::markdown_to_html("one\t*two*")};
+  EXPECT_EQ(result, "<p>one\t<em>two</em></p>\n");
+}
+
+// GFM section 2.1 counts a form feed among the Unicode whitespace too, while
+// leaving the line tabulation out of that class
+TEST(form_feed_before_an_emphasis_opener) {
+  const auto result{sourcemeta::core::markdown_to_html("one\f*two*")};
+  EXPECT_EQ(result, "<p>one\f<em>two</em></p>\n");
+}
+
+// GFM section 6.2 ends a character reference with a semicolon, so a digit run
+// that something else follows is text
+TEST(decimal_reference_followed_by_a_letter) {
+  const auto result{sourcemeta::core::markdown_to_html("one &#123x two")};
+  EXPECT_EQ(result, "<p>one &amp;#123x two</p>\n");
+}
