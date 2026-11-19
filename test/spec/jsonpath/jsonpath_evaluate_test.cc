@@ -42,17 +42,6 @@ auto deeply_nested_array(sourcemeta::core::JSON &&bottom)
   return current;
 }
 
-// An array of seventy integers, which is more pending steps than the work
-// stack of the iterative walk makes room for to begin with
-auto wide_array() -> sourcemeta::core::JSON {
-  auto result{sourcemeta::core::JSON::make_array()};
-  for (std::size_t index{0}; index < 70; index += 1) {
-    result.push_back(sourcemeta::core::JSON{static_cast<std::int64_t>(index)});
-  }
-
-  return result;
-}
-
 } // namespace
 
 TEST(jsonpath_evaluate_root) {
@@ -943,7 +932,12 @@ TEST(jsonpath_evaluate_a_path_longer_than_the_recursion_limit) {
 // document order, which a wide array at the bottom of a deep document leaves
 // more steps pending at once than the walk reserved room for
 TEST(jsonpath_evaluate_a_deep_document_wider_than_the_pending_steps) {
-  const auto document{deeply_nested_array(wide_array())};
+  auto bottom{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index{0}; index < 70; index += 1) {
+    bottom.push_back(sourcemeta::core::JSON{static_cast<std::int64_t>(index)});
+  }
+
+  const auto document{deeply_nested_array(std::move(bottom))};
   const sourcemeta::core::JSONPath path{"$..*"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 370);
