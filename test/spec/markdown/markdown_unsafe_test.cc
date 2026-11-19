@@ -677,3 +677,61 @@ TEST(html_block_complete_tag_followed_by_a_form_feed) {
       sourcemeta::core::markdown_to_html("<del>\f\ntext\n\nafter", false)};
   EXPECT_EQ(result, "<del>\f\ntext\n<p>after</p>\n");
 }
+
+// GFM section 6.10 writes an open tag with an unquoted attribute value, which
+// the input has to carry whole for the tag to be one
+TEST(open_tag_that_the_input_ends_within_its_attribute_value) {
+  const auto result{sourcemeta::core::markdown_to_html("<a href=foo", false)};
+  EXPECT_EQ(result, "<p>&lt;a href=foo</p>\n");
+}
+
+TEST(open_tag_that_the_input_ends_within_its_attribute_name) {
+  const auto result{sourcemeta::core::markdown_to_html("<a href", false)};
+  EXPECT_EQ(result, "<p>&lt;a href</p>\n");
+}
+
+// GFM section 6.10 closes a processing instruction with ?>, where one that
+// opens a line is the HTML block of the third start condition instead
+TEST(processing_instruction_that_the_input_ends_before_closing) {
+  const auto result{sourcemeta::core::markdown_to_html("one <?php", false)};
+  EXPECT_EQ(result, "<p>one &lt;?php</p>\n");
+}
+
+// GFM section 6.10 writes a declaration as <! + an ASCII letter run + text +
+// >, so one that the input ends within is text
+TEST(declaration_that_the_input_ends_before_closing) {
+  const auto result{sourcemeta::core::markdown_to_html("one <!DOCTYPE", false)};
+  EXPECT_EQ(result, "<p>one &lt;!DOCTYPE</p>\n");
+}
+
+// The letter run of a declaration is uppercase, so a lowercase letter ends it
+// where whitespace has to follow
+TEST(declaration_whose_letter_run_holds_a_lowercase_letter) {
+  const auto result{sourcemeta::core::markdown_to_html("one <!Ab cd>", false)};
+  EXPECT_EQ(result, "<p>one &lt;!Ab cd&gt;</p>\n");
+}
+
+// GFM section 4.6 writes the start condition 7 of an HTML block as a complete
+// open tag of any name but pre, script, style and textarea, so a tag of one of
+// those that the first condition does not take opens no block at all
+TEST(html_block_start_condition_7_refuses_a_pre_tag) {
+  const auto result{sourcemeta::core::markdown_to_html("<pre/>", false)};
+  EXPECT_EQ(result, "<p><pre/></p>\n");
+}
+
+TEST(html_block_start_condition_7_refuses_a_textarea_tag) {
+  const auto result{sourcemeta::core::markdown_to_html("<textarea/>", false)};
+  EXPECT_EQ(result, "<p>&lt;textarea/></p>\n");
+}
+
+TEST(html_block_start_condition_7_refuses_a_style_tag) {
+  const auto result{sourcemeta::core::markdown_to_html("<style/>", false)};
+  EXPECT_EQ(result, "<p>&lt;style/></p>\n");
+}
+
+// A line of an HTML block that holds nothing but a less than sign carries no
+// tag for the filter of GFM section 6.11 to read
+TEST(html_block_line_of_a_lone_less_than_sign) {
+  const auto result{sourcemeta::core::markdown_to_html("<div>\n<", false)};
+  EXPECT_EQ(result, "<div>\n<\n");
+}

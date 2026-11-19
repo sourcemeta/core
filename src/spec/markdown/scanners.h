@@ -24,10 +24,11 @@ inline auto character_at(const std::string_view input,
   return index < input.size() ? input[index] : '\0';
 }
 
-// The whitespace that raw HTML allows between its parts
+// The whitespace that raw HTML allows between its parts, of which a carriage
+// return never reaches the lines a block is built from
 inline auto is_html_space(const char character) noexcept -> bool {
   return character == ' ' || character == '\t' || character == '\v' ||
-         character == '\f' || character == '\r' || character == '\n';
+         character == '\f' || character == '\n';
 }
 
 // The whitespace that the table and task list extensions allow within a line
@@ -164,10 +165,10 @@ scan_attribute_value_specification(const std::string_view input,
   const auto value_start{position};
   while (position < input.size()) {
     const auto character{input[position]};
-    if (character == ' ' || character == '\t' || character == '\r' ||
-        character == '\n' || character == '\v' || character == '\f' ||
-        character == '"' || character == '\'' || character == '=' ||
-        character == '<' || character == '>' || character == '`') {
+    if (character == ' ' || character == '\t' || character == '\n' ||
+        character == '\v' || character == '\f' || character == '"' ||
+        character == '\'' || character == '=' || character == '<' ||
+        character == '>' || character == '`') {
       break;
     }
 
@@ -364,8 +365,7 @@ inline auto lowercase_tag_name(const std::string_view input,
                                std::array<char, 16> &buffer) noexcept
     -> std::string_view {
   std::size_t length{0};
-  while (offset + length < input.size() &&
-         sourcemeta::core::is_alphanum(input[offset + length])) {
+  while (sourcemeta::core::is_alphanum(character_at(input, offset + length))) {
     if (length == buffer.size()) {
       return {};
     }
@@ -499,10 +499,11 @@ inline auto scan_html_block_end(const std::string_view input,
       return line.find("?>") != std::string_view::npos;
     case 4:
       return line.find('>') != std::string_view::npos;
-    case 5:
-      return line.find("]]>") != std::string_view::npos;
+    // The blocks of the last two conditions only end on a blank line, which
+    // the caller settles without asking here
     default:
-      return false;
+      assert(condition == 5);
+      return line.find("]]>") != std::string_view::npos;
   }
 }
 

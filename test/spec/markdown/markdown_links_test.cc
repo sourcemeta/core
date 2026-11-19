@@ -783,3 +783,42 @@ TEST(label_with_a_byte_that_opens_no_utf8_sequence) {
       "[\xFF]: http://example.com\n\n[\xFF]\n")};
   EXPECT_EQ(result, "<p><a href=\"http://example.com\">\xEF\xBF\xBD</a></p>\n");
 }
+
+// GFM section 6.2 ends a numeric character reference with a semicolon, so one
+// that runs to the end of a title is text
+TEST(title_ending_in_a_decimal_reference_without_a_semicolon) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a](/url \"one&#123\")")};
+  EXPECT_EQ(result, "<p><a href=\"/url\" title=\"one&amp;#123\">a</a></p>\n");
+}
+
+// GFM section 6.2 ends a hexadecimal character reference with a semicolon too
+TEST(title_ending_in_a_hexadecimal_reference_without_a_semicolon) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[a](/url \"one&#x41\")")};
+  EXPECT_EQ(result, "<p><a href=\"/url\" title=\"one&amp;#x41\">a</a></p>\n");
+}
+
+// GFM section 6.1 only escapes an ASCII punctuation character, so a backslash
+// that ends the input leaves the destination unclosed
+TEST(destination_ending_in_a_backslash) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](/url\\")};
+  EXPECT_EQ(result, "<p>[a](/url\\</p>\n");
+}
+
+TEST(angle_bracket_destination_ending_in_a_backslash) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](</url\\")};
+  EXPECT_EQ(result, "<p>[a](&lt;/url\\</p>\n");
+}
+
+TEST(title_ending_in_a_backslash) {
+  const auto result{sourcemeta::core::markdown_to_html("[a](/url \"one\\")};
+  EXPECT_EQ(result, "<p>[a](/url &quot;one\\</p>\n");
+}
+
+// GFM section 4.7 needs the label of a link reference definition to hold a
+// character that is not whitespace, which a line tabulation is
+TEST(reference_definition_whose_label_is_a_line_tabulation) {
+  const auto result{sourcemeta::core::markdown_to_html("[\v]: /url\n\n[\v]\n")};
+  EXPECT_EQ(result, "<p>[\v]</p>\n");
+}

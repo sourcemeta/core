@@ -107,3 +107,17 @@ TEST(image_bang_before_a_footnote_reference) {
       " aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
       "</li>\n</ol>\n</section>\n");
 }
+
+// The alternative text of an image is the text of its descendants, which
+// GFM section 6.10 raw HTML carries as it is written
+TEST(image_whose_description_holds_raw_html) {
+  const auto result{sourcemeta::core::markdown_to_html("![a<b>c](/url)")};
+  EXPECT_EQ(result, "<p><img src=\"/url\" alt=\"a&lt;b&gt;c\" /></p>\n");
+}
+
+// A hard line break of GFM section 6.12 stands for a space in the alternative
+// text of an image
+TEST(image_whose_description_holds_a_hard_line_break) {
+  const auto result{sourcemeta::core::markdown_to_html("![a\\\nb](/url)")};
+  EXPECT_EQ(result, "<p><img src=\"/url\" alt=\"a b\" /></p>\n");
+}

@@ -838,3 +838,43 @@ TEST(nested_list_followed_by_a_sibling_item) {
   EXPECT_EQ(result, "<ul>\n<li>a\n<ul>\n<li>\n<p>b</p>\n</li>\n"
                     "<li>\n<p>c</p>\n</li>\n</ul>\n</li>\n<li>d</li>\n</ul>\n");
 }
+
+// A blank line that carries the indentation of an item continues it, and an
+// item that holds nothing yet does not end with a blank line on the line its
+// marker sits on
+TEST(empty_item_followed_by_an_indented_blank_line) {
+  const auto result{sourcemeta::core::markdown_to_html("- \n  \n")};
+  EXPECT_EQ(result, "<ul>\n<li></li>\n</ul>\n");
+}
+
+// GFM section 5.4 reads a list as loose when any of its items are separated by
+// blank lines, which an item that holds nothing at all cannot be
+TEST(nested_list_whose_last_item_holds_nothing) {
+  const auto result{sourcemeta::core::markdown_to_html("- - a\n  -\n- b\n")};
+  EXPECT_EQ(result, "<ul>\n"
+                    "<li>\n"
+                    "<ul>\n"
+                    "<li>a</li>\n"
+                    "<li></li>\n"
+                    "</ul>\n"
+                    "</li>\n"
+                    "<li>b</li>\n"
+                    "</ul>\n");
+}
+
+TEST(empty_item_followed_by_two_indented_blank_lines) {
+  const auto result{sourcemeta::core::markdown_to_html("- \n  \n  \n")};
+  EXPECT_EQ(result, "<ul>\n<li></li>\n</ul>\n");
+}
+
+TEST(item_with_text_followed_by_three_indented_blank_lines) {
+  const auto result{sourcemeta::core::markdown_to_html("- a\n  \n  \n  \n")};
+  EXPECT_EQ(result, "<ul>\n<li>a</li>\n</ul>\n");
+}
+
+// A marker indented past where the content of the item starts is none of its
+// own, so the line it opens continues the paragraph of the item instead
+TEST(list_marker_indented_past_the_content_of_its_item) {
+  const auto result{sourcemeta::core::markdown_to_html("   - a\n    - b\n")};
+  EXPECT_EQ(result, "<ul>\n<li>a\n- b</li>\n</ul>\n");
+}

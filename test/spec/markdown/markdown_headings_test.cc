@@ -389,3 +389,17 @@ TEST(atx_heading_with_a_closing_sequence_and_nothing_else) {
   const auto result{sourcemeta::core::markdown_to_html("### ###")};
   EXPECT_EQ(result, "<h3></h3>\n");
 }
+
+// GFM section 4.2 lets a closing sequence of number signs be all an ATX
+// heading holds, which leaves it empty
+TEST(indented_atx_heading_of_nothing_but_number_signs) {
+  const auto result{sourcemeta::core::markdown_to_html(" ## \n")};
+  EXPECT_EQ(result, "<h2></h2>\n");
+}
+
+// GFM section 4.2 drops the closing sequence of number signs of an ATX
+// heading along with the whitespace that comes before it
+TEST(atx_heading_with_spaces_before_its_closing_sequence) {
+  const auto result{sourcemeta::core::markdown_to_html("# one  #\n")};
+  EXPECT_EQ(result, "<h1>one</h1>\n");
+}

@@ -398,3 +398,116 @@ TEST(footnote_definition_label_broken_by_a_tabulation) {
       sourcemeta::core::markdown_to_html("[^foo\tbar]: note\n\ntext")};
   EXPECT_EQ(result, "<p>text</p>\n");
 }
+
+// A blank line of nothing at all continues a footnote definition, so the
+// fenced code block it holds takes both of them
+TEST(footnote_definition_holding_blank_lines_in_a_code_block) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^a]: ```\n\n\n    ```\n\ntext[^a]\n")};
+  EXPECT_EQ(result, "<p>text<sup class=\"footnote-ref\"><a href=\"#fn-a\" "
+                    "id=\"fnref-a\" data-footnote-ref>1</a></sup></p>\n"
+                    "<section class=\"footnotes\" data-footnotes>\n"
+                    "<ol>\n"
+                    "<li id=\"fn-a\">\n"
+                    "<pre><code>\n"
+                    "\n"
+                    "</code></pre>\n"
+                    "<a href=\"#fnref-a\" class=\"footnote-backref\" "
+                    "data-footnote-backref data-footnote-backref-idx=\"1\" "
+                    "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a>\n"
+                    "</li>\n"
+                    "</ol>\n"
+                    "</section>\n");
+}
+
+// A blank line that carries spaces without the indentation of the definition
+// ends it, which leaves the lines after it outside
+TEST(footnote_definition_whose_blank_line_carries_spaces) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^a]: ```\n\n   \n    ```\n\ntext[^a]\n")};
+  EXPECT_EQ(result, "<pre><code>```\n"
+                    "</code></pre>\n"
+                    "<p>text<sup class=\"footnote-ref\"><a href=\"#fn-a\" "
+                    "id=\"fnref-a\" data-footnote-ref>1</a></sup></p>\n"
+                    "<section class=\"footnotes\" data-footnotes>\n"
+                    "<ol>\n"
+                    "<li id=\"fn-a\">\n"
+                    "<pre><code>\n"
+                    "</code></pre>\n"
+                    "<a href=\"#fnref-a\" class=\"footnote-backref\" "
+                    "data-footnote-backref data-footnote-backref-idx=\"1\" "
+                    "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a>\n"
+                    "</li>\n"
+                    "</ol>\n"
+                    "</section>\n");
+}
+
+TEST(footnote_references_within_one_emphasis) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("*[^a][^b]*\n\n[^a]: A\n\n[^b]: B\n")};
+  EXPECT_EQ(
+      result,
+      "<p><em><sup class=\"footnote-ref\"><a href=\"#fn-a\" id=\"fnref-a\" "
+      "data-footnote-ref>1</a></sup><sup class=\"footnote-ref\"><a "
+      "href=\"#fn-b\" id=\"fnref-b\" data-footnote-ref>2</a></sup></em></p>\n"
+      "<section class=\"footnotes\" data-footnotes>\n"
+      "<ol>\n"
+      "<li id=\"fn-a\">\n"
+      "<p>A <a href=\"#fnref-a\" class=\"footnote-backref\" "
+      "data-footnote-backref data-footnote-backref-idx=\"1\" aria-label=\"Back "
+      "to reference 1\">\xe2\x86\xa9</a></p>\n"
+      "</li>\n"
+      "<li id=\"fn-b\">\n"
+      "<p>B <a href=\"#fnref-b\" class=\"footnote-backref\" "
+      "data-footnote-backref data-footnote-backref-idx=\"2\" aria-label=\"Back "
+      "to reference 2\">\xe2\x86\xa9</a></p>\n"
+      "</li>\n"
+      "</ol>\n"
+      "</section>\n");
+}
+
+// A label no definition names leaves the reference as the text it was written
+// as, which drops the references that the text between its brackets held
+TEST(footnote_references_within_an_emphasis_a_reference_dropped) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[^x *[^y][^z]*]\n\n[^x]: X\n\n[^y]: Y\n\n[^z]: Z\n")};
+  EXPECT_EQ(result, "<p>[^x *[^y][^z]*]</p>\n");
+}
+
+// The label of a reference is the text between its brackets as the input
+// writes it, so a definition names the same characters back
+TEST(footnote_reference_whose_label_holds_emphasis) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[^*a*]\n\n[^*a*]: X\n")};
+  EXPECT_EQ(result, "<p><sup class=\"footnote-ref\"><a href=\"#fn-*a*\" "
+                    "id=\"fnref-*a*\" data-footnote-ref>1</a></sup></p>\n"
+                    "<section class=\"footnotes\" data-footnotes>\n"
+                    "<ol>\n"
+                    "<li id=\"fn-*a*\">\n"
+                    "<p>X <a href=\"#fnref-*a*\" class=\"footnote-backref\" "
+                    "data-footnote-backref data-footnote-backref-idx=\"1\" "
+                    "aria-label=\"Back to reference 1\">\xe2\x86\xa9</a></p>\n"
+                    "</li>\n"
+                    "</ol>\n"
+                    "</section>\n");
+}
+
+// The caret that opens a reference has to be written in the input, as the
+// label is read from there
+TEST(footnote_reference_whose_caret_is_a_character_reference) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[&#94;a]\n\n[^a]: X\n")};
+  EXPECT_EQ(result, "<p>[^a]</p>\n");
+}
+
+TEST(footnote_reference_whose_caret_is_escaped) {
+  const auto result{sourcemeta::core::markdown_to_html("[\\^a]\n\n[^a]: X\n")};
+  EXPECT_EQ(result, "<p>[^a]</p>\n");
+}
+
+// A definition writes its label on a line of its own, so a label that runs
+// over a line ending names none of them
+TEST(footnote_reference_whose_label_runs_over_a_line_ending) {
+  const auto result{sourcemeta::core::markdown_to_html("[^a\nb]\n\n[^a]: X\n")};
+  EXPECT_EQ(result, "<p>[^a\nb]</p>\n");
+}

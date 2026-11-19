@@ -825,3 +825,38 @@ TEST(extended_autolink_ends_at_a_less_than) {
             "<p><a href=\"http://www.example.com\">www.example.com</a>"
             "&lt;x</p>\n");
 }
+
+// GFM section 6.9 recognises an extended url autolink by one of the schemes
+// http:// and https://, so a path separator that no scheme precedes is text
+TEST(extended_autolink_scheme_separator_without_a_scheme) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("a ://b\n"), "<p>a ://b</p>\n");
+}
+
+// GFM section 6.8 closes an autolink with a greater than sign, so one that the
+// input ends before is text
+TEST(uri_autolink_that_the_input_ends_before_closing) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("<http://example.com"),
+            "<p>&lt;http://example.com</p>\n");
+}
+
+// GFM section 6.9 separates the segments of the domain of an email autolink
+// with periods, and "there must be at least one period", which a period that
+// opens the domain does not give it
+TEST(email_autolink_whose_domain_opens_with_a_period) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("a@.b.c\n"), "<p>a@.b.c</p>\n");
+}
+
+// GFM section 6.9: "only . may occur at the end of the email address, in which
+// case it will not be considered part of the address"
+TEST(email_autolink_whose_period_is_followed_by_more_text) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("foo@bar.com. baz\n"),
+            "<p><a href=\"mailto:foo@bar.com\">foo@bar.com</a>. baz</p>\n");
+}
+
+// GFM section 6.9 only recognises an autolink at the beginning of a line,
+// after whitespace, or after one of *, _, ~ and (, which the end of the
+// address before it is none of
+TEST(email_autolink_right_after_another_address) {
+  EXPECT_EQ(sourcemeta::core::markdown_to_html("x@y.z+a@b.c\n"),
+            "<p><a href=\"mailto:x@y.z\">x@y.z</a>+a@b.c</p>\n");
+}

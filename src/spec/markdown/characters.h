@@ -14,18 +14,19 @@
 namespace sourcemeta::core::markdown {
 
 // The ASCII whitespace that the parser trims is only the tab, the line feed,
-// the carriage return, and the space
+// and the space, as every line a block is built from ends with a line feed and
+// carries no carriage return
 inline auto is_space(const char character) noexcept -> bool {
-  return character == ' ' || character == '\t' || character == '\n' ||
-         character == '\r';
+  return character == ' ' || character == '\t' || character == '\n';
 }
 
 // GFM section 2.1: "A whitespace character is a space (U+0020), tab (U+0009),
 // newline (U+000A), line tabulation (U+000B), form feed (U+000C), or carriage
-// return (U+000D)"
+// return (U+000D)", of which a carriage return never reaches the lines a block
+// is built from
 inline auto is_whitespace_character(const char character) noexcept -> bool {
   return character == ' ' || character == '\t' || character == '\n' ||
-         character == '\v' || character == '\f' || character == '\r';
+         character == '\v' || character == '\f';
 }
 
 // GFM section 6.6: a link destination that is not enclosed in angle brackets
@@ -39,15 +40,19 @@ inline auto is_space_or_tab(const char character) noexcept -> bool {
   return character == ' ' || character == '\t';
 }
 
+// A line a block is built from ends with a line feed, which is the only
+// ending there is to find in one
 inline auto is_line_end(const char character) noexcept -> bool {
-  return character == '\n' || character == '\r';
+  return character == '\n';
 }
 
-// The Unicode whitespace of GFM section 2.1
+// The Unicode whitespace of GFM section 2.1, which leaves out the line
+// tabulation that its whitespace characters hold, and whose carriage return
+// never reaches the lines a block is built from
 inline auto is_unicode_whitespace(const char32_t codepoint) noexcept -> bool {
   if (codepoint < 0x80) {
     return codepoint == U'\t' || codepoint == U'\n' || codepoint == U'\f' ||
-           codepoint == U'\r' || codepoint == U' ';
+           codepoint == U' ';
   }
 
   return sourcemeta::core::general_category(codepoint) ==

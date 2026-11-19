@@ -339,3 +339,10 @@ TEST(indented_code_block_opened_by_a_tabulation_inside_a_list_item) {
   EXPECT_EQ(result, "<ul>\n<li>\n<pre><code>  x\n</code></pre>\n</li>\n"
                     "</ul>\n");
 }
+
+// A line of nothing but a tab is blank, and GFM section 4.5 keeps every line
+// of a fenced code block
+TEST(fenced_code_block_holding_a_line_of_one_tab) {
+  const auto result{sourcemeta::core::markdown_to_html("```\n\t\n```\n")};
+  EXPECT_EQ(result, "<pre><code>\t\n</code></pre>\n");
+}
