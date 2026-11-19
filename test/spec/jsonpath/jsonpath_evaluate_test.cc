@@ -4,6 +4,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstddef> // std::size_t
+#include <cstdint> // std::int64_t
 #include <string>  // std::string
 #include <utility> // std::move
 
@@ -925,4 +926,23 @@ TEST(jsonpath_evaluate_a_path_longer_than_the_recursion_limit) {
   EXPECT_EQ(nodes.size(), 1);
   EXPECT_EQ(nodes.at(0).value->to_integer(), 7);
   EXPECT_EQ(nodes.at(0).location.size(), 300);
+}
+
+// RFC 9535 Section 2.5.2.2 visits a node and every descendant of it in
+// document order, which a wide array at the bottom of a deep document leaves
+// more steps pending at once than the walk reserved room for
+TEST(jsonpath_evaluate_a_deep_document_wider_than_the_pending_steps) {
+  auto bottom{sourcemeta::core::JSON::make_array()};
+  for (std::size_t index{0}; index < 70; index += 1) {
+    bottom.push_back(sourcemeta::core::JSON{static_cast<std::int64_t>(index)});
+  }
+
+  const auto document{deeply_nested_array(std::move(bottom))};
+  const sourcemeta::core::JSONPath path{"$..*"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 370);
+  EXPECT_EQ(nodes.at(0).location.size(), 1);
+  EXPECT_EQ(nodes.at(299).value->size(), 70);
+  EXPECT_EQ(nodes.at(300).value->to_integer(), 0);
+  EXPECT_EQ(nodes.at(369).value->to_integer(), 69);
 }
