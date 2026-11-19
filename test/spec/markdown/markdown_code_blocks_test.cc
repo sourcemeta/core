@@ -346,3 +346,20 @@ TEST(fenced_code_block_holding_a_line_of_one_tab) {
   const auto result{sourcemeta::core::markdown_to_html("```\n\t\n```\n")};
   EXPECT_EQ(result, "<pre><code>\t\n</code></pre>\n");
 }
+
+// GFM section 6.2 reads a character reference in the info string of a fenced
+// code block, and GFM section 4.5 trims the whitespace of GFM section 2.1 off
+// the info string, which a carriage return written as a reference is
+TEST(fenced_code_block_whose_info_string_opens_with_a_carriage_return) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("```&#13;cpp\nx\n```\n")};
+  EXPECT_EQ(result, "<pre><code class=\"language-cpp\">x\n</code></pre>\n");
+}
+
+// GFM section 4.5 names the first word of the info string as the language of
+// the sample, which the whitespace after it ends
+TEST(fenced_code_block_whose_info_string_holds_a_carriage_return) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("```cpp&#13;x\ny\n```\n")};
+  EXPECT_EQ(result, "<pre><code class=\"language-cpp\">y\n</code></pre>\n");
+}
