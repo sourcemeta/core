@@ -20,11 +20,13 @@ namespace sourcemeta::core {
 
 namespace {
 
-// Clang keeps an arm for the value that never arrives and counts it as one
-// that nothing took, so the last enumerator of every switch below is written
-// as the default there, while the compilers reading a case label are the ones
-// holding those switches to naming them all. The directives stay out of the
-// functions because one inside a body reads as a line that never ran
+// A switch that names every enumerator and carries no default of its own
+// still holds an arm for the value outside the enumeration that never
+// arrives, which Clang counts as one that nothing took. Writing the last
+// enumerator of each switch below as the default there takes that arm away,
+// while the compilers reading a case label keep being the ones that catch an
+// enumerator added later. The directives stay out of the functions because
+// one inside a body reads as a line that never ran
 #if defined(__clang__)
 #define SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER default
 #define SOURCEMETA_CORE_JSONPATH_WORK_VISIT default
