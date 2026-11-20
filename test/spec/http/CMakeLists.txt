@@ -10,7 +10,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME http
           http_method_test.cc http_status_from_code_test.cc
           http_is_status_code_test.cc
           http_is_status_line_test.cc http_accumulate_header_line_test.cc
-          http_parse_headers_test.cc http_serialize_headers_test.cc
+          http_parse_headers_test.cc http_parse_request_head_test.cc
+          http_serialize_headers_test.cc
           http_header_find_test.cc http_error_test.cc
           http_is_traceparent_test.cc http_parse_traceparent_test.cc
           http_is_tracestate_test.cc http_parse_tracestate_test.cc
