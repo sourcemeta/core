@@ -35,7 +35,7 @@ TEST(email_domain_preserves_the_spelling_of_the_domain) {
 TEST(email_domain_borrows_from_the_input) {
   const std::string_view address{"user@example.com"};
   const auto result{sourcemeta::core::email_domain(address)};
-  EXPECT_TRUE(result.data() == address.data() + 5);
+  EXPECT_EQ(result.data(), address.data() + 5);
 }
 
 TEST(email_domain_without_a_separator) {

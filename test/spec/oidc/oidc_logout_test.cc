@@ -96,11 +96,12 @@ TEST(build_logout_url_includes_the_parameters) {
   std::string url;
   sourcemeta::core::oidc_build_logout_url("https://server.example/logout",
                                           request, url);
-  EXPECT_TRUE(url.find("id_token_hint=eyJ.aaa.bbb") != std::string::npos);
-  EXPECT_TRUE(url.find("client_id=client-id") != std::string::npos);
-  EXPECT_TRUE(url.find("post_logout_redirect_uri=https%3A%2F%2Fclient.example%"
-                       "2Fafter") != std::string::npos);
-  EXPECT_TRUE(url.find("state=xyz") != std::string::npos);
+  EXPECT_NE(url.find("id_token_hint=eyJ.aaa.bbb"), std::string::npos);
+  EXPECT_NE(url.find("client_id=client-id"), std::string::npos);
+  EXPECT_NE(url.find("post_logout_redirect_uri=https%3A%2F%2Fclient.example%"
+                     "2Fafter"),
+            std::string::npos);
+  EXPECT_NE(url.find("state=xyz"), std::string::npos);
 }
 
 TEST(validate_logout_token_accepts_a_valid_token) {
@@ -486,10 +487,10 @@ TEST(session_state_is_stable_and_salted) {
   const auto second{sourcemeta::core::oidc_session_state(
       "client-id", "https://client.example", "browser-state", "salt")};
   EXPECT_EQ(first, second);
-  EXPECT_TRUE(first.find(".salt") != std::string::npos);
+  EXPECT_NE(first.find(".salt"), std::string::npos);
   const auto different{sourcemeta::core::oidc_session_state(
       "client-id", "https://client.example", "browser-state", "other")};
-  EXPECT_FALSE(first == different);
+  EXPECT_NE(first, different);
 }
 
 TEST(validate_logout_token_bounds_the_clock_skew_like_the_base_check) {

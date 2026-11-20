@@ -859,14 +859,14 @@ auto rsa_private_exponent() -> std::string {
 TEST(make_private_key_parses_rsa) {
   const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::RSA);
 }
 
 TEST(make_private_key_parses_rsa_pss_restricted) {
   const auto key{
       sourcemeta::core::make_private_key(PSS_RESTRICTED_PRIVATE_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::RSA);
 }
 
 TEST(rsassa_pkcs1_v15_sign_refuses_pss_restricted_key) {
@@ -898,7 +898,7 @@ TEST(make_rsa_private_key_parses_rsa) {
       sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
       sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::RSA);
 }
 
 TEST(make_rsa_private_key_from_components_matches_known_answer) {
@@ -940,8 +940,8 @@ TEST(make_ec_private_key_parses_elliptic_curve) {
       sourcemeta::core::hex_to_bytes(P256_QX_HEX).value(),
       sourcemeta::core::hex_to_bytes(P256_QY_HEX).value())};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::PrivateKey::Type::EllipticCurve);
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::PrivateKey::Type::EllipticCurve);
 }
 
 TEST(make_edwards_private_key_parses_edwards) {
@@ -949,8 +949,7 @@ TEST(make_edwards_private_key_parses_edwards) {
       sourcemeta::core::EdwardsCurve::Ed25519,
       sourcemeta::core::hex_to_bytes(ED25519_SEED_HEX).value())};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::PrivateKey::Type::Edwards);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::Edwards);
 }
 
 TEST(rsassa_pkcs1_v15_sha256_matches_known_answer) {
@@ -1323,7 +1322,7 @@ TEST(private_key_move_assignment_takes_the_other_key) {
                  sourcemeta::core::hex_to_bytes(ED25519_SEED_HEX).value())
                  .value()};
   key = std::move(other);
-  EXPECT_TRUE(key.type() == sourcemeta::core::PrivateKey::Type::Edwards);
+  EXPECT_EQ(key.type(), sourcemeta::core::PrivateKey::Type::Edwards);
 }
 
 TEST(private_key_move_assignment_onto_itself_keeps_the_key) {
@@ -1341,7 +1340,7 @@ TEST(private_key_move_assignment_onto_itself_keeps_the_key) {
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
-  EXPECT_TRUE(key.type() == sourcemeta::core::PrivateKey::Type::RSA);
+  EXPECT_EQ(key.type(), sourcemeta::core::PrivateKey::Type::RSA);
   const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
       key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
   EXPECT_TRUE(signature.has_value());
@@ -1359,7 +1358,7 @@ TEST(public_key_move_assignment_takes_the_other_key) {
   auto key{sourcemeta::core::derive_public_key(rsa.value()).value()};
   auto other{sourcemeta::core::derive_public_key(edwards.value()).value()};
   key = std::move(other);
-  EXPECT_TRUE(key.type() == sourcemeta::core::PublicKey::Type::Edwards);
+  EXPECT_EQ(key.type(), sourcemeta::core::PublicKey::Type::Edwards);
 }
 
 TEST(make_private_key_rejects_a_truncated_private_key_element) {
@@ -1404,8 +1403,7 @@ TEST(make_private_key_rejects_a_length_past_the_content) {
 TEST(make_private_key_parses_an_ed25519_pkcs8_key) {
   const auto key{sourcemeta::core::make_private_key(ED25519_PKCS8_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::PrivateKey::Type::Edwards);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::Edwards);
   const auto signature{sourcemeta::core::eddsa_sign(key.value(), MESSAGE)};
   EXPECT_TRUE(signature.has_value());
   const auto public_key{sourcemeta::core::make_eddsa_public_key(
@@ -1418,8 +1416,7 @@ TEST(make_private_key_parses_an_ed25519_pkcs8_key) {
 TEST(make_private_key_parses_an_ed448_pkcs8_key) {
   const auto key{sourcemeta::core::make_private_key(ED448_PKCS8_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::PrivateKey::Type::Edwards);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::Edwards);
   const auto signature{sourcemeta::core::eddsa_sign(key.value(), MESSAGE)};
   EXPECT_TRUE(signature.has_value());
   EXPECT_EQ(sourcemeta::core::bytes_to_hex(signature.value()),
@@ -1439,8 +1436,8 @@ TEST(make_private_key_derives_the_public_key_of_an_ed25519_pkcs8_key) {
 TEST(make_private_key_parses_a_p384_pkcs8_key) {
   const auto key{sourcemeta::core::make_private_key(P384_PKCS8_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::PrivateKey::Type::EllipticCurve);
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::PrivateKey::Type::EllipticCurve);
   EXPECT_TRUE(parsed_key_signature_verifies(
       P384_PKCS8_KEY, sourcemeta::core::EllipticCurve::P384,
       sourcemeta::core::SignatureHashFunction::SHA384, P384_QX_HEX,
@@ -1450,8 +1447,8 @@ TEST(make_private_key_parses_a_p384_pkcs8_key) {
 TEST(make_private_key_parses_a_p521_pkcs8_key) {
   const auto key{sourcemeta::core::make_private_key(P521_PKCS8_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::PrivateKey::Type::EllipticCurve);
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::PrivateKey::Type::EllipticCurve);
   EXPECT_TRUE(parsed_key_signature_verifies(
       P521_PKCS8_KEY, sourcemeta::core::EllipticCurve::P521,
       sourcemeta::core::SignatureHashFunction::SHA512, P521_QX_HEX,
@@ -1756,7 +1753,7 @@ TEST(make_private_key_looks_past_carriage_returns_spaces_and_tabs) {
       pem_document_with_whitespace(pem_body_der(RSA_PRIVATE_KEY))};
   const auto key{sourcemeta::core::make_private_key(padded)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::RSA);
 }
 
 TEST(make_private_key_rejects_a_document_that_is_not_a_sequence) {
@@ -1945,5 +1942,5 @@ TEST(make_rsa_private_key_from_components_with_a_leading_zero_octet) {
       sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
       sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PrivateKey::Type::RSA);
 }

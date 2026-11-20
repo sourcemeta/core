@@ -696,7 +696,7 @@ TEST(server_metadata_passthrough) {
       "https://nonexistent.example.invalid"));
   const auto *documentation{
       metadata.value().data().try_at("service_documentation")};
-  EXPECT_TRUE(documentation != nullptr);
+  EXPECT_NE(documentation, nullptr);
   EXPECT_EQ(documentation->to_string(), "https://example.com/docs");
 }
 

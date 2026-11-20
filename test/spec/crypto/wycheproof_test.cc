@@ -893,7 +893,7 @@ auto register_ecdh_tests(const std::filesystem::path &path,
                     stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
                     [private_key, info = info.value(), peer = peer.value(),
                      shared, expected]() {
-                      EXPECT_TRUE(private_key != nullptr);
+                      EXPECT_NE(private_key, nullptr);
                       if (private_key == nullptr) {
                         return;
                       }

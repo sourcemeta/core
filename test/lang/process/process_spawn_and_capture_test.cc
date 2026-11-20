@@ -241,10 +241,10 @@ TEST(an_explicit_environment_is_delivered) {
   const auto result{
       sourcemeta::core::spawn_and_capture(HELPER, {"environment"}, input)};
   EXPECT_EQ(result.exit_code.value(), 0);
-  EXPECT_TRUE(result.standard_output.find("SOURCEMETA_ALPHA=one\n") !=
-              std::string::npos);
-  EXPECT_TRUE(result.standard_output.find("SOURCEMETA_BETA=two\n") !=
-              std::string::npos);
+  EXPECT_NE(result.standard_output.find("SOURCEMETA_ALPHA=one\n"),
+            std::string::npos);
+  EXPECT_NE(result.standard_output.find("SOURCEMETA_BETA=two\n"),
+            std::string::npos);
 }
 
 TEST(an_explicit_environment_with_an_empty_value_is_delivered) {
@@ -254,8 +254,8 @@ TEST(an_explicit_environment_with_an_empty_value_is_delivered) {
   const auto result{
       sourcemeta::core::spawn_and_capture(HELPER, {"environment"}, input)};
   EXPECT_EQ(result.exit_code.value(), 0);
-  EXPECT_TRUE(result.standard_output.find("SOURCEMETA_EMPTY=\n") !=
-              std::string::npos);
+  EXPECT_NE(result.standard_output.find("SOURCEMETA_EMPTY=\n"),
+            std::string::npos);
 }
 
 TEST(the_working_directory_is_honoured) {

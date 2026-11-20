@@ -123,7 +123,7 @@ TEST(equality_false) {
                                                 std::cref(BAR)};
   const sourcemeta::core::WeakPointer pointer_2{std::cref(FOO), 3,
                                                 std::cref(BAR)};
-  EXPECT_FALSE(pointer_1 == pointer_2);
+  EXPECT_NE(pointer_1, pointer_2);
 }
 
 TEST(pop_back_non_empty) {

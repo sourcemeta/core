@@ -65,7 +65,7 @@ TEST(encode_stream_overload_empty) {
 TEST(encode_secure_string_overload_appends) {
   sourcemeta::core::SecureString output{"prefix:"};
   sourcemeta::core::base64url_encode("foobar", output);
-  EXPECT_TRUE(output == "prefix:Zm9vYmFy");
+  EXPECT_EQ(output, "prefix:Zm9vYmFy");
 }
 
 TEST(encode_secure_string_overload_empty) {

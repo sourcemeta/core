@@ -974,7 +974,7 @@ TEST(default_dialect_is_not_the_dialect_a_schema_declares) {
   const std::string older{
       "https://example.com/openapi.json#/components/schemas/Older"};
   const auto older_location{frame.locations().find(older)};
-  EXPECT_TRUE(older_location != frame.locations().cend());
+  EXPECT_NE(older_location, frame.locations().cend());
   EXPECT_EQ(older_location->second.default_dialect,
             "https://json-schema.org/draft/2020-12/schema");
   const auto older_schema{frame.schemas().location(
@@ -987,7 +987,7 @@ TEST(default_dialect_is_not_the_dialect_a_schema_declares) {
   const std::string plain{
       "https://example.com/openapi.json#/components/schemas/Plain"};
   const auto plain_location{frame.locations().find(plain)};
-  EXPECT_TRUE(plain_location != frame.locations().cend());
+  EXPECT_NE(plain_location, frame.locations().cend());
   const auto plain_schema{frame.schemas().location(
       sourcemeta::core::SchemaReferenceType::Static, plain)};
   EXPECT_TRUE(plain_schema.has_value());

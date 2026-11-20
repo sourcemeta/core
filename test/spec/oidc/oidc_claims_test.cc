@@ -147,7 +147,7 @@ TEST(claims_parameter_value_reads_the_requested_value) {
   })JSON")};
   const auto *value{
       sourcemeta::core::oidc_claims_parameter_value(claims, "id_token", "acr")};
-  EXPECT_TRUE(value != nullptr);
+  EXPECT_NE(value, nullptr);
   EXPECT_EQ(value->to_string(), "urn:mace:silver");
   EXPECT_EQ(
       sourcemeta::core::oidc_claims_parameter_value(claims, "id_token", "amr"),

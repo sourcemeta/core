@@ -46,8 +46,8 @@ TEST(expire_cookie_keeps_the_remaining_attributes) {
   EXPECT_TRUE(cookie.http_only);
   EXPECT_TRUE(cookie.secure);
   EXPECT_TRUE(cookie.same_site.has_value());
-  EXPECT_TRUE(cookie.same_site.value() ==
-              sourcemeta::core::HTTPCookieSameSite::Strict);
+  EXPECT_EQ(cookie.same_site.value(),
+            sourcemeta::core::HTTPCookieSameSite::Strict);
 }
 
 TEST(expire_cookie_serializes) {

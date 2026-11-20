@@ -1573,8 +1573,8 @@ TEST(entry_key_equals_imperfect_match) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::make_object()};
   document.assign(key, sourcemeta::core::JSON{1});
   const auto &entry{*document.as_object().cbegin()};
-  EXPECT_FALSE(document.as_object().hash(key) ==
-               sourcemeta::core::JSON::Object::hash("a"));
+  EXPECT_NE(document.as_object().hash(key),
+            sourcemeta::core::JSON::Object::hash("a"));
   EXPECT_TRUE(entry.key_equals(key, sourcemeta::core::JSON::Object::hash(key)));
 }
 
@@ -1693,7 +1693,7 @@ TEST(hash_is_a_constant_expression_matching_runtime) {
       sourcemeta::core::JSON::Object::hash(std::string_view{"foobar"})};
   const auto run_time{
       sourcemeta::core::JSON::Object::hash(std::string_view{"foobar"})};
-  EXPECT_TRUE(COMPILE_TIME == run_time);
+  EXPECT_EQ(COMPILE_TIME, run_time);
 }
 
 TEST(constexpr_hash_finds_an_object_member) {
@@ -1701,7 +1701,7 @@ TEST(constexpr_hash_finds_an_object_member) {
       sourcemeta::core::JSON::Object::hash(std::string_view{"foo"})};
   const auto document{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
   const auto *value{document.try_at(std::string_view{"foo"}, KEY_HASH)};
-  EXPECT_TRUE(value != nullptr);
+  EXPECT_NE(value, nullptr);
   EXPECT_EQ(value->to_integer(), 1);
 }
 
@@ -1710,7 +1710,7 @@ TEST(constexpr_hash_matches_runtime_for_a_long_key) {
       "a_property_name_that_is_definitely_longer_than_thirty_one_bytes"};
   static constexpr auto COMPILE_TIME{sourcemeta::core::JSON::Object::hash(KEY)};
   const auto run_time{sourcemeta::core::JSON::Object::hash(KEY)};
-  EXPECT_TRUE(COMPILE_TIME == run_time);
+  EXPECT_EQ(COMPILE_TIME, run_time);
 }
 
 TEST(unique_keys_empty_object) {
@@ -1791,9 +1791,9 @@ TEST(long_key_collision_try_at) {
   sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
   document.assign(first_key, sourcemeta::core::JSON{1});
   document.assign(second_key, sourcemeta::core::JSON{2});
-  EXPECT_TRUE(document.try_at(first_key) != nullptr);
+  EXPECT_NE(document.try_at(first_key), nullptr);
   EXPECT_EQ(document.try_at(first_key)->to_integer(), 1);
-  EXPECT_TRUE(document.try_at(second_key) != nullptr);
+  EXPECT_NE(document.try_at(second_key), nullptr);
   EXPECT_EQ(document.try_at(second_key)->to_integer(), 2);
   const std::string absent{std::string(31, 'x') + "cy"};
   EXPECT_EQ(document.try_at(absent), nullptr);
@@ -1841,10 +1841,10 @@ TEST(long_key_collision_find) {
   document.assign(second_key, sourcemeta::core::JSON{2});
   const auto &object{document.as_object()};
   const auto first_iterator{object.find(first_key)};
-  EXPECT_TRUE(first_iterator != object.cend());
+  EXPECT_NE(first_iterator, object.cend());
   EXPECT_EQ(first_iterator->second.to_integer(), 1);
   const auto second_iterator{object.find(second_key)};
-  EXPECT_TRUE(second_iterator != object.cend());
+  EXPECT_NE(second_iterator, object.cend());
   EXPECT_EQ(second_iterator->second.to_integer(), 2);
 }
 
@@ -2118,8 +2118,8 @@ TEST(two_keys_that_differ_only_by_a_trailing_null) {
   EXPECT_TRUE(document.defines(padded));
   EXPECT_EQ(document.at(bare).to_integer(), 1);
   EXPECT_EQ(document.at(padded).to_integer(), 2);
-  EXPECT_TRUE(document.try_at(bare) != nullptr);
-  EXPECT_TRUE(document.try_at(padded) != nullptr);
+  EXPECT_NE(document.try_at(bare), nullptr);
+  EXPECT_NE(document.try_at(padded), nullptr);
   EXPECT_EQ(document.try_at(bare)->to_integer(), 1);
   EXPECT_EQ(document.try_at(padded)->to_integer(), 2);
 
@@ -2173,7 +2173,7 @@ TEST(a_miss_on_a_key_that_collides_with_one_that_is_held) {
 
   EXPECT_EQ(document.size(), 1);
   EXPECT_FALSE(document.defines(absent));
-  EXPECT_TRUE(document.try_at(absent) == nullptr);
+  EXPECT_EQ(document.try_at(absent), nullptr);
   document.erase(absent);
   EXPECT_EQ(document.size(), 1);
   EXPECT_TRUE(document.defines(held));
@@ -2386,11 +2386,12 @@ TEST(try_at_hash_non_const_string_view_a_key_too_long_to_hash_perfectly) {
       document.as_object().hash("property_with_a_very_long_name_six")};
   auto *first{document.try_at(
       std::string_view{"property_with_a_very_long_name_one"}, first_hash)};
-  EXPECT_TRUE(first != nullptr);
+  EXPECT_NE(first, nullptr);
   EXPECT_EQ(first->to_integer(), 1);
-  EXPECT_TRUE(
+  EXPECT_EQ(
       document.try_at(std::string_view{"property_with_a_very_long_name_six"},
-                      absent_hash) == nullptr);
+                      absent_hash),
+      nullptr);
 }
 
 TEST(try_at_hash_const_a_key_too_long_to_hash_perfectly) {
@@ -2407,9 +2408,9 @@ TEST(try_at_hash_const_a_key_too_long_to_hash_perfectly) {
   const sourcemeta::core::JSON::String absent{
       "property_with_a_very_long_name_six"};
   const auto *found{document.try_at(first, object.hash(first))};
-  EXPECT_TRUE(found != nullptr);
+  EXPECT_NE(found, nullptr);
   EXPECT_EQ(found->to_integer(), 1);
-  EXPECT_TRUE(document.try_at(absent, object.hash(absent)) == nullptr);
+  EXPECT_EQ(document.try_at(absent, object.hash(absent)), nullptr);
 }
 
 TEST(try_at_hash_const_string_view_a_key_too_long_to_hash_perfectly) {
@@ -2424,11 +2425,11 @@ TEST(try_at_hash_const_string_view_a_key_too_long_to_hash_perfectly) {
   const auto *found{
       document.try_at(std::string_view{"property_with_a_very_long_name_two"},
                       object.hash("property_with_a_very_long_name_two"))};
-  EXPECT_TRUE(found != nullptr);
+  EXPECT_NE(found, nullptr);
   EXPECT_EQ(found->to_integer(), 2);
-  EXPECT_TRUE(
+  EXPECT_EQ(
       document.try_at(std::string_view{"property_with_a_very_long_name_six"},
-                      object.hash("property_with_a_very_long_name_six")) ==
+                      object.hash("property_with_a_very_long_name_six")),
       nullptr);
 }
 
@@ -2450,16 +2451,16 @@ TEST(try_at_start_a_key_too_long_to_hash_perfectly) {
 
   sourcemeta::core::JSON::Object::size_type start{0};
   const auto *found_first{object.try_at(first, object.hash(first), start)};
-  EXPECT_TRUE(found_first != nullptr);
+  EXPECT_NE(found_first, nullptr);
   EXPECT_EQ(found_first->to_integer(), 1);
   EXPECT_EQ(start, 1);
 
   const auto *found_second{object.try_at(second, object.hash(second), start)};
-  EXPECT_TRUE(found_second != nullptr);
+  EXPECT_NE(found_second, nullptr);
   EXPECT_EQ(found_second->to_integer(), 2);
   EXPECT_EQ(start, 2);
 
-  EXPECT_TRUE(object.try_at(absent, object.hash(absent), start) == nullptr);
+  EXPECT_EQ(object.try_at(absent, object.hash(absent), start), nullptr);
   EXPECT_EQ(start, 2);
 }
 
@@ -2476,14 +2477,14 @@ TEST(try_at_start_string_view_a_key_too_long_to_hash_perfectly) {
   const auto *found{
       object.try_at(std::string_view{"property_with_a_very_long_name_one"},
                     object.hash("property_with_a_very_long_name_one"), start)};
-  EXPECT_TRUE(found != nullptr);
+  EXPECT_NE(found, nullptr);
   EXPECT_EQ(found->to_integer(), 1);
   EXPECT_EQ(start, 1);
 
-  EXPECT_TRUE(
+  EXPECT_EQ(
       object.try_at(std::string_view{"property_with_a_very_long_name_six"},
-                    object.hash("property_with_a_very_long_name_six"),
-                    start) == nullptr);
+                    object.hash("property_with_a_very_long_name_six"), start),
+      nullptr);
   EXPECT_EQ(start, 1);
 }
 
@@ -2596,8 +2597,7 @@ TEST(try_at_hash_non_const_string_view_two_keys_differing_by_a_trailing_null) {
                   sourcemeta::core::JSON{1});
 
   const auto padded_hash{document.as_object().hash(padded)};
-  EXPECT_TRUE(document.try_at(std::string_view{padded}, padded_hash) ==
-              nullptr);
+  EXPECT_EQ(document.try_at(std::string_view{padded}, padded_hash), nullptr);
 }
 
 TEST(try_at_hash_const_two_keys_differing_only_by_a_trailing_null) {
@@ -2610,7 +2610,7 @@ TEST(try_at_hash_const_two_keys_differing_only_by_a_trailing_null) {
   const auto document{mutable_document};
 
   const auto &object{document.as_object()};
-  EXPECT_TRUE(document.try_at(padded, object.hash(padded)) == nullptr);
+  EXPECT_EQ(document.try_at(padded, object.hash(padded)), nullptr);
 }
 
 TEST(try_at_hash_const_string_view_two_keys_differing_by_a_trailing_null) {
@@ -2623,8 +2623,8 @@ TEST(try_at_hash_const_string_view_two_keys_differing_by_a_trailing_null) {
   const auto document{mutable_document};
 
   const auto &object{document.as_object()};
-  EXPECT_TRUE(document.try_at(std::string_view{padded}, object.hash(padded)) ==
-              nullptr);
+  EXPECT_EQ(document.try_at(std::string_view{padded}, object.hash(padded)),
+            nullptr);
 }
 
 TEST(try_at_start_two_keys_differing_only_by_a_trailing_null) {
@@ -2638,7 +2638,7 @@ TEST(try_at_start_two_keys_differing_only_by_a_trailing_null) {
 
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
-  EXPECT_TRUE(object.try_at(padded, object.hash(padded), start) == nullptr);
+  EXPECT_EQ(object.try_at(padded, object.hash(padded), start), nullptr);
   EXPECT_EQ(start, 0);
 }
 
@@ -2653,8 +2653,8 @@ TEST(try_at_start_string_view_two_keys_differing_by_a_trailing_null) {
 
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
-  EXPECT_TRUE(object.try_at(std::string_view{padded}, object.hash(padded),
-                            start) == nullptr);
+  EXPECT_EQ(object.try_at(std::string_view{padded}, object.hash(padded), start),
+            nullptr);
   EXPECT_EQ(start, 0);
 }
 
@@ -2766,9 +2766,10 @@ TEST(try_at_hash_non_const_string_view_two_long_keys_that_share_a_hash) {
 
   const auto absent_hash{
       document.as_object().hash("property_with_a_very_long_name_oBe")};
-  EXPECT_TRUE(
+  EXPECT_EQ(
       document.try_at(std::string_view{"property_with_a_very_long_name_oBe"},
-                      absent_hash) == nullptr);
+                      absent_hash),
+      nullptr);
 }
 
 TEST(try_at_hash_const_string_view_two_long_keys_that_share_a_hash) {
@@ -2778,9 +2779,9 @@ TEST(try_at_hash_const_string_view_two_long_keys_that_share_a_hash) {
   const auto document{mutable_document};
 
   const auto &object{document.as_object()};
-  EXPECT_TRUE(
+  EXPECT_EQ(
       document.try_at(std::string_view{"property_with_a_very_long_name_oBe"},
-                      object.hash("property_with_a_very_long_name_oBe")) ==
+                      object.hash("property_with_a_very_long_name_oBe")),
       nullptr);
 }
 
@@ -2812,8 +2813,8 @@ TEST(try_at_start_string_view_scanning_past_every_entry) {
   const auto document{sourcemeta::core::parse_json(R"({"foo":1,"bar":2})")};
   const auto &object{document.as_object()};
   sourcemeta::core::JSON::Object::size_type start{0};
-  EXPECT_TRUE(object.try_at(std::string_view{"baz"}, object.hash("baz"),
-                            start) == nullptr);
+  EXPECT_EQ(object.try_at(std::string_view{"baz"}, object.hash("baz"), start),
+            nullptr);
   EXPECT_EQ(start, 0);
 }
 
@@ -2978,8 +2979,8 @@ TEST(colliding_keys_try_at_separately) {
   document.assign(COLLIDING_RIGHT, sourcemeta::core::JSON{2});
   const auto *left{document.try_at(COLLIDING_LEFT)};
   const auto *right{document.try_at(COLLIDING_RIGHT)};
-  EXPECT_TRUE(left != nullptr);
-  EXPECT_TRUE(right != nullptr);
+  EXPECT_NE(left, nullptr);
+  EXPECT_NE(right, nullptr);
   EXPECT_EQ(left->to_integer(), 1);
   EXPECT_EQ(right->to_integer(), 2);
 }
@@ -2988,7 +2989,7 @@ TEST(colliding_key_that_the_object_lacks) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign(COLLIDING_LEFT, sourcemeta::core::JSON{1});
   EXPECT_FALSE(document.defines(COLLIDING_RIGHT));
-  EXPECT_TRUE(document.try_at(COLLIDING_RIGHT) == nullptr);
+  EXPECT_EQ(document.try_at(COLLIDING_RIGHT), nullptr);
 }
 
 TEST(colliding_keys_erase_separately) {
@@ -3021,8 +3022,8 @@ TEST(colliding_keys_in_an_object_find) {
       COLLIDING_LEFT, sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT))};
   const auto right{object.find(
       COLLIDING_RIGHT, sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT))};
-  EXPECT_TRUE(left != object.cend());
-  EXPECT_TRUE(right != object.cend());
+  EXPECT_NE(left, object.cend());
+  EXPECT_NE(right, object.cend());
   EXPECT_EQ(left->second.to_integer(), 1);
   EXPECT_EQ(right->second.to_integer(), 2);
 }
@@ -3037,7 +3038,7 @@ TEST(try_at_with_a_hint_that_wraps_around) {
   const auto *result{object.try_at(sourcemeta::core::JSON::String{"a"},
                                    sourcemeta::core::JSON::Object::hash("a"),
                                    start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 1);
   EXPECT_EQ(start, 1);
 }
@@ -3049,9 +3050,9 @@ TEST(try_at_with_a_hint_that_wraps_around_and_misses) {
   value.assign("c", sourcemeta::core::JSON{3});
   const auto &object{value.as_object()};
   sourcemeta::core::JSON::Object::size_type start{2};
-  EXPECT_TRUE(object.try_at(sourcemeta::core::JSON::String{"zz"},
-                            sourcemeta::core::JSON::Object::hash("zz"),
-                            start) == nullptr);
+  EXPECT_EQ(object.try_at(sourcemeta::core::JSON::String{"zz"},
+                          sourcemeta::core::JSON::Object::hash("zz"), start),
+            nullptr);
 }
 
 TEST(try_at_with_a_hint_that_wraps_around_on_a_view) {
@@ -3063,7 +3064,7 @@ TEST(try_at_with_a_hint_that_wraps_around_on_a_view) {
   sourcemeta::core::JSON::Object::size_type start{2};
   const auto *result{object.try_at(
       std::string_view{"a"}, sourcemeta::core::JSON::Object::hash("a"), start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 1);
 }
 
@@ -3077,7 +3078,7 @@ TEST(try_at_colliding_keys_with_a_hint_that_wraps_around) {
   const auto *result{object.try_at(
       COLLIDING_LEFT, sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT),
       start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 1);
   EXPECT_EQ(start, 1);
 }
@@ -3088,10 +3089,10 @@ TEST(try_at_colliding_keys_with_a_hint_that_wraps_around_and_misses) {
   value.assign("tail", sourcemeta::core::JSON{3});
   const auto &object{value.as_object()};
   sourcemeta::core::JSON::Object::size_type start{2};
-  EXPECT_TRUE(
-      object.try_at(COLLIDING_RIGHT,
-                    sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT),
-                    start) == nullptr);
+  EXPECT_EQ(object.try_at(COLLIDING_RIGHT,
+                          sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT),
+                          start),
+            nullptr);
 }
 
 TEST(try_at_colliding_keys_with_a_hint_on_a_view) {
@@ -3104,7 +3105,7 @@ TEST(try_at_colliding_keys_with_a_hint_on_a_view) {
   const auto *result{object.try_at(
       std::string_view{COLLIDING_RIGHT},
       sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT), start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 2);
 }
 
@@ -3145,7 +3146,7 @@ TEST(find_a_colliding_key_the_object_lacks_past_another_entry) {
   value.assign("tail", sourcemeta::core::JSON{1});
   value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
   const auto &object{value.as_object()};
-  EXPECT_TRUE(object.find(COLLIDING_RIGHT) == object.cend());
+  EXPECT_EQ(object.find(COLLIDING_RIGHT), object.cend());
 }
 
 TEST(try_at_with_a_hint_whose_wrap_passes_another_key) {
@@ -3158,7 +3159,7 @@ TEST(try_at_with_a_hint_whose_wrap_passes_another_key) {
   const auto *result{object.try_at(sourcemeta::core::JSON::String{"b"},
                                    sourcemeta::core::JSON::Object::hash("b"),
                                    start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 2);
   EXPECT_EQ(start, 2);
 }
@@ -3173,7 +3174,7 @@ TEST(try_at_colliding_keys_whose_scan_passes_another_key) {
   const auto *result{object.try_at(
       COLLIDING_RIGHT, sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT),
       start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 3);
   EXPECT_EQ(start, 3);
 }
@@ -3188,7 +3189,7 @@ TEST(try_at_colliding_keys_whose_wrap_passes_another_key) {
   const auto *result{object.try_at(
       COLLIDING_LEFT, sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT),
       start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 2);
   EXPECT_EQ(start, 2);
 }
@@ -3208,9 +3209,9 @@ TEST(find_a_colliding_key_the_object_lacks_on_a_view) {
   value.assign("tail", sourcemeta::core::JSON{1});
   value.assign(COLLIDING_LEFT, sourcemeta::core::JSON{2});
   const auto &object{value.as_object()};
-  EXPECT_TRUE(object.find(std::string_view{COLLIDING_RIGHT},
-                          sourcemeta::core::JSON::Object::hash(
-                              COLLIDING_RIGHT)) == object.cend());
+  EXPECT_EQ(object.find(std::string_view{COLLIDING_RIGHT},
+                        sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT)),
+            object.cend());
 }
 
 TEST(find_a_colliding_key_on_a_view) {
@@ -3221,7 +3222,7 @@ TEST(find_a_colliding_key_on_a_view) {
   const auto match{
       object.find(std::string_view{COLLIDING_LEFT},
                   sourcemeta::core::JSON::Object::hash(COLLIDING_LEFT))};
-  EXPECT_TRUE(match != object.cend());
+  EXPECT_NE(match, object.cend());
   EXPECT_EQ(match->second.to_integer(), 2);
 }
 
@@ -3234,7 +3235,7 @@ TEST(try_at_on_a_view_with_a_hint_whose_wrap_passes_another_key) {
   sourcemeta::core::JSON::Object::size_type start{2};
   const auto *result{object.try_at(
       std::string_view{"b"}, sourcemeta::core::JSON::Object::hash("b"), start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 2);
   EXPECT_EQ(start, 2);
 }
@@ -3249,7 +3250,7 @@ TEST(try_at_on_a_view_whose_scan_passes_a_colliding_key) {
   const auto *result{object.try_at(
       std::string_view{COLLIDING_RIGHT},
       sourcemeta::core::JSON::Object::hash(COLLIDING_RIGHT), start)};
-  EXPECT_TRUE(result != nullptr);
+  EXPECT_NE(result, nullptr);
   EXPECT_EQ(result->to_integer(), 3);
   EXPECT_EQ(start, 3);
 }

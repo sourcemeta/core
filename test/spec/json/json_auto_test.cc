@@ -2074,7 +2074,7 @@ TEST(from_json_variant_of_enum_and_string_first_alternative) {
           document)};
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value().index(), 0);
-  EXPECT_TRUE(std::get<SampleEnum>(result.value()) == SampleEnum::Bar);
+  EXPECT_EQ(std::get<SampleEnum>(result.value()), SampleEnum::Bar);
 }
 
 TEST(from_json_variant_of_enum_and_string_second_alternative) {

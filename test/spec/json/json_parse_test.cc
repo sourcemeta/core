@@ -31,8 +31,8 @@ TEST(true_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(false_equality) {
@@ -46,8 +46,8 @@ TEST(false_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(true_with_spacing) {
@@ -87,8 +87,8 @@ TEST(null_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(string_empty) {
@@ -396,8 +396,8 @@ TEST(array_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(single_exponential_number_element) {
@@ -420,8 +420,8 @@ TEST(object_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(object_single_null) {
@@ -1040,8 +1040,8 @@ TEST(integer_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(real_equality) {
@@ -1055,8 +1055,8 @@ TEST(real_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 TEST(integer_real_equal) {
@@ -1064,10 +1064,10 @@ TEST(integer_real_equal) {
   std::istringstream right{"1.0"};
   const sourcemeta::core::JSON document_1 = sourcemeta::core::parse_json(left);
   const sourcemeta::core::JSON document_2 = sourcemeta::core::parse_json(right);
-  EXPECT_TRUE(document_1 == document_2);
-  EXPECT_TRUE(document_2 == document_1);
-  EXPECT_FALSE(document_1 != document_2);
-  EXPECT_FALSE(document_2 != document_1);
+  EXPECT_EQ(document_1, document_2);
+  EXPECT_EQ(document_2, document_1);
+  EXPECT_EQ(document_1, document_2);
+  EXPECT_EQ(document_2, document_1);
 }
 
 TEST(string_escaped_quotes) {
@@ -1184,8 +1184,8 @@ TEST(string_equality) {
   const sourcemeta::core::JSON document_3 =
       sourcemeta::core::parse_json(input_3);
   EXPECT_EQ(document_1, document_2);
-  EXPECT_FALSE(document_1 == document_3);
-  EXPECT_FALSE(document_2 == document_3);
+  EXPECT_NE(document_1, document_3);
+  EXPECT_NE(document_2, document_3);
 }
 
 // https://datatracker.ietf.org/doc/html/rfc8259#section-13
@@ -1762,6 +1762,9 @@ TEST(parse_string_view) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+  EXPECT_EQ(document.at(2).to_integer(), 3);
 }
 
 TEST(parse_string_view_subview) {
@@ -1770,6 +1773,9 @@ TEST(parse_string_view_subview) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(view);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+  EXPECT_EQ(document.at(2).to_integer(), 3);
 }
 
 TEST(parse_string_view_with_line_column) {

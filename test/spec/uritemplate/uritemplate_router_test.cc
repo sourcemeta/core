@@ -1975,30 +1975,45 @@ TEST(optional_expansion_accepted_simple) {
   sourcemeta::core::URITemplateRouter router;
   router.add("/list{/path*}", "op_oex_1", 1);
   EXPECT_EQ(router.size(), 1);
+  EXPECT_ROUTER_MATCH(router, "/list/one/two", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "one/two");
 }
 
 TEST(optional_expansion_accepted_with_explicit_slash) {
   sourcemeta::core::URITemplateRouter router;
   router.add("/api/list/{/path*}", "op_oex_2", 1);
   EXPECT_EQ(router.size(), 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/one/two", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "one/two");
 }
 
 TEST(optional_expansion_accepted_at_root) {
   sourcemeta::core::URITemplateRouter router;
   router.add("/{/path*}", "op_oex_3", 1);
   EXPECT_EQ(router.size(), 1);
+  EXPECT_ROUTER_MATCH(router, "/one/two", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "one/two");
 }
 
 TEST(optional_expansion_accepted_with_deep_literal_prefix) {
   sourcemeta::core::URITemplateRouter router;
   router.add("/api/v1/users/list{/path*}", "op_oex_4", 1);
   EXPECT_EQ(router.size(), 1);
+  EXPECT_ROUTER_MATCH(router, "/api/v1/users/list/one", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "one");
 }
 
 TEST(optional_expansion_accepted_no_literal_prefix) {
   sourcemeta::core::URITemplateRouter router;
   router.add("{/path*}", "op_oex_5", 1);
   EXPECT_EQ(router.size(), 1);
+  EXPECT_ROUTER_MATCH(router, "/one/two", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "one/two");
 }
 
 TEST(optional_expansion_reject_no_explode) {

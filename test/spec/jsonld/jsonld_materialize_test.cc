@@ -5878,6 +5878,18 @@ TEST(promotion_output_flattens) {
   const auto flattened{sourcemeta::core::jsonld_flatten(expanded)};
   EXPECT_TRUE(flattened.is_array());
   EXPECT_EQ(flattened.size(), 2);
+  EXPECT_EQ(flattened, sourcemeta::core::parse_json(R"JSON([
+    {
+      "@id": "_:b0",
+      "https://example.com/height": [ { "@id": "_:b1" } ]
+    },
+    {
+      "@id": "_:b1",
+      "@type": [ "https://example.com/Quantity" ],
+      "https://example.com/unit": [ { "@id": "https://example.com/metre" } ],
+      "https://example.com/value": [ { "@value": 1.85 } ]
+    }
+  ])JSON"));
 }
 
 TEST(promotion_output_compacts_and_re_expands) {

@@ -5714,7 +5714,7 @@ TEST_F(URITemplateRouterViewTest,
     }
   }
 
-  EXPECT_TRUE(optional_expansion != 0);
+  EXPECT_NE(optional_expansion, 0);
   const std::uint32_t past_the_table{0xFFFFFFFF};
   std::memcpy(blob.data() + optional_expansion, &past_the_table,
               sizeof(past_the_table));

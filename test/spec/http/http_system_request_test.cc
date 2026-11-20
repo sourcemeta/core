@@ -316,8 +316,8 @@ TEST(sign_aws_sigv4_adds_session_token_when_present) {
       "us-east-1", "service", moment);
 
   EXPECT_EQ(request.header("x-amz-security-token").value(), "SESSIONTOKEN");
-  EXPECT_TRUE(
-      request.header("Authorization").value().find("x-amz-security-token") !=
+  EXPECT_NE(
+      request.header("Authorization").value().find("x-amz-security-token"),
       std::string_view::npos);
 }
 
@@ -444,13 +444,12 @@ TEST(sign_aws_sigv4_wiping_storage_header_signs_identically) {
 
 TEST(setters_return_the_request) {
   sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
-  EXPECT_TRUE(&request.method(sourcemeta::core::HTTPMethod::POST) == &request);
-  EXPECT_TRUE(&request.follow_redirects(false) == &request);
-  EXPECT_TRUE(&request.maximum_redirects(5) == &request);
-  EXPECT_TRUE(&request.timeout(std::chrono::milliseconds{1000}) == &request);
-  EXPECT_TRUE(&request.connect_timeout(std::chrono::milliseconds{500}) ==
-              &request);
-  EXPECT_TRUE(&request.maximum_response_size(1024) == &request);
+  EXPECT_EQ(&request.method(sourcemeta::core::HTTPMethod::POST), &request);
+  EXPECT_EQ(&request.follow_redirects(false), &request);
+  EXPECT_EQ(&request.maximum_redirects(5), &request);
+  EXPECT_EQ(&request.timeout(std::chrono::milliseconds{1000}), &request);
+  EXPECT_EQ(&request.connect_timeout(std::chrono::milliseconds{500}), &request);
+  EXPECT_EQ(&request.maximum_response_size(1024), &request);
   EXPECT_TRUE(request.headers().empty());
 }
 

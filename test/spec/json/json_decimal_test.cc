@@ -1187,22 +1187,22 @@ TEST(fast_hash_large) {
 TEST(fast_hash_matches_equal_real_fractional) {
   const sourcemeta::core::JSON as_real{0.5};
   const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"0.5"}};
-  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real, as_decimal);
   EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
 }
 
 TEST(fast_hash_matches_equal_real_integral) {
   const sourcemeta::core::JSON as_real{5.0};
   const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"5"}};
-  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real, as_decimal);
   EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
 }
 
 TEST(fast_hash_matches_equal_real_integral_with_negative_exponent) {
   const sourcemeta::core::JSON as_real{5.0};
   const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"5.0"}};
-  EXPECT_TRUE(as_real == as_decimal);
-  EXPECT_TRUE(as_decimal == as_real);
+  EXPECT_EQ(as_real, as_decimal);
+  EXPECT_EQ(as_decimal, as_real);
   EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
 }
 
@@ -1213,7 +1213,7 @@ TEST(fast_hash_negative_exponent_integral_decimal) {
   const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"30e-1"}};
   const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(3)};
   EXPECT_TRUE(as_decimal.is_integral());
-  EXPECT_TRUE(as_decimal == as_integer);
+  EXPECT_EQ(as_decimal, as_integer);
   EXPECT_EQ(as_decimal.fast_hash(), as_integer.fast_hash());
 }
 
@@ -1269,7 +1269,7 @@ TEST(negative_exponent_non_integral) {
 TEST(large_exponent_comparison_no_overflow) {
   const auto value{
       sourcemeta::core::parse_json("10000000000000000e2147483647")};
-  EXPECT_TRUE(value == value);
+  EXPECT_EQ(value, value);
 }
 
 TEST(divisible_by_ten_million_exponent_by_twenty) {

@@ -1213,6 +1213,9 @@ TEST(confirmation_has_a_single_member) {
   const auto confirmation{
       sourcemeta::core::oauth_dpop_confirmation(OTHER_THUMBPRINT)};
   EXPECT_EQ(confirmation.size(), 1);
+  EXPECT_TRUE(confirmation.defines("jkt"));
+  EXPECT_TRUE(confirmation.at("jkt").is_string());
+  EXPECT_EQ(confirmation.at("jkt").to_string(), OTHER_THUMBPRINT);
 }
 
 TEST(proofer_uses_the_latest_observed_nonce) {

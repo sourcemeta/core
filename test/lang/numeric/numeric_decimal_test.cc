@@ -203,15 +203,15 @@ TEST(modulo_negative_dividend) {
 TEST(equal_integers) {
   const sourcemeta::core::Decimal left{42};
   const sourcemeta::core::Decimal right{42};
-  EXPECT_TRUE(left == right);
-  EXPECT_FALSE(left != right);
+  EXPECT_EQ(left, right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(not_equal_integers) {
   const sourcemeta::core::Decimal left{42};
   const sourcemeta::core::Decimal right{43};
-  EXPECT_TRUE(left != right);
-  EXPECT_FALSE(left == right);
+  EXPECT_NE(left, right);
+  EXPECT_NE(left, right);
 }
 
 TEST(less_than) {
@@ -1743,14 +1743,14 @@ TEST(modulo_plain_int_by_decimal) {
 
 TEST(compare_decimal_equal_plain_int) {
   const sourcemeta::core::Decimal value{42};
-  EXPECT_TRUE(value == 42);
-  EXPECT_TRUE(42 == value);
+  EXPECT_EQ(value, 42);
+  EXPECT_EQ(42, value);
 }
 
 TEST(compare_decimal_not_equal_plain_int) {
   const sourcemeta::core::Decimal value{42};
-  EXPECT_TRUE(value != 43);
-  EXPECT_TRUE(43 != value);
+  EXPECT_NE(value, 43);
+  EXPECT_NE(43, value);
 }
 
 TEST(compare_decimal_less_than_plain_int) {
@@ -2717,12 +2717,11 @@ TEST(equal_decimal_vs_exponent_form) {
 
 TEST(compare_nan_not_equal_to_self) {
   const auto nan_value{sourcemeta::core::Decimal::nan()};
-  EXPECT_FALSE(nan_value == nan_value);
+  EXPECT_NE(nan_value, nan_value);
 }
 
 TEST(compare_nan_not_equal_to_nan) {
-  EXPECT_FALSE(sourcemeta::core::Decimal::nan() ==
-               sourcemeta::core::Decimal::nan());
+  EXPECT_NE(sourcemeta::core::Decimal::nan(), sourcemeta::core::Decimal::nan());
 }
 
 TEST(compare_nan_not_less_than_anything) {
@@ -2749,14 +2748,14 @@ TEST(compare_nan_not_greater_equal_anything) {
 
 TEST(compare_nan_not_equal_finite) {
   const auto nan_value{sourcemeta::core::Decimal::nan()};
-  EXPECT_TRUE(nan_value != sourcemeta::core::Decimal{0});
-  EXPECT_TRUE(nan_value != sourcemeta::core::Decimal{42});
+  EXPECT_NE(nan_value, sourcemeta::core::Decimal{0});
+  EXPECT_NE(nan_value, sourcemeta::core::Decimal{42});
 }
 
 TEST(compare_nan_not_equal_infinity) {
   const auto nan_value{sourcemeta::core::Decimal::nan()};
-  EXPECT_TRUE(nan_value != sourcemeta::core::Decimal::infinity());
-  EXPECT_TRUE(nan_value != sourcemeta::core::Decimal::negative_infinity());
+  EXPECT_NE(nan_value, sourcemeta::core::Decimal::infinity());
+  EXPECT_NE(nan_value, sourcemeta::core::Decimal::negative_infinity());
 }
 
 TEST(compare_infinity_equal_infinity) {
@@ -4921,7 +4920,7 @@ TEST(parse_exponent_beyond_suffix_cap_rejected) {
 TEST(exact_from_integer_one) {
   const auto value{sourcemeta::core::Decimal::exact_from(1.0)};
   EXPECT_EQ(value.to_string(), "1");
-  EXPECT_TRUE(value == sourcemeta::core::Decimal{"1"});
+  EXPECT_EQ(value, sourcemeta::core::Decimal{"1"});
 }
 
 TEST(exact_from_integer_five) {
@@ -4952,8 +4951,8 @@ TEST(exact_from_negative_zero) {
   EXPECT_TRUE(value.is_zero());
   EXPECT_TRUE(value.is_signed());
   EXPECT_EQ(value.to_string(), "-0");
-  EXPECT_TRUE(value == sourcemeta::core::Decimal{0});
-  EXPECT_TRUE(value == sourcemeta::core::Decimal{"-0"});
+  EXPECT_EQ(value, sourcemeta::core::Decimal{0});
+  EXPECT_EQ(value, sourcemeta::core::Decimal{"-0"});
 }
 
 TEST(exact_from_dyadic_half) {
@@ -4990,7 +4989,7 @@ TEST(exact_from_two_pow_63) {
   const auto value{
       sourcemeta::core::Decimal::exact_from(9223372036854775808.0)};
   EXPECT_EQ(value.to_string(), "9223372036854775808");
-  EXPECT_TRUE(value == sourcemeta::core::Decimal{"9223372036854775808"});
+  EXPECT_EQ(value, sourcemeta::core::Decimal{"9223372036854775808"});
 }
 
 TEST(exact_from_one_tenth_full_expansion) {
@@ -5001,13 +5000,13 @@ TEST(exact_from_one_tenth_full_expansion) {
 
 TEST(exact_from_one_tenth_differs_from_clean_decimal) {
   const auto value{sourcemeta::core::Decimal::exact_from(0.1)};
-  EXPECT_FALSE(value == sourcemeta::core::Decimal{"0.1"});
+  EXPECT_NE(value, sourcemeta::core::Decimal{"0.1"});
   EXPECT_TRUE(value > sourcemeta::core::Decimal{"0.1"});
 }
 
 TEST(exact_from_two_point_one_differs_from_clean_decimal) {
   const auto value{sourcemeta::core::Decimal::exact_from(2.1)};
-  EXPECT_FALSE(value == sourcemeta::core::Decimal{"2.1"});
+  EXPECT_NE(value, sourcemeta::core::Decimal{"2.1"});
   EXPECT_TRUE(value > sourcemeta::core::Decimal{"2.1"});
 }
 
@@ -5570,7 +5569,7 @@ TEST(compare_two_thousand_digit_literals) {
   const sourcemeta::core::Decimal longer{std::string(2001, '1')};
   EXPECT_TRUE(shorter < longer);
   EXPECT_TRUE(longer > shorter);
-  EXPECT_FALSE(shorter == longer);
+  EXPECT_NE(shorter, longer);
   EXPECT_EQ((longer - shorter).to_string(), "1" + std::string(2000, '0'));
 }
 
@@ -6328,22 +6327,22 @@ TEST(compare_total_of_adjusted_exponents_past_the_exponent_range) {
 TEST(equality_of_wide_coefficients_at_opposite_ends_of_the_exponent_range) {
   const sourcemeta::core::Decimal big{"1000000000000000000e2147483647"};
   const sourcemeta::core::Decimal small{"1e-2147483648"};
-  EXPECT_FALSE(big == small);
-  EXPECT_FALSE(small == big);
-  EXPECT_TRUE(big != small);
-  EXPECT_TRUE(small != big);
+  EXPECT_NE(big, small);
+  EXPECT_NE(small, big);
+  EXPECT_NE(big, small);
+  EXPECT_NE(small, big);
 }
 
 TEST(equality_of_a_wide_coefficient_with_itself_at_the_top_of_the_range) {
   const sourcemeta::core::Decimal value{"1000000000000000000e2147483647"};
-  EXPECT_TRUE(value == value);
-  EXPECT_FALSE(value != value);
+  EXPECT_EQ(value, value);
+  EXPECT_EQ(value, value);
 }
 
 TEST(equality_of_a_wide_coefficient_with_itself_at_the_bottom_of_the_range) {
   const sourcemeta::core::Decimal value{"1000000000000000000e-2147483648"};
-  EXPECT_TRUE(value == value);
-  EXPECT_FALSE(value != value);
+  EXPECT_EQ(value, value);
+  EXPECT_EQ(value, value);
 }
 
 // Two spellings of one number stand at the same order of magnitude, so the
@@ -6351,24 +6350,24 @@ TEST(equality_of_a_wide_coefficient_with_itself_at_the_bottom_of_the_range) {
 TEST(equality_of_wide_coefficients_spelling_one_number_two_ways) {
   const sourcemeta::core::Decimal left{"1000000000000000000e5"};
   const sourcemeta::core::Decimal right{"10000000000000000000000e1"};
-  EXPECT_TRUE(left == right);
-  EXPECT_TRUE(right == left);
-  EXPECT_FALSE(left != right);
+  EXPECT_EQ(left, right);
+  EXPECT_EQ(right, left);
+  EXPECT_EQ(left, right);
 }
 
 TEST(inequality_of_wide_coefficients_at_one_order_of_magnitude) {
   const sourcemeta::core::Decimal left{"1000000000000000001e5"};
   const sourcemeta::core::Decimal right{"10000000000000000000000e1"};
-  EXPECT_FALSE(left == right);
-  EXPECT_TRUE(left != right);
+  EXPECT_NE(left, right);
+  EXPECT_NE(left, right);
 }
 
 TEST(equality_of_a_wide_coefficient_with_a_zero_at_the_same_magnitude) {
   const sourcemeta::core::Decimal value{"1000000000000000000e-2147483648"};
   const sourcemeta::core::Decimal zero{"0e-2147483630"};
-  EXPECT_FALSE(value == zero);
-  EXPECT_FALSE(zero == value);
-  EXPECT_TRUE(value != zero);
+  EXPECT_NE(value, zero);
+  EXPECT_NE(zero, value);
+  EXPECT_NE(value, zero);
 }
 
 TEST(divide_integer_of_adjusted_exponents_past_the_exponent_range) {

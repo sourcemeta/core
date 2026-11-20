@@ -463,6 +463,8 @@ TEST(validate_enforces_the_maximum_authentication_age) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
+  EXPECT_EQ(accepted.value().subject, "user-1");
+  EXPECT_EQ(accepted.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_accepts_a_fractional_auth_time) {
@@ -482,6 +484,8 @@ TEST(validate_accepts_a_fractional_auth_time) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
+  EXPECT_EQ(accepted.value().subject, "user-1");
+  EXPECT_EQ(accepted.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_rejects_a_future_auth_time) {
@@ -519,6 +523,8 @@ TEST(validate_enforces_the_maximum_issued_at_age) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
+  EXPECT_EQ(accepted.value().subject, "user-1");
+  EXPECT_EQ(accepted.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_accepts_an_issued_at_exactly_at_the_age_boundary) {
@@ -531,6 +537,8 @@ TEST(validate_accepts_an_issued_at_exactly_at_the_age_boundary) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
+  EXPECT_EQ(accepted.value().subject, "user-1");
+  EXPECT_EQ(accepted.value().issuer, "https://issuer.example");
 
   options.maximum_issued_at_age = std::chrono::seconds{3599};
   const auto rejected{sourcemeta::core::oidc_validate_id_token(
@@ -580,6 +588,8 @@ TEST(validate_accepts_a_recent_issued_at_under_an_unbounded_age) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(accepted.has_value());
+  EXPECT_EQ(accepted.value().subject, "user-1");
+  EXPECT_EQ(accepted.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_rejects_an_ancient_issued_at_under_an_unbounded_age) {
@@ -649,6 +659,8 @@ TEST(validate_enforces_the_access_token_hash) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, matching)};
   EXPECT_TRUE(accepted.has_value());
+  EXPECT_EQ(accepted.value().subject, "user-1");
+  EXPECT_EQ(accepted.value().issuer, "https://issuer.example");
 
   sourcemeta::core::OIDCValidationOptions mismatched;
   mismatched.access_token = "the-wrong-access-token";
@@ -697,6 +709,8 @@ TEST(validate_accepts_a_required_access_token_hash_when_present) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_rejects_a_required_access_token_hash_without_the_token) {
@@ -1167,6 +1181,8 @@ TEST(validate_accepts_an_audience_trusted_later_in_the_set) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 // OpenID Connect Core 1.0 Section 2 asks for an authorized party only where
@@ -1186,6 +1202,8 @@ TEST(validate_accepts_an_audience_array_of_one_without_an_authorized_party) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_accepts_an_authorized_party_naming_the_client) {
@@ -1206,6 +1224,8 @@ TEST(validate_accepts_an_authorized_party_naming_the_client) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 // RFC 7519 Section 2 gives a NumericDate as a number, so a claim of another
@@ -1309,6 +1329,8 @@ TEST(validate_leaves_a_code_hash_alone_when_no_code_is_given) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 TEST(validate_rejects_a_code_hash_that_is_not_a_string_when_a_code_is_given) {
@@ -1349,6 +1371,8 @@ TEST(validate_accepts_a_matching_code_hash_that_was_not_required) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW, options)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 // The authentication context class is reported only where the claim carries a
@@ -1388,6 +1412,8 @@ TEST(validate_accepts_a_single_audience_authorized_party_naming_the_client) {
       token.value(), oct_key_set(), ALLOWED_HS256, "https://issuer.example",
       "client-id", REFERENCE_NOW)};
   EXPECT_TRUE(identity.has_value());
+  EXPECT_EQ(identity.value().subject, "user-1");
+  EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
 // A required binding has to match, not merely be present

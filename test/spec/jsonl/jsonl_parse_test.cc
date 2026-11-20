@@ -327,12 +327,12 @@ TEST(iterator_comparison_against_the_end_from_either_side) {
   sourcemeta::core::JSONL parser{stream};
   const auto first{parser.cbegin()};
   const auto last{parser.cend()};
-  EXPECT_TRUE(first == first);
-  EXPECT_TRUE(last == last);
-  EXPECT_FALSE(first == last);
-  EXPECT_FALSE(last == first);
-  EXPECT_TRUE(first != last);
-  EXPECT_TRUE(last != first);
+  EXPECT_EQ(first, first);
+  EXPECT_EQ(last, last);
+  EXPECT_NE(first, last);
+  EXPECT_NE(last, first);
+  EXPECT_NE(first, last);
+  EXPECT_NE(last, first);
 }
 
 TEST(iterator_comparison_of_two_positions_of_one_stream) {
@@ -340,11 +340,11 @@ TEST(iterator_comparison_of_two_positions_of_one_stream) {
   sourcemeta::core::JSONL parser{stream};
   auto first{parser.cbegin()};
   const auto last{parser.cend()};
-  EXPECT_TRUE(first != last);
+  EXPECT_NE(first, last);
   ++first;
-  EXPECT_TRUE(first != last);
+  EXPECT_NE(first, last);
   ++first;
-  EXPECT_TRUE(first == last);
+  EXPECT_EQ(first, last);
 }
 
 // An iterator holds the document it last read, and that is what a comparison
@@ -355,7 +355,7 @@ TEST(iterator_comparison_of_two_iterators_over_one_stream) {
   sourcemeta::core::JSONL parser{stream};
   const auto first{parser.cbegin()};
   const auto second{parser.cbegin()};
-  EXPECT_FALSE(first == second);
+  EXPECT_NE(first, second);
   EXPECT_EQ((*first).at("a").to_integer(), 1);
   EXPECT_EQ((*second).at("b").to_integer(), 2);
 }

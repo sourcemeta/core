@@ -843,59 +843,59 @@ TEST(
 TEST(default_response_mode_for_code_is_query) {
   const auto mode{sourcemeta::core::oauth_default_response_mode("code")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Query);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Query);
 }
 
 TEST(default_response_mode_for_none_is_query) {
   const auto mode{sourcemeta::core::oauth_default_response_mode("none")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Query);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Query);
 }
 
 TEST(default_response_mode_for_token_is_fragment) {
   const auto mode{sourcemeta::core::oauth_default_response_mode("token")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_for_id_token_is_fragment) {
   const auto mode{sourcemeta::core::oauth_default_response_mode("id_token")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_for_code_id_token_is_fragment) {
   const auto mode{
       sourcemeta::core::oauth_default_response_mode("code id_token")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_for_code_token_is_fragment) {
   const auto mode{sourcemeta::core::oauth_default_response_mode("code token")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_for_id_token_token_is_fragment) {
   const auto mode{
       sourcemeta::core::oauth_default_response_mode("id_token token")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_for_code_id_token_token_is_fragment) {
   const auto mode{
       sourcemeta::core::oauth_default_response_mode("code id_token token")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_ignores_the_value_order) {
   const auto mode{
       sourcemeta::core::oauth_default_response_mode("id_token code")};
   EXPECT_TRUE(mode.has_value());
-  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+  EXPECT_EQ(mode.value(), sourcemeta::core::OAuthResponseMode::Fragment);
 }
 
 TEST(default_response_mode_rejects_an_empty_response_type) {

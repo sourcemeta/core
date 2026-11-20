@@ -148,13 +148,13 @@ TEST(modulo_assignment_high_word) {
 TEST(equal) {
   const sourcemeta::core::uint128_t left{42};
   const sourcemeta::core::uint128_t right{42};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(not_equal) {
   const sourcemeta::core::uint128_t left{42};
   const sourcemeta::core::uint128_t right{43};
-  EXPECT_TRUE(left != right);
+  EXPECT_NE(left, right);
 }
 
 TEST(less_than) {
@@ -234,13 +234,13 @@ TEST(overflow_multiply_then_divide) {
 TEST(addition_commutativity) {
   const sourcemeta::core::uint128_t left{123456789ULL};
   const sourcemeta::core::uint128_t right{987654321ULL};
-  EXPECT_TRUE((left + right) == (right + left));
+  EXPECT_EQ((left + right), (right + left));
 }
 
 TEST(multiplication_commutativity) {
   const sourcemeta::core::uint128_t left{12345ULL};
   const sourcemeta::core::uint128_t right{67890ULL};
-  EXPECT_TRUE((left * right) == (right * left));
+  EXPECT_EQ((left * right), (right * left));
 }
 
 TEST(multiply_by_zero) {
@@ -254,7 +254,7 @@ TEST(multiply_by_zero) {
 TEST(add_zero) {
   const sourcemeta::core::uint128_t value{42};
   const sourcemeta::core::uint128_t zero{0};
-  EXPECT_TRUE((value + zero) == value);
+  EXPECT_EQ((value + zero), value);
 }
 
 TEST(division_by_uint128) {

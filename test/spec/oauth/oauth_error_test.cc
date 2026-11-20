@@ -31,42 +31,40 @@ TEST(parse_authorization_error_codes) {
   const auto invalid_request{
       sourcemeta::core::to_oauth_authorization_error("invalid_request")};
   EXPECT_TRUE(invalid_request.has_value());
-  EXPECT_TRUE(invalid_request.value() ==
-              sourcemeta::core::OAuthAuthorizationError::InvalidRequest);
+  EXPECT_EQ(invalid_request.value(),
+            sourcemeta::core::OAuthAuthorizationError::InvalidRequest);
   const auto unauthorized_client{
       sourcemeta::core::to_oauth_authorization_error("unauthorized_client")};
   EXPECT_TRUE(unauthorized_client.has_value());
-  EXPECT_TRUE(unauthorized_client.value() ==
-              sourcemeta::core::OAuthAuthorizationError::UnauthorizedClient);
+  EXPECT_EQ(unauthorized_client.value(),
+            sourcemeta::core::OAuthAuthorizationError::UnauthorizedClient);
   const auto access_denied{
       sourcemeta::core::to_oauth_authorization_error("access_denied")};
   EXPECT_TRUE(access_denied.has_value());
-  EXPECT_TRUE(access_denied.value() ==
-              sourcemeta::core::OAuthAuthorizationError::AccessDenied);
+  EXPECT_EQ(access_denied.value(),
+            sourcemeta::core::OAuthAuthorizationError::AccessDenied);
   const auto unsupported_response_type{
       sourcemeta::core::to_oauth_authorization_error(
           "unsupported_response_type")};
   EXPECT_TRUE(unsupported_response_type.has_value());
-  EXPECT_TRUE(
-      unsupported_response_type.value() ==
-      sourcemeta::core::OAuthAuthorizationError::UnsupportedResponseType);
+  EXPECT_EQ(unsupported_response_type.value(),
+            sourcemeta::core::OAuthAuthorizationError::UnsupportedResponseType);
   const auto invalid_scope{
       sourcemeta::core::to_oauth_authorization_error("invalid_scope")};
   EXPECT_TRUE(invalid_scope.has_value());
-  EXPECT_TRUE(invalid_scope.value() ==
-              sourcemeta::core::OAuthAuthorizationError::InvalidScope);
+  EXPECT_EQ(invalid_scope.value(),
+            sourcemeta::core::OAuthAuthorizationError::InvalidScope);
   const auto server_error{
       sourcemeta::core::to_oauth_authorization_error("server_error")};
   EXPECT_TRUE(server_error.has_value());
-  EXPECT_TRUE(server_error.value() ==
-              sourcemeta::core::OAuthAuthorizationError::ServerError);
+  EXPECT_EQ(server_error.value(),
+            sourcemeta::core::OAuthAuthorizationError::ServerError);
   const auto temporarily_unavailable{
       sourcemeta::core::to_oauth_authorization_error(
           "temporarily_unavailable")};
   EXPECT_TRUE(temporarily_unavailable.has_value());
-  EXPECT_TRUE(
-      temporarily_unavailable.value() ==
-      sourcemeta::core::OAuthAuthorizationError::TemporarilyUnavailable);
+  EXPECT_EQ(temporarily_unavailable.value(),
+            sourcemeta::core::OAuthAuthorizationError::TemporarilyUnavailable);
 }
 
 TEST(parse_authorization_error_rejects_an_unknown_code) {
@@ -124,71 +122,71 @@ TEST(parse_token_error_codes) {
   const auto invalid_request{
       sourcemeta::core::to_oauth_token_error("invalid_request")};
   EXPECT_TRUE(invalid_request.has_value());
-  EXPECT_TRUE(invalid_request.value() ==
-              sourcemeta::core::OAuthTokenError::InvalidRequest);
+  EXPECT_EQ(invalid_request.value(),
+            sourcemeta::core::OAuthTokenError::InvalidRequest);
   const auto invalid_client{
       sourcemeta::core::to_oauth_token_error("invalid_client")};
   EXPECT_TRUE(invalid_client.has_value());
-  EXPECT_TRUE(invalid_client.value() ==
-              sourcemeta::core::OAuthTokenError::InvalidClient);
+  EXPECT_EQ(invalid_client.value(),
+            sourcemeta::core::OAuthTokenError::InvalidClient);
   const auto invalid_grant{
       sourcemeta::core::to_oauth_token_error("invalid_grant")};
   EXPECT_TRUE(invalid_grant.has_value());
-  EXPECT_TRUE(invalid_grant.value() ==
-              sourcemeta::core::OAuthTokenError::InvalidGrant);
+  EXPECT_EQ(invalid_grant.value(),
+            sourcemeta::core::OAuthTokenError::InvalidGrant);
   const auto unauthorized_client{
       sourcemeta::core::to_oauth_token_error("unauthorized_client")};
   EXPECT_TRUE(unauthorized_client.has_value());
-  EXPECT_TRUE(unauthorized_client.value() ==
-              sourcemeta::core::OAuthTokenError::UnauthorizedClient);
+  EXPECT_EQ(unauthorized_client.value(),
+            sourcemeta::core::OAuthTokenError::UnauthorizedClient);
   const auto unsupported_grant_type{
       sourcemeta::core::to_oauth_token_error("unsupported_grant_type")};
   EXPECT_TRUE(unsupported_grant_type.has_value());
-  EXPECT_TRUE(unsupported_grant_type.value() ==
-              sourcemeta::core::OAuthTokenError::UnsupportedGrantType);
+  EXPECT_EQ(unsupported_grant_type.value(),
+            sourcemeta::core::OAuthTokenError::UnsupportedGrantType);
   const auto invalid_scope{
       sourcemeta::core::to_oauth_token_error("invalid_scope")};
   EXPECT_TRUE(invalid_scope.has_value());
-  EXPECT_TRUE(invalid_scope.value() ==
-              sourcemeta::core::OAuthTokenError::InvalidScope);
+  EXPECT_EQ(invalid_scope.value(),
+            sourcemeta::core::OAuthTokenError::InvalidScope);
   const auto authorization_pending{
       sourcemeta::core::to_oauth_token_error("authorization_pending")};
   EXPECT_TRUE(authorization_pending.has_value());
-  EXPECT_TRUE(authorization_pending.value() ==
-              sourcemeta::core::OAuthTokenError::AuthorizationPending);
+  EXPECT_EQ(authorization_pending.value(),
+            sourcemeta::core::OAuthTokenError::AuthorizationPending);
   const auto slow_down{sourcemeta::core::to_oauth_token_error("slow_down")};
   EXPECT_TRUE(slow_down.has_value());
-  EXPECT_TRUE(slow_down.value() == sourcemeta::core::OAuthTokenError::SlowDown);
+  EXPECT_EQ(slow_down.value(), sourcemeta::core::OAuthTokenError::SlowDown);
   const auto access_denied{
       sourcemeta::core::to_oauth_token_error("access_denied")};
   EXPECT_TRUE(access_denied.has_value());
-  EXPECT_TRUE(access_denied.value() ==
-              sourcemeta::core::OAuthTokenError::AccessDenied);
+  EXPECT_EQ(access_denied.value(),
+            sourcemeta::core::OAuthTokenError::AccessDenied);
   const auto expired_token{
       sourcemeta::core::to_oauth_token_error("expired_token")};
   EXPECT_TRUE(expired_token.has_value());
-  EXPECT_TRUE(expired_token.value() ==
-              sourcemeta::core::OAuthTokenError::ExpiredToken);
+  EXPECT_EQ(expired_token.value(),
+            sourcemeta::core::OAuthTokenError::ExpiredToken);
   const auto invalid_target{
       sourcemeta::core::to_oauth_token_error("invalid_target")};
   EXPECT_TRUE(invalid_target.has_value());
-  EXPECT_TRUE(invalid_target.value() ==
-              sourcemeta::core::OAuthTokenError::InvalidTarget);
+  EXPECT_EQ(invalid_target.value(),
+            sourcemeta::core::OAuthTokenError::InvalidTarget);
   const auto invalid_dpop_proof{
       sourcemeta::core::to_oauth_token_error("invalid_dpop_proof")};
   EXPECT_TRUE(invalid_dpop_proof.has_value());
-  EXPECT_TRUE(invalid_dpop_proof.value() ==
-              sourcemeta::core::OAuthTokenError::InvalidDPoPProof);
+  EXPECT_EQ(invalid_dpop_proof.value(),
+            sourcemeta::core::OAuthTokenError::InvalidDPoPProof);
   const auto use_dpop_nonce{
       sourcemeta::core::to_oauth_token_error("use_dpop_nonce")};
   EXPECT_TRUE(use_dpop_nonce.has_value());
-  EXPECT_TRUE(use_dpop_nonce.value() ==
-              sourcemeta::core::OAuthTokenError::UseDPoPNonce);
+  EXPECT_EQ(use_dpop_nonce.value(),
+            sourcemeta::core::OAuthTokenError::UseDPoPNonce);
   const auto unsupported_token_type{
       sourcemeta::core::to_oauth_token_error("unsupported_token_type")};
   EXPECT_TRUE(unsupported_token_type.has_value());
-  EXPECT_TRUE(unsupported_token_type.value() ==
-              sourcemeta::core::OAuthTokenError::UnsupportedTokenType);
+  EXPECT_EQ(unsupported_token_type.value(),
+            sourcemeta::core::OAuthTokenError::UnsupportedTokenType);
 }
 
 TEST(parse_token_error_rejects_an_unknown_code) {
@@ -219,28 +217,28 @@ TEST(parse_bearer_error_codes) {
   const auto invalid_request{
       sourcemeta::core::to_oauth_bearer_error("invalid_request")};
   EXPECT_TRUE(invalid_request.has_value());
-  EXPECT_TRUE(invalid_request.value() ==
-              sourcemeta::core::OAuthBearerError::InvalidRequest);
+  EXPECT_EQ(invalid_request.value(),
+            sourcemeta::core::OAuthBearerError::InvalidRequest);
   const auto invalid_token{
       sourcemeta::core::to_oauth_bearer_error("invalid_token")};
   EXPECT_TRUE(invalid_token.has_value());
-  EXPECT_TRUE(invalid_token.value() ==
-              sourcemeta::core::OAuthBearerError::InvalidToken);
+  EXPECT_EQ(invalid_token.value(),
+            sourcemeta::core::OAuthBearerError::InvalidToken);
   const auto insufficient_scope{
       sourcemeta::core::to_oauth_bearer_error("insufficient_scope")};
   EXPECT_TRUE(insufficient_scope.has_value());
-  EXPECT_TRUE(insufficient_scope.value() ==
-              sourcemeta::core::OAuthBearerError::InsufficientScope);
+  EXPECT_EQ(insufficient_scope.value(),
+            sourcemeta::core::OAuthBearerError::InsufficientScope);
   const auto invalid_dpop_proof{
       sourcemeta::core::to_oauth_bearer_error("invalid_dpop_proof")};
   EXPECT_TRUE(invalid_dpop_proof.has_value());
-  EXPECT_TRUE(invalid_dpop_proof.value() ==
-              sourcemeta::core::OAuthBearerError::InvalidDPoPProof);
+  EXPECT_EQ(invalid_dpop_proof.value(),
+            sourcemeta::core::OAuthBearerError::InvalidDPoPProof);
   const auto use_dpop_nonce{
       sourcemeta::core::to_oauth_bearer_error("use_dpop_nonce")};
   EXPECT_TRUE(use_dpop_nonce.has_value());
-  EXPECT_TRUE(use_dpop_nonce.value() ==
-              sourcemeta::core::OAuthBearerError::UseDPoPNonce);
+  EXPECT_EQ(use_dpop_nonce.value(),
+            sourcemeta::core::OAuthBearerError::UseDPoPNonce);
 }
 
 TEST(parse_bearer_error_rejects_an_unknown_code) {
@@ -271,26 +269,25 @@ TEST(parse_registration_error_codes) {
   const auto invalid_redirect_uri{
       sourcemeta::core::to_oauth_registration_error("invalid_redirect_uri")};
   EXPECT_TRUE(invalid_redirect_uri.has_value());
-  EXPECT_TRUE(invalid_redirect_uri.value() ==
-              sourcemeta::core::OAuthRegistrationError::InvalidRedirectURI);
+  EXPECT_EQ(invalid_redirect_uri.value(),
+            sourcemeta::core::OAuthRegistrationError::InvalidRedirectURI);
   const auto invalid_client_metadata{
       sourcemeta::core::to_oauth_registration_error("invalid_client_metadata")};
   EXPECT_TRUE(invalid_client_metadata.has_value());
-  EXPECT_TRUE(invalid_client_metadata.value() ==
-              sourcemeta::core::OAuthRegistrationError::InvalidClientMetadata);
+  EXPECT_EQ(invalid_client_metadata.value(),
+            sourcemeta::core::OAuthRegistrationError::InvalidClientMetadata);
   const auto invalid_software_statement{
       sourcemeta::core::to_oauth_registration_error(
           "invalid_software_statement")};
   EXPECT_TRUE(invalid_software_statement.has_value());
-  EXPECT_TRUE(
-      invalid_software_statement.value() ==
-      sourcemeta::core::OAuthRegistrationError::InvalidSoftwareStatement);
+  EXPECT_EQ(invalid_software_statement.value(),
+            sourcemeta::core::OAuthRegistrationError::InvalidSoftwareStatement);
   const auto unapproved_software_statement{
       sourcemeta::core::to_oauth_registration_error(
           "unapproved_software_statement")};
   EXPECT_TRUE(unapproved_software_statement.has_value());
-  EXPECT_TRUE(
-      unapproved_software_statement.value() ==
+  EXPECT_EQ(
+      unapproved_software_statement.value(),
       sourcemeta::core::OAuthRegistrationError::UnapprovedSoftwareStatement);
 }
 
