@@ -178,10 +178,10 @@ TEST(equal_integer_real_is_exact_not_lossy) {
   const sourcemeta::core::JSON real_two_pow_63{9223372036854775808.0};
   const sourcemeta::core::JSON integer_maximum{
       std::numeric_limits<std::int64_t>::max()};
-  EXPECT_NE(real_two_pow_63, integer_maximum);
+  EXPECT_FALSE(real_two_pow_63 == integer_maximum);
   const sourcemeta::core::JSON two{static_cast<std::int64_t>(2)};
   const sourcemeta::core::JSON two_and_a_half{2.5};
-  EXPECT_NE(two, two_and_a_half);
+  EXPECT_FALSE(two == two_and_a_half);
 }
 
 // Values that compare equal must produce the same fast hash. Equality checks

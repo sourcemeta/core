@@ -19,6 +19,6 @@ TEST(random_token_carries_no_base64_padding) {
 TEST(random_tokens_differ_between_calls) {
   const auto first{sourcemeta::core::oauth_random_token()};
   const auto second{sourcemeta::core::oauth_random_token()};
-  EXPECT_NE((std::string_view{first.data(), first.size()}),
-            (std::string_view{second.data(), second.size()}));
+  EXPECT_FALSE((std::string_view{first.data(), first.size()}) ==
+               (std::string_view{second.data(), second.size()}));
 }

@@ -31,8 +31,8 @@ TEST(literal_equality_false) {
   EXPECT_EQ(right, right);
   EXPECT_EQ(left, right);
   EXPECT_EQ(right, left);
-  EXPECT_NE(left, extra);
-  EXPECT_NE(right, extra);
+  EXPECT_FALSE(left == extra);
+  EXPECT_FALSE(right == extra);
 }
 
 TEST(literal_equality_true) {
@@ -43,8 +43,8 @@ TEST(literal_equality_true) {
   EXPECT_EQ(right, right);
   EXPECT_EQ(left, right);
   EXPECT_EQ(right, left);
-  EXPECT_NE(left, extra);
-  EXPECT_NE(right, extra);
+  EXPECT_FALSE(left == extra);
+  EXPECT_FALSE(right == extra);
 }
 
 TEST(estimated_byte_size_false) {

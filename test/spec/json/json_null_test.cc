@@ -15,8 +15,8 @@ TEST(literal_equality) {
   const sourcemeta::core::JSON left{nullptr};
   const sourcemeta::core::JSON right{false};
   EXPECT_EQ(left, left);
-  EXPECT_NE(left, right);
-  EXPECT_NE(right, left);
+  EXPECT_FALSE(left == right);
+  EXPECT_FALSE(right == left);
 }
 
 TEST(estimated_byte_size) {

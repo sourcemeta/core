@@ -669,9 +669,9 @@ TEST(distinct_numbers_are_not_equal_across_representations) {
   const sourcemeta::core::JSON real_thousand_and_one{1001.0};
   const sourcemeta::core::JSON decimal_thousand_and_two{
       sourcemeta::core::Decimal{"1002"}};
-  EXPECT_NE(integer_thousand, real_thousand_and_one);
-  EXPECT_NE(integer_thousand, decimal_thousand_and_two);
-  EXPECT_NE(real_thousand_and_one, decimal_thousand_and_two);
+  EXPECT_FALSE(integer_thousand == real_thousand_and_one);
+  EXPECT_FALSE(integer_thousand == decimal_thousand_and_two);
+  EXPECT_FALSE(real_thousand_and_one == decimal_thousand_and_two);
 }
 
 TEST(unordered_set_with_reference_wrapper) {

@@ -10,14 +10,14 @@ TEST(transaction_mint_produces_distinct_secrets) {
                                   secrets.code_verifier.size()};
   EXPECT_EQ(state.size(), 43);
   EXPECT_EQ(verifier.size(), 43);
-  EXPECT_NE(state, verifier);
+  EXPECT_FALSE(state == verifier);
 }
 
 TEST(transaction_mint_differs_between_calls) {
   const auto first{sourcemeta::core::oauth_transaction_mint()};
   const auto second{sourcemeta::core::oauth_transaction_mint()};
-  EXPECT_NE((std::string_view{first.state.data(), first.state.size()}),
-            (std::string_view{second.state.data(), second.state.size()}));
+  EXPECT_FALSE((std::string_view{first.state.data(), first.state.size()}) ==
+               (std::string_view{second.state.data(), second.state.size()}));
 }
 
 TEST(transaction_check_accepts_a_valid_callback) {

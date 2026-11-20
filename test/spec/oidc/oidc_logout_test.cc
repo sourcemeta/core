@@ -490,7 +490,7 @@ TEST(session_state_is_stable_and_salted) {
   EXPECT_NE(first.find(".salt"), std::string::npos);
   const auto different{sourcemeta::core::oidc_session_state(
       "client-id", "https://client.example", "browser-state", "other")};
-  EXPECT_NE(first, different);
+  EXPECT_FALSE(first == different);
 }
 
 TEST(validate_logout_token_bounds_the_clock_skew_like_the_base_check) {

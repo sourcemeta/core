@@ -167,7 +167,7 @@ TEST(secure_allocator_instances_are_interchangeable) {
   const sourcemeta::core::SecureAllocator<char> left;
   const sourcemeta::core::SecureAllocator<char> right;
   EXPECT_EQ(left, right);
-  EXPECT_EQ(left, right);
+  EXPECT_FALSE(left != right);
 }
 
 TEST(secure_allocator_rejects_an_overflowing_allocation) {

@@ -649,7 +649,7 @@ TEST(nonce_is_the_expected_length) {
 TEST(nonce_is_fresh_on_each_call) {
   const auto first{sourcemeta::core::oidc_nonce()};
   const auto second{sourcemeta::core::oidc_nonce()};
-  EXPECT_NE(first, second);
+  EXPECT_FALSE(first == second);
 }
 
 TEST(parse_rejects_a_duplicated_parameter) {

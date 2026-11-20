@@ -37,8 +37,8 @@ TEST(minted_verifier_and_challenge_round_trip) {
 TEST(minted_verifiers_differ_between_calls) {
   const auto first{sourcemeta::core::oauth_pkce_verifier()};
   const auto second{sourcemeta::core::oauth_pkce_verifier()};
-  EXPECT_NE((std::string_view{first.data(), first.size()}),
-            (std::string_view{second.data(), second.size()}));
+  EXPECT_FALSE((std::string_view{first.data(), first.size()}) ==
+               (std::string_view{second.data(), second.size()}));
 }
 
 TEST(verify_matches_rfc7636_appendix_b_under_strict) {

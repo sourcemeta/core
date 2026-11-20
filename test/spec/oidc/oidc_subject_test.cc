@@ -40,7 +40,7 @@ TEST(pairwise_subject_differs_per_sector) {
       "client-a.example", "user-1", "provider-secret")};
   const auto second{sourcemeta::core::oidc_pairwise_subject(
       "client-b.example", "user-1", "provider-secret")};
-  EXPECT_NE(first, second);
+  EXPECT_FALSE(first == second);
 }
 
 TEST(pairwise_subject_differs_per_account) {
@@ -48,7 +48,7 @@ TEST(pairwise_subject_differs_per_account) {
       "client.example", "user-1", "provider-secret")};
   const auto second{sourcemeta::core::oidc_pairwise_subject(
       "client.example", "user-2", "provider-secret")};
-  EXPECT_NE(first, second);
+  EXPECT_FALSE(first == second);
 }
 
 TEST(pairwise_subject_differs_per_salt) {
@@ -56,7 +56,7 @@ TEST(pairwise_subject_differs_per_salt) {
       "client.example", "user-1", "secret-a")};
   const auto second{sourcemeta::core::oidc_pairwise_subject(
       "client.example", "user-1", "secret-b")};
-  EXPECT_NE(first, second);
+  EXPECT_FALSE(first == second);
 }
 
 TEST(pairwise_subject_avoids_a_field_boundary_collision) {
@@ -66,7 +66,7 @@ TEST(pairwise_subject_avoids_a_field_boundary_collision) {
                                                            "provider-secret")};
   const auto second{sourcemeta::core::oidc_pairwise_subject("client", "a b",
                                                             "provider-secret")};
-  EXPECT_NE(first, second);
+  EXPECT_FALSE(first == second);
 }
 
 TEST(pairwise_subject_stays_within_the_length_limit) {

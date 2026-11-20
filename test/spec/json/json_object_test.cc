@@ -1573,8 +1573,8 @@ TEST(entry_key_equals_imperfect_match) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::make_object()};
   document.assign(key, sourcemeta::core::JSON{1});
   const auto &entry{*document.as_object().cbegin()};
-  EXPECT_NE(document.as_object().hash(key),
-            sourcemeta::core::JSON::Object::hash("a"));
+  EXPECT_FALSE(document.as_object().hash(key) ==
+               sourcemeta::core::JSON::Object::hash("a"));
   EXPECT_TRUE(entry.key_equals(key, sourcemeta::core::JSON::Object::hash(key)));
 }
 

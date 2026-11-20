@@ -109,7 +109,7 @@ TEST(equality_true) {
 TEST(equality_false) {
   const sourcemeta::core::Pointer pointer_1{"foo", 1, "bar"};
   const sourcemeta::core::Pointer pointer_2{"foo", 2, "bar"};
-  EXPECT_NE(pointer_1, pointer_2);
+  EXPECT_FALSE(pointer_1 == pointer_2);
 }
 
 TEST(pop_back_non_empty) {
