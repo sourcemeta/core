@@ -4,13 +4,13 @@
 #include <string_view> // std::string_view
 
 TEST(request_head_complete_preserves_method_target_and_field_order) {
-  constexpr std::string_view input{
+  constexpr std::string_view INPUT{
       "custom! /path?key=value HTTP/1.1\r\nHost: example.com\r\n"
       "X-Value:\t one \t\r\nx-value:two\r\nEmpty: \t\r\n\r\n"};
-  const auto result{sourcemeta::core::http_parse_request_head(input)};
+  const auto result{sourcemeta::core::http_parse_request_head(INPUT)};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestHeadStatus::Complete);
-  EXPECT_EQ(result.consumed, input.size());
+  EXPECT_EQ(result.consumed, INPUT.size());
   EXPECT_EQ(result.method, "custom!");
   EXPECT_EQ(result.target, "/path?key=value");
   EXPECT_EQ(result.fields.size(), 4);
@@ -24,12 +24,12 @@ TEST(request_head_complete_preserves_method_target_and_field_order) {
 }
 
 TEST(request_head_stops_before_body) {
-  constexpr std::string_view input{
+  constexpr std::string_view INPUT{
       "POST / HTTP/1.1\r\nHost: example.com\r\nContent-Length: 4\r\n\r\ndata"};
-  const auto result{sourcemeta::core::http_parse_request_head(input)};
+  const auto result{sourcemeta::core::http_parse_request_head(INPUT)};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestHeadStatus::Complete);
-  EXPECT_EQ(input.substr(result.consumed), "data");
+  EXPECT_EQ(INPUT.substr(result.consumed), "data");
 }
 
 TEST(request_head_empty_input_is_incomplete) {
