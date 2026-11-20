@@ -1318,6 +1318,17 @@ TEST(empty_with_only_a_custom_vocabulary) {
 
   EXPECT_FALSE(vocabularies.empty());
   EXPECT_EQ(vocabularies.size(), 1);
+  EXPECT_TRUE(vocabularies.has_unknown());
+  EXPECT_TRUE(vocabularies.contains(
+      sourcemeta::core::JSON::String{"https://example.com/custom-vocab"}));
+  EXPECT_TRUE(vocabularies
+                  .get(sourcemeta::core::JSON::String{
+                      "https://example.com/custom-vocab"})
+                  .has_value());
+  EXPECT_TRUE(vocabularies
+                  .get(sourcemeta::core::JSON::String{
+                      "https://example.com/custom-vocab"})
+                  .value());
 }
 
 // Every link of an embedded meta-schema chain has to be a schema in its own
@@ -1378,6 +1389,11 @@ TEST(empty_with_a_required_known_vocabulary) {
 
   EXPECT_FALSE(vocabularies.empty());
   EXPECT_EQ(vocabularies.size(), 1);
+  EXPECT_TRUE(vocabularies.contains(Known::JSON_SCHEMA_2020_12_CORE));
+  EXPECT_TRUE(vocabularies.get(Known::JSON_SCHEMA_2020_12_CORE).has_value());
+  EXPECT_TRUE(vocabularies.get(Known::JSON_SCHEMA_2020_12_CORE).value());
+  EXPECT_FALSE(vocabularies.contains(Known::JSON_SCHEMA_2020_12_CONTENT));
+  EXPECT_FALSE(vocabularies.has_unknown());
 }
 
 TEST(empty_with_an_optional_known_vocabulary) {
@@ -1388,6 +1404,11 @@ TEST(empty_with_an_optional_known_vocabulary) {
 
   EXPECT_FALSE(vocabularies.empty());
   EXPECT_EQ(vocabularies.size(), 1);
+  EXPECT_TRUE(vocabularies.contains(Known::JSON_SCHEMA_2020_12_CONTENT));
+  EXPECT_TRUE(vocabularies.get(Known::JSON_SCHEMA_2020_12_CONTENT).has_value());
+  EXPECT_FALSE(vocabularies.get(Known::JSON_SCHEMA_2020_12_CONTENT).value());
+  EXPECT_FALSE(vocabularies.contains(Known::JSON_SCHEMA_2020_12_CORE));
+  EXPECT_FALSE(vocabularies.has_unknown());
 }
 
 TEST(empty_with_no_vocabulary_at_all) {

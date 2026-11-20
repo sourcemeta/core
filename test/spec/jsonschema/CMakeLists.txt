@@ -26,8 +26,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_dependencies_accounted_test.cc
     jsonschema_dependencies_limit_test.cc
     jsonschema_bundle_caller_errors_test.cc
-    jsonschema_bundle_walker_test.cc
-    jsonschema_bundle_caller_names_test.cc
+    jsonschema_bundle_test.cc
     jsonschema_dependencies_caller_errors_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonschema_unit

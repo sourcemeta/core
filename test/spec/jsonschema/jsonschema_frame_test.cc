@@ -2362,14 +2362,12 @@ TEST(mode_reads_back_what_the_frame_was_given) {
   sourcemeta::core::SchemaFrame references{
       sourcemeta::core::SchemaFrame::Mode::References, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-  EXPECT_TRUE(references.mode() ==
-              sourcemeta::core::SchemaFrame::Mode::References);
+  EXPECT_EQ(references.mode(), sourcemeta::core::SchemaFrame::Mode::References);
 
   sourcemeta::core::SchemaFrame locations{
       sourcemeta::core::SchemaFrame::Mode::Locations, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-  EXPECT_TRUE(locations.mode() ==
-              sourcemeta::core::SchemaFrame::Mode::Locations);
+  EXPECT_EQ(locations.mode(), sourcemeta::core::SchemaFrame::Mode::Locations);
 }
 
 // RFC 6901 Section 6 only asks for the characters that the fragment rule of
