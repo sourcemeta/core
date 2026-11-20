@@ -780,7 +780,7 @@ TEST(is_integer_real_storage_fractional) {
 TEST(equal_integer_same_value) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{5};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_different_value) {
@@ -792,13 +792,13 @@ TEST(equal_integer_different_value) {
 TEST(equal_integer_zero) {
   const sourcemeta::core::JSON left{0};
   const sourcemeta::core::JSON right{0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_negative_same_value) {
   const sourcemeta::core::JSON left{-5};
   const sourcemeta::core::JSON right{-5};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_sign_differs) {
@@ -810,13 +810,13 @@ TEST(equal_integer_sign_differs) {
 TEST(equal_integer_maximum) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
   const sourcemeta::core::JSON right{std::numeric_limits<std::int64_t>::max()};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_minimum) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
   const sourcemeta::core::JSON right{std::numeric_limits<std::int64_t>::min()};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_minimum_and_maximum) {
@@ -828,7 +828,7 @@ TEST(equal_integer_minimum_and_maximum) {
 TEST(equal_real_same_value) {
   const sourcemeta::core::JSON left{5.5};
   const sourcemeta::core::JSON right{5.5};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_different_value) {
@@ -840,25 +840,25 @@ TEST(equal_real_different_value) {
 TEST(equal_real_positive_and_negative_zero) {
   const sourcemeta::core::JSON left{0.0};
   const sourcemeta::core::JSON right{-0.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_decimal_same_value) {
   const sourcemeta::core::JSON left{sourcemeta::core::Decimal{"3.14"}};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"3.14"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_decimal_trailing_zeros) {
   const sourcemeta::core::JSON left{sourcemeta::core::Decimal{"1.0"}};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"1.00"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_decimal_positive_and_negative_zero) {
   const sourcemeta::core::JSON left{sourcemeta::core::Decimal{"0"}};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"-0"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_decimal_different_value) {
@@ -872,7 +872,7 @@ TEST(equal_decimal_big_same_value) {
       sourcemeta::core::Decimal{"123456789012345678901234567890"}};
   const sourcemeta::core::JSON right{
       sourcemeta::core::Decimal{"123456789012345678901234567890"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_decimal_big_different_value) {
@@ -886,32 +886,32 @@ TEST(equal_decimal_big_different_value) {
 TEST(equal_integer_and_real_same_value) {
   const sourcemeta::core::JSON left{1};
   const sourcemeta::core::JSON right{1.0};
-  EXPECT_TRUE(left == right);
-  EXPECT_TRUE(right == left);
+  EXPECT_EQ(left, right);
+  EXPECT_EQ(right, left);
 }
 
 TEST(equal_integer_and_real_thousand) {
   const sourcemeta::core::JSON left{1000};
   const sourcemeta::core::JSON right{1000.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_real_zero) {
   const sourcemeta::core::JSON left{0};
   const sourcemeta::core::JSON right{0.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_real_negative_zero) {
   const sourcemeta::core::JSON left{0};
   const sourcemeta::core::JSON right{-0.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_real_negative) {
   const sourcemeta::core::JSON left{-5};
   const sourcemeta::core::JSON right{-5.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_real_fractional_differs) {
@@ -930,7 +930,7 @@ TEST(equal_integer_and_real_large_exact_power_of_two) {
   const sourcemeta::core::JSON left{
       static_cast<std::int64_t>(4503599627370496)};
   const sourcemeta::core::JSON right{4503599627370496.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_maximum_and_real_two_pow_63) {
@@ -951,44 +951,44 @@ TEST(equal_integer_beyond_double_precision_and_real) {
 TEST(equal_integer_minimum_and_real_negative_two_pow_63) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::min()};
   const sourcemeta::core::JSON right{-9223372036854775808.0};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_decimal_same_value) {
   const sourcemeta::core::JSON left{1};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"1"}};
-  EXPECT_TRUE(left == right);
-  EXPECT_TRUE(right == left);
+  EXPECT_EQ(left, right);
+  EXPECT_EQ(right, left);
 }
 
 TEST(equal_integer_and_decimal_trailing_zeros) {
   const sourcemeta::core::JSON left{1};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"1.00"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_decimal_exponent) {
   const sourcemeta::core::JSON left{1};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"1e0"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_decimal_negative) {
   const sourcemeta::core::JSON left{-5};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"-5"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_decimal_zero) {
   const sourcemeta::core::JSON left{0};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"0"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_decimal_negative_zero) {
   const sourcemeta::core::JSON left{0};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"-0"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_integer_and_decimal_fractional_differs) {
@@ -1008,45 +1008,45 @@ TEST(equal_integer_maximum_and_decimal_same_value) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
   const sourcemeta::core::JSON right{
       sourcemeta::core::Decimal{"9223372036854775807"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_and_decimal_integral) {
   const sourcemeta::core::JSON left{5.0};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"5"}};
-  EXPECT_TRUE(left == right);
-  EXPECT_TRUE(right == left);
+  EXPECT_EQ(left, right);
+  EXPECT_EQ(right, left);
 }
 
 TEST(equal_real_and_decimal_dyadic_half) {
   const sourcemeta::core::JSON left{0.5};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"0.5"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_and_decimal_dyadic_quarter) {
   const sourcemeta::core::JSON left{0.25};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"0.25"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_and_decimal_dyadic_trailing_zeros) {
   const sourcemeta::core::JSON left{2.5};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"2.50"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_and_decimal_negative) {
   const sourcemeta::core::JSON left{-2.5};
   const sourcemeta::core::JSON right{sourcemeta::core::Decimal{"-2.5"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_two_pow_63_and_decimal) {
   const sourcemeta::core::JSON left{9223372036854775808.0};
   const sourcemeta::core::JSON right{
       sourcemeta::core::Decimal{"9223372036854775808"}};
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_real_and_decimal_non_dyadic_are_distinct) {
@@ -1074,9 +1074,9 @@ TEST(equal_transitive_integer_real_decimal) {
   const sourcemeta::core::JSON as_integer{1000};
   const sourcemeta::core::JSON as_real{1000.0};
   const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"1000"}};
-  EXPECT_TRUE(as_integer == as_real);
-  EXPECT_TRUE(as_real == as_decimal);
-  EXPECT_TRUE(as_integer == as_decimal);
+  EXPECT_EQ(as_integer, as_real);
+  EXPECT_EQ(as_real, as_decimal);
+  EXPECT_EQ(as_integer, as_decimal);
 }
 
 TEST(equal_transitivity_holds_at_two_pow_63_boundary) {
@@ -1086,7 +1086,7 @@ TEST(equal_transitivity_holds_at_two_pow_63_boundary) {
   const sourcemeta::core::JSON as_decimal{
       sourcemeta::core::Decimal{"9223372036854775808"}};
   EXPECT_FALSE(as_integer == as_real);
-  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real, as_decimal);
   EXPECT_FALSE(as_integer == as_decimal);
 }
 
@@ -1287,14 +1287,14 @@ TEST(equal_integer_and_object_differ) {
 TEST(equal_array_with_integer_and_real_elements) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[ 1 ]");
   const sourcemeta::core::JSON right = sourcemeta::core::parse_json("[ 1.0 ]");
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_array_with_one_decimal_spelled_two_ways) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[ 2.1 ]");
   const sourcemeta::core::JSON right =
       sourcemeta::core::parse_json("[ 2.1e0 ]");
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_object_with_integer_and_real_values) {
@@ -1302,20 +1302,20 @@ TEST(equal_object_with_integer_and_real_values) {
       sourcemeta::core::parse_json("{ \"a\": 1 }");
   const sourcemeta::core::JSON right =
       sourcemeta::core::parse_json("{ \"a\": 1.0 }");
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(equal_nested_array_with_integer_and_real) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[ [ 1 ] ]");
   const sourcemeta::core::JSON right =
       sourcemeta::core::parse_json("[ [ 1.0 ] ]");
-  EXPECT_TRUE(left == right);
+  EXPECT_EQ(left, right);
 }
 
 TEST(not_equal_operator_integer_and_real_distinct) {
   const sourcemeta::core::JSON left{1};
   const sourcemeta::core::JSON right{1.5};
-  EXPECT_TRUE(left != right);
+  EXPECT_NE(left, right);
 }
 
 TEST(not_equal_operator_integer_and_real_equal) {
@@ -1327,7 +1327,7 @@ TEST(not_equal_operator_integer_and_real_equal) {
 TEST(not_equal_operator_integer_maximum_and_real_two_pow_63) {
   const sourcemeta::core::JSON left{std::numeric_limits<std::int64_t>::max()};
   const sourcemeta::core::JSON right{9223372036854775808.0};
-  EXPECT_TRUE(left != right);
+  EXPECT_NE(left, right);
 }
 
 TEST(less_integer_below_fractional_real) {
@@ -1349,7 +1349,7 @@ TEST(less_integer_and_integral_real_are_neither) {
   const sourcemeta::core::JSON real{3.0};
   EXPECT_FALSE(integer < real);
   EXPECT_FALSE(real < integer);
-  EXPECT_TRUE(integer == real);
+  EXPECT_EQ(integer, real);
 }
 
 TEST(less_negative_integer_below_fractional_real) {

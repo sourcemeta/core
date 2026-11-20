@@ -65,8 +65,7 @@ TEST(ec_public_components_round_trips_with_curve) {
   EXPECT_TRUE(key.has_value());
   const auto components{sourcemeta::core::ec_public_components(key.value())};
   EXPECT_TRUE(components.has_value());
-  EXPECT_TRUE(components.value().curve ==
-              sourcemeta::core::EllipticCurve::P256);
+  EXPECT_EQ(components.value().curve, sourcemeta::core::EllipticCurve::P256);
   EXPECT_EQ(components.value().x, coordinate_x.value());
   EXPECT_EQ(components.value().y, coordinate_y.value());
 }
@@ -79,8 +78,7 @@ TEST(edwards_public_components_returns_point_and_curve) {
   const auto components{
       sourcemeta::core::edwards_public_components(key.value())};
   EXPECT_TRUE(components.has_value());
-  EXPECT_TRUE(components.value().curve ==
-              sourcemeta::core::EdwardsCurve::Ed25519);
+  EXPECT_EQ(components.value().curve, sourcemeta::core::EdwardsCurve::Ed25519);
   EXPECT_EQ(components.value().point, point.value());
 }
 
@@ -93,8 +91,7 @@ TEST(ec_public_components_round_trips_with_p384_curve) {
   EXPECT_TRUE(key.has_value());
   const auto components{sourcemeta::core::ec_public_components(key.value())};
   EXPECT_TRUE(components.has_value());
-  EXPECT_TRUE(components.value().curve ==
-              sourcemeta::core::EllipticCurve::P384);
+  EXPECT_EQ(components.value().curve, sourcemeta::core::EllipticCurve::P384);
   EXPECT_EQ(components.value().x, coordinate_x.value());
   EXPECT_EQ(components.value().y, coordinate_y.value());
 }
@@ -243,7 +240,7 @@ TEST(public_key_moved_onto_itself_keeps_its_state) {
 
   auto *pointer{&key.value()};
   key.value() = std::move(*pointer);
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::PublicKey::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::PublicKey::Type::RSA);
   EXPECT_TRUE(sourcemeta::core::rsa_public_components(key.value()).has_value());
 }
 

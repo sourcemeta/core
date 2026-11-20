@@ -496,7 +496,7 @@ TEST(jwk_oct_valid) {
   EXPECT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::Octet);
   EXPECT_EQ(key.value().secret().size(), 64);
-  EXPECT_TRUE(key.value().public_key() == nullptr);
+  EXPECT_EQ(key.value().public_key(), nullptr);
 }
 
 TEST(jwk_oct_with_key_id) {

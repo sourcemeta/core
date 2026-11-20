@@ -1711,6 +1711,8 @@ TEST(tag_then_flow_sequence_end) {
   const auto result{sourcemeta::core::parse_yaml("[ !!str ]")};
   EXPECT_TRUE(result.is_array());
   EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).is_string());
+  EXPECT_EQ(result.at(0).to_string(), "");
 }
 
 TEST(explicit_key_value_at_document_end) {

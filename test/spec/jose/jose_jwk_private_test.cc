@@ -132,7 +132,7 @@ TEST(jwk_private_from_pem_parses_rsa) {
   const auto key{sourcemeta::core::JWKPrivate::from_pem(RSA_PRIVATE_KEY_PEM)};
   EXPECT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWKPrivate::Type::RSA);
-  EXPECT_TRUE(key.value().private_key() != nullptr);
+  EXPECT_NE(key.value().private_key(), nullptr);
 }
 
 TEST(jwk_private_from_json_parses_rsa) {
@@ -140,7 +140,7 @@ TEST(jwk_private_from_json_parses_rsa) {
       sourcemeta::core::parse_json(RSA_PRIVATE_JWK))};
   EXPECT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWKPrivate::Type::RSA);
-  EXPECT_TRUE(key.value().private_key() != nullptr);
+  EXPECT_NE(key.value().private_key(), nullptr);
 }
 
 TEST(jwk_private_from_json_parses_ec) {
@@ -150,7 +150,7 @@ TEST(jwk_private_from_json_parses_ec) {
   EXPECT_EQ(key.value().type(),
             sourcemeta::core::JWKPrivate::Type::EllipticCurve);
   EXPECT_EQ(key.value().curve(), "P-256");
-  EXPECT_TRUE(key.value().private_key() != nullptr);
+  EXPECT_NE(key.value().private_key(), nullptr);
 }
 
 TEST(jwk_private_from_json_parses_okp) {
@@ -160,7 +160,7 @@ TEST(jwk_private_from_json_parses_okp) {
   EXPECT_EQ(key.value().type(),
             sourcemeta::core::JWKPrivate::Type::OctetKeyPair);
   EXPECT_EQ(key.value().curve(), "Ed25519");
-  EXPECT_TRUE(key.value().private_key() != nullptr);
+  EXPECT_NE(key.value().private_key(), nullptr);
 }
 
 TEST(jwk_private_from_json_reads_key_id) {
@@ -228,7 +228,7 @@ TEST(jwk_private_ec_private_key_signs_and_verifies) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().private_key() != nullptr);
+  EXPECT_NE(key.value().private_key(), nullptr);
   const std::string_view message{"jwk private key signing input"};
   const auto signature{sourcemeta::core::ecdsa_sign(
       *key.value().private_key(),
@@ -252,7 +252,7 @@ TEST(jwk_private_oct_valid) {
   EXPECT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWKPrivate::Type::Octet);
   EXPECT_EQ(key.value().secret().size(), 64);
-  EXPECT_TRUE(key.value().private_key() == nullptr);
+  EXPECT_EQ(key.value().private_key(), nullptr);
 }
 
 TEST(jwk_private_oct_with_key_id) {

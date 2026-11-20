@@ -36,7 +36,7 @@ TEST(secure_scope_clears_on_exit) {
 
 TEST(secure_string_holds_its_content) {
   const sourcemeta::core::SecureString secret{"hunter2"};
-  EXPECT_TRUE(secret == "hunter2");
+  EXPECT_EQ(secret, "hunter2");
   EXPECT_EQ(secret.size(), 7);
 }
 
@@ -55,7 +55,7 @@ TEST(secure_string_of_empty_content_views_as_empty) {
 TEST(secure_string_appends_content) {
   sourcemeta::core::SecureString secret{"hunter"};
   secret.append("2");
-  EXPECT_TRUE(secret == "hunter2");
+  EXPECT_EQ(secret, "hunter2");
 }
 
 TEST(secure_string_grows_across_a_reallocation) {
@@ -109,7 +109,7 @@ TEST(secure_string_appends_a_view_of_itself) {
   sourcemeta::core::SecureString secret{"hunter2"};
   secret.reserve(14);
   secret.append(std::string_view{secret});
-  EXPECT_TRUE(secret == "hunter2hunter2");
+  EXPECT_EQ(secret, "hunter2hunter2");
 }
 
 TEST(secure_string_appends_a_view_of_itself_across_a_reallocation) {
@@ -131,7 +131,7 @@ TEST(secure_string_appends_an_empty_view_of_an_empty_string) {
 TEST(secure_string_appends_an_empty_view) {
   sourcemeta::core::SecureString secret{"data"};
   secret.append(std::string_view{});
-  EXPECT_TRUE(secret == "data");
+  EXPECT_EQ(secret, "data");
 }
 
 TEST(secure_zero_of_a_null_buffer_is_a_no_op) {

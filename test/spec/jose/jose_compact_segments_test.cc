@@ -92,7 +92,7 @@ TEST(jose_compact_segments_borrow_from_the_input) {
   const std::string_view input{"header.payload.signature"};
   const auto segments{sourcemeta::core::jose_compact_segments<3>(input)};
   EXPECT_TRUE(segments.has_value());
-  EXPECT_TRUE(segments.value().at(0).data() == input.data());
-  EXPECT_TRUE(segments.value().at(1).data() == input.data() + 7);
-  EXPECT_TRUE(segments.value().at(2).data() == input.data() + 15);
+  EXPECT_EQ(segments.value().at(0).data(), input.data());
+  EXPECT_EQ(segments.value().at(1).data(), input.data() + 7);
+  EXPECT_EQ(segments.value().at(2).data(), input.data() + 15);
 }

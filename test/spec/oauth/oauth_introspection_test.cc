@@ -8,7 +8,7 @@ TEST(build_introspection_request_emits_the_token) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_introspection_request("mF_9.B5f-4.1JqM", "",
                                                       body);
-  EXPECT_TRUE(body == "token=mF_9.B5f-4.1JqM");
+  EXPECT_EQ(body, "token=mF_9.B5f-4.1JqM");
 }
 
 TEST(introspection_response_reads_an_active_token) {
@@ -151,5 +151,5 @@ TEST(build_introspection_request_emits_the_token_type_hint) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_introspection_request("mF_9.B5f-4.1JqM",
                                                       "access_token", body);
-  EXPECT_TRUE(body == "token=mF_9.B5f-4.1JqM&token_type_hint=access_token");
+  EXPECT_EQ(body, "token=mF_9.B5f-4.1JqM&token_type_hint=access_token");
 }

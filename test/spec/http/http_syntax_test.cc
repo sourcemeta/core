@@ -159,6 +159,7 @@ TEST(scan_quoted_string_keeps_a_comma_inside) {
   const auto next{
       sourcemeta::core::http_scan_quoted_string(R"("a,b")", 0, storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 5);
   EXPECT_EQ(value, "a,b");
 }
 
@@ -168,6 +169,7 @@ TEST(scan_quoted_string_unescapes_a_quoted_pair) {
   const auto next{sourcemeta::core::http_scan_quoted_string(R"("say \"hi\"")",
                                                             0, storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 12);
   EXPECT_EQ(value, R"(say "hi")");
 }
 
@@ -270,6 +272,7 @@ TEST(scan_quoted_string_accepts_a_horizontal_tab) {
   const auto next{
       sourcemeta::core::http_scan_quoted_string(input, 0, storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 5);
   EXPECT_EQ(value, std::string_view{"a\tb"});
 }
 
@@ -282,6 +285,7 @@ TEST(scan_quoted_string_accepts_obs_text) {
   const auto next{
       sourcemeta::core::http_scan_quoted_string(input, 0, storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 4);
   EXPECT_EQ(value.size(), 2);
   EXPECT_EQ(static_cast<unsigned char>(value.back()), 0x80);
 }
@@ -303,6 +307,7 @@ TEST(scan_quoted_string_unescapes_a_backslash) {
   const auto next{sourcemeta::core::http_scan_quoted_string(R"("a\\b")", 0,
                                                             storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 6);
   EXPECT_EQ(value, R"(a\b)");
 }
 
@@ -312,6 +317,7 @@ TEST(scan_quoted_string_unescapes_a_plain_character) {
   const auto next{sourcemeta::core::http_scan_quoted_string(R"("a\bc")", 0,
                                                             storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 6);
   EXPECT_EQ(value, "abc");
 }
 
@@ -349,6 +355,7 @@ TEST(scan_quoted_string_unescapes_a_space) {
   const auto next{sourcemeta::core::http_scan_quoted_string(R"("a\ b")", 0,
                                                             storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 6);
   EXPECT_EQ(value, "a b");
 }
 
@@ -362,6 +369,7 @@ TEST(scan_quoted_string_unescapes_a_horizontal_tab) {
   const auto next{
       sourcemeta::core::http_scan_quoted_string(input, 0, storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 5);
   EXPECT_EQ(value, std::string_view{"a\t"});
 }
 
@@ -375,6 +383,7 @@ TEST(scan_quoted_string_unescapes_obs_text) {
   const auto next{
       sourcemeta::core::http_scan_quoted_string(input, 0, storage, value)};
   EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(next.value(), 5);
   EXPECT_EQ(value.size(), 2);
   EXPECT_EQ(static_cast<unsigned char>(value.back()), 0x80);
 }

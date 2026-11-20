@@ -1064,8 +1064,8 @@ TEST(integer_real_equal) {
   std::istringstream right{"1.0"};
   const sourcemeta::core::JSON document_1 = sourcemeta::core::parse_json(left);
   const sourcemeta::core::JSON document_2 = sourcemeta::core::parse_json(right);
-  EXPECT_TRUE(document_1 == document_2);
-  EXPECT_TRUE(document_2 == document_1);
+  EXPECT_EQ(document_1, document_2);
+  EXPECT_EQ(document_2, document_1);
   EXPECT_FALSE(document_1 != document_2);
   EXPECT_FALSE(document_2 != document_1);
 }
@@ -1762,6 +1762,9 @@ TEST(parse_string_view) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+  EXPECT_EQ(document.at(2).to_integer(), 3);
 }
 
 TEST(parse_string_view_subview) {
@@ -1770,6 +1773,9 @@ TEST(parse_string_view_subview) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(view);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+  EXPECT_EQ(document.at(2).to_integer(), 3);
 }
 
 TEST(parse_string_view_with_line_column) {

@@ -41,8 +41,8 @@ TEST(build_token_request_exchange_emits_a_minimal_body) {
   sourcemeta::core::SecureString body;
   EXPECT_TRUE(
       sourcemeta::core::oauth_build_token_request_exchange(request, body));
-  EXPECT_TRUE(
-      body ==
+  EXPECT_EQ(
+      body,
       "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange"
       "&subject_token=accVkjcJyb4BWCxGsndESCJQbdFMogUC5PbRDqceLTC"
       "&subject_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3A"
@@ -64,11 +64,11 @@ TEST(build_token_request_exchange_emits_the_actor_pair_and_extras) {
   EXPECT_TRUE(
       sourcemeta::core::oauth_build_token_request_exchange(request, body));
   const std::string_view view{body};
-  EXPECT_TRUE(view.find("&actor_token=act&actor_token_type=") !=
-              std::string_view::npos);
-  EXPECT_TRUE(view.find("&scope=read") != std::string_view::npos);
-  EXPECT_TRUE(view.find("&audience=https%3A%2F%2Fapi.example") !=
-              std::string_view::npos);
+  EXPECT_NE(view.find("&actor_token=act&actor_token_type="),
+            std::string_view::npos);
+  EXPECT_NE(view.find("&scope=read"), std::string_view::npos);
+  EXPECT_NE(view.find("&audience=https%3A%2F%2Fapi.example"),
+            std::string_view::npos);
 }
 
 TEST(build_token_request_exchange_rejects_an_invalid_request) {
@@ -115,8 +115,8 @@ TEST(build_token_request_exchange_emits_resources_and_requested_type) {
   EXPECT_TRUE(
       sourcemeta::core::oauth_build_token_request_exchange(request, body));
   const std::string_view view{body};
-  EXPECT_TRUE(view.find("&requested_token_type=") != std::string_view::npos);
-  EXPECT_TRUE(view.find("&resource=https%3A%2F%2Fapi.example%2Ffoo") !=
-              std::string_view::npos);
-  EXPECT_TRUE(view.find("audience=") == std::string_view::npos);
+  EXPECT_NE(view.find("&requested_token_type="), std::string_view::npos);
+  EXPECT_NE(view.find("&resource=https%3A%2F%2Fapi.example%2Ffoo"),
+            std::string_view::npos);
+  EXPECT_EQ(view.find("audience="), std::string_view::npos);
 }

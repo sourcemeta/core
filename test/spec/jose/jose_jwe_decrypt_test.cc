@@ -119,7 +119,7 @@ TEST(decrypt_rejects_a_tampered_tag) {
   const auto second{tampered.find('.', first + 1)};
   const auto third{tampered.find('.', second + 1)};
   const auto fourth{tampered.find('.', third + 1)};
-  EXPECT_TRUE(fourth != std::string::npos);
+  EXPECT_NE(fourth, std::string::npos);
   tampered[fourth + 1] = (tampered[fourth + 1] == 'A') ? 'B' : 'A';
   const auto parsed{sourcemeta::core::JWE::from(tampered)};
   EXPECT_TRUE(parsed.has_value());
@@ -140,7 +140,7 @@ TEST(decrypt_rejects_a_tampered_ciphertext) {
   const auto third{tampered.find('.', second + 1)};
   const auto fourth{tampered.find('.', third + 1)};
   tampered[third + 1] = (tampered[third + 1] == 'A') ? 'B' : 'A';
-  EXPECT_TRUE(fourth != std::string::npos);
+  EXPECT_NE(fourth, std::string::npos);
   const auto parsed{sourcemeta::core::JWE::from(tampered)};
   EXPECT_TRUE(parsed.has_value());
   EXPECT_FALSE(
@@ -219,7 +219,7 @@ TEST(decrypt_rejects_a_tampered_initialization_vector) {
   auto tampered{object.value()};
   const auto first{tampered.find('.')};
   const auto second{tampered.find('.', first + 1)};
-  EXPECT_TRUE(second != std::string::npos);
+  EXPECT_NE(second, std::string::npos);
   tampered[second + 1] = (tampered[second + 1] == 'A') ? 'B' : 'A';
   const auto parsed{sourcemeta::core::JWE::from(tampered)};
   EXPECT_TRUE(parsed.has_value());

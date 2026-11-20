@@ -44,8 +44,8 @@ TEST(build_token_request_device_emits_the_grant_and_code) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_token_request_device("GmRhmhcxhwAzkoEqiMEg", {},
                                                      body);
-  EXPECT_TRUE(body == "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3A"
-                      "device_code&device_code=GmRhmhcxhwAzkoEqiMEg");
+  EXPECT_EQ(body, "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3A"
+                  "device_code&device_code=GmRhmhcxhwAzkoEqiMEg");
 }
 
 TEST(device_authorization_response_reads_the_members) {
@@ -167,8 +167,8 @@ TEST(device_user_code_mints_from_the_alphabet) {
   const auto code{sourcemeta::core::oauth_device_user_code()};
   EXPECT_EQ(code.size(), 8);
   const std::string_view alphabet{"BCDFGHJKLMNPQRSTVWXZ"};
-  EXPECT_TRUE(alphabet.find(code[0]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[7]) != std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[0]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[7]), std::string_view::npos);
 }
 
 TEST(device_user_code_matches_normalizes_case_and_separators) {
@@ -207,14 +207,14 @@ TEST(device_poller_defaults_a_negative_interval_to_five_seconds) {
 TEST(device_user_code_every_character_is_in_the_alphabet) {
   const auto code{sourcemeta::core::oauth_device_user_code()};
   const std::string_view alphabet{"BCDFGHJKLMNPQRSTVWXZ"};
-  EXPECT_TRUE(alphabet.find(code[0]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[1]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[2]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[3]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[4]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[5]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[6]) != std::string_view::npos);
-  EXPECT_TRUE(alphabet.find(code[7]) != std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[0]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[1]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[2]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[3]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[4]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[5]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[6]), std::string_view::npos);
+  EXPECT_NE(alphabet.find(code[7]), std::string_view::npos);
 }
 
 TEST(make_device_authorization_response_emits_a_non_default_interval) {
@@ -281,7 +281,7 @@ TEST(device_authorization_response_accepts_the_largest_representable_lifetime) {
                   sourcemeta::core::JSON{
                       std::numeric_limits<std::chrono::seconds::rep>::max()});
   const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
-  EXPECT_TRUE(response.expires_in().value() == std::chrono::seconds::max());
+  EXPECT_EQ(response.expires_in().value(), std::chrono::seconds::max());
 }
 
 TEST(device_poller_does_not_expire_before_the_start) {

@@ -27,9 +27,9 @@ TEST(build_par_request_omits_client_id_and_request_uri) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_par_request(request, body);
   const std::string_view view{body};
-  EXPECT_TRUE(view.find("client_id") == std::string_view::npos);
-  EXPECT_TRUE(view.find("request_uri") == std::string_view::npos);
-  EXPECT_TRUE(view.find("scope=read") != std::string_view::npos);
+  EXPECT_EQ(view.find("client_id"), std::string_view::npos);
+  EXPECT_EQ(view.find("request_uri"), std::string_view::npos);
+  EXPECT_NE(view.find("scope=read"), std::string_view::npos);
 }
 
 TEST(build_par_request_emits_every_authorization_parameter) {
@@ -57,8 +57,8 @@ TEST(build_par_request_emits_a_challenge_without_a_method) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_par_request(request, body);
   EXPECT_EQ(body, "response_type=code&code_challenge=K2-ltc83acc4h0c9w6ESC");
-  EXPECT_TRUE(std::string_view{body}.find("code_challenge_method") ==
-              std::string_view::npos);
+  EXPECT_EQ(std::string_view{body}.find("code_challenge_method"),
+            std::string_view::npos);
 }
 
 TEST(build_par_request_emits_extension_parameters) {

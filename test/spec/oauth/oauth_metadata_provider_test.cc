@@ -40,7 +40,7 @@ TEST(metadata_provider_fetches_on_first_call) {
             .body = std::string{SERVER_DOCUMENT}, .max_age = std::nullopt};
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(metadata->issuer(), "https://example.com");
   EXPECT_EQ(metadata->token_endpoint().value(), "https://example.com/token");
   EXPECT_EQ(fetch_count, 1);
@@ -57,7 +57,7 @@ TEST(metadata_provider_derives_the_authorization_server_url) {
             .body = std::string{SERVER_DOCUMENT}, .max_age = std::nullopt};
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(seen, "https://example.com/.well-known/oauth-authorization-server");
 }
 
@@ -73,8 +73,8 @@ TEST(metadata_provider_caches_within_the_ttl) {
       }};
   const auto first{provider.metadata()};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(first != nullptr);
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(first, nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(fetch_count, 1);
 }
 
@@ -96,7 +96,7 @@ TEST(metadata_provider_refreshes_after_the_ttl) {
   EXPECT_EQ(fetch_count, 1);
   *clock_now += std::chrono::hours{2};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(fetch_count, 2);
 }
 
@@ -113,7 +113,7 @@ TEST(metadata_provider_refresh_forces_a_refetch) {
   const auto first{provider.metadata()};
   EXPECT_EQ(fetch_count, 1);
   const auto refreshed{provider.refresh()};
-  EXPECT_TRUE(refreshed != nullptr);
+  EXPECT_NE(refreshed, nullptr);
   EXPECT_EQ(fetch_count, 2);
 }
 
@@ -122,7 +122,7 @@ TEST(metadata_provider_returns_null_when_the_fetch_fails) {
       "https://example.com",
       sourcemeta::core::OAuthWellKnownKind::AuthorizationServer,
       [](std::string_view) -> Fetch { return std::nullopt; }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(metadata_provider_serves_stale_after_a_failed_refresh) {
@@ -143,11 +143,11 @@ TEST(metadata_provider_serves_stale_after_a_failed_refresh) {
       sourcemeta::core::OAuthMetadataProvider::Options{},
       [clock_now]() { return *clock_now; }};
   const auto first{provider.metadata()};
-  EXPECT_TRUE(first != nullptr);
+  EXPECT_NE(first, nullptr);
   succeed = false;
   *clock_now += std::chrono::hours{2};
   const auto stale{provider.metadata()};
-  EXPECT_TRUE(stale != nullptr);
+  EXPECT_NE(stale, nullptr);
   EXPECT_EQ(stale->issuer(), "https://example.com");
 }
 
@@ -163,7 +163,7 @@ TEST(metadata_provider_returns_null_on_a_validation_failure) {
             })JSON",
             .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(metadata_provider_falls_back_to_the_appended_openid_form) {
@@ -188,7 +188,7 @@ TEST(metadata_provider_falls_back_to_the_appended_openid_form) {
         return std::nullopt;
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(metadata->issuer(), "https://example.com/issuer1");
   EXPECT_EQ(appended_url,
             "https://example.com/issuer1/.well-known/openid-configuration");
@@ -215,7 +215,7 @@ TEST(metadata_provider_clamps_a_tiny_ttl_to_the_minimum) {
   // read ten seconds later is still cached
   *clock_now += std::chrono::seconds{10};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(fetch_count, 1);
 }
 
@@ -236,7 +236,7 @@ TEST(metadata_provider_openid_inserted_success_skips_appended) {
             .max_age = std::nullopt};
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(fetch_count, 1);
   EXPECT_EQ(seen,
             "https://example.com/.well-known/openid-configuration/issuer1");
@@ -247,7 +247,7 @@ TEST(metadata_provider_openid_both_forms_fail) {
       "https://example.com/issuer1",
       sourcemeta::core::OAuthWellKnownKind::OpenIDConfigurationInserted,
       [](std::string_view) -> Fetch { return std::nullopt; }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(metadata_provider_clamps_a_huge_ttl_to_the_maximum) {
@@ -271,7 +271,7 @@ TEST(metadata_provider_clamps_a_huge_ttl_to_the_maximum) {
   // hours later a refresh is due
   *clock_now += std::chrono::hours{25};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(fetch_count, 2);
 }
 
@@ -283,7 +283,7 @@ TEST(metadata_provider_rejects_a_malformed_json_body) {
         return sourcemeta::core::OAuthMetadataProvider::FetchResult{
             .body = "{not valid json", .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(metadata_provider_recovers_after_a_failure) {
@@ -299,10 +299,10 @@ TEST(metadata_provider_recovers_after_a_failure) {
         return sourcemeta::core::OAuthMetadataProvider::FetchResult{
             .body = std::string{SERVER_DOCUMENT}, .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
   succeed = true;
   const auto recovered{provider.refresh()};
-  EXPECT_TRUE(recovered != nullptr);
+  EXPECT_NE(recovered, nullptr);
   EXPECT_EQ(recovered->issuer(), "https://example.com");
 }
 
@@ -316,7 +316,7 @@ TEST(metadata_provider_returns_the_same_snapshot_within_the_ttl) {
       }};
   const auto first{provider.metadata()};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(first == second);
+  EXPECT_EQ(first, second);
 }
 
 TEST(metadata_provider_backs_off_after_a_failed_fetch) {
@@ -332,16 +332,16 @@ TEST(metadata_provider_backs_off_after_a_failed_fetch) {
       },
       sourcemeta::core::OAuthMetadataProvider::Options{},
       [clock_now]() { return *clock_now; }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
   EXPECT_EQ(fetch_count, 1);
   // A second call within the minimum lifetime does not re-fetch during the
   // outage, even though the document has never been retrieved
   *clock_now += std::chrono::seconds{10};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
   EXPECT_EQ(fetch_count, 1);
   // Once the minimum lifetime elapses the fetch is retried
   *clock_now += std::chrono::minutes{6};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
   EXPECT_EQ(fetch_count, 2);
 }
 
@@ -352,7 +352,7 @@ TEST(metadata_provider_treats_a_throwing_fetcher_as_a_failure) {
       [](std::string_view) -> Fetch {
         throw std::runtime_error{"transport failure"};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(resource_metadata_provider_fetches_on_first_call) {
@@ -365,7 +365,7 @@ TEST(resource_metadata_provider_fetches_on_first_call) {
             .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(metadata->resource(), "https://api.example.com");
   EXPECT_EQ(metadata->first_authorization_server().value(),
             "https://example.com");
@@ -382,7 +382,7 @@ TEST(resource_metadata_provider_derives_the_protected_resource_url) {
             .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(seen,
             "https://api.example.com/.well-known/oauth-protected-resource");
 }
@@ -398,8 +398,8 @@ TEST(resource_metadata_provider_caches_within_the_ttl) {
       }};
   const auto first{provider.metadata()};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(first != nullptr);
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(first, nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(fetch_count, 1);
 }
 
@@ -420,7 +420,7 @@ TEST(resource_metadata_provider_refreshes_after_the_ttl) {
   EXPECT_EQ(fetch_count, 1);
   *clock_now += std::chrono::hours{2};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(fetch_count, 2);
 }
 
@@ -442,10 +442,10 @@ TEST(resource_metadata_provider_serves_stale_on_a_failed_refresh) {
       sourcemeta::core::OAuthResourceMetadataProvider::Options{},
       [clock_now]() { return *clock_now; }};
   const auto first{provider.metadata()};
-  EXPECT_TRUE(first != nullptr);
+  EXPECT_NE(first, nullptr);
   *clock_now += std::chrono::hours{2};
   const auto second{provider.metadata()};
-  EXPECT_TRUE(second != nullptr);
+  EXPECT_NE(second, nullptr);
   EXPECT_EQ(second->resource(), "https://api.example.com");
   EXPECT_EQ(fetch_count, 2);
 }
@@ -454,7 +454,7 @@ TEST(resource_metadata_provider_returns_null_before_any_success) {
   sourcemeta::core::OAuthResourceMetadataProvider provider{
       "https://api.example.com",
       [](std::string_view) -> ResourceFetch { return std::nullopt; }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(resource_metadata_provider_treats_a_throwing_fetcher_as_a_failure) {
@@ -462,7 +462,7 @@ TEST(resource_metadata_provider_treats_a_throwing_fetcher_as_a_failure) {
       "https://api.example.com", [](std::string_view) -> ResourceFetch {
         throw std::runtime_error{"transport failure"};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(resource_metadata_provider_rejects_a_mismatched_resource) {
@@ -471,7 +471,7 @@ TEST(resource_metadata_provider_rejects_a_mismatched_resource) {
         return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
             .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(resource_metadata_provider_refresh_forces_a_refetch) {
@@ -486,7 +486,7 @@ TEST(resource_metadata_provider_refresh_forces_a_refetch) {
   const auto first{provider.metadata()};
   EXPECT_EQ(fetch_count, 1);
   const auto refreshed{provider.refresh()};
-  EXPECT_TRUE(refreshed != nullptr);
+  EXPECT_NE(refreshed, nullptr);
   EXPECT_EQ(fetch_count, 2);
 }
 
@@ -496,7 +496,7 @@ TEST(resource_metadata_provider_rejects_a_malformed_json_body) {
         return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
             .body = "{not valid json", .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(resource_metadata_provider_returns_null_on_a_validation_failure) {
@@ -509,7 +509,7 @@ TEST(resource_metadata_provider_returns_null_on_a_validation_failure) {
             })JSON",
             .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
 }
 
 TEST(resource_metadata_provider_derives_a_url_for_a_resource_with_a_path) {
@@ -525,7 +525,7 @@ TEST(resource_metadata_provider_derives_a_url_for_a_resource_with_a_path) {
             .max_age = std::nullopt};
       }};
   const auto metadata{provider.metadata()};
-  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_NE(metadata, nullptr);
   EXPECT_EQ(
       seen,
       "https://api.example.com/.well-known/oauth-protected-resource/tenant");
@@ -543,7 +543,7 @@ TEST(metadata_provider_without_a_usable_issuer_fetches_nothing) {
         return sourcemeta::core::OAuthMetadataProvider::FetchResult{
             .body = std::string{SERVER_DOCUMENT}, .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
   EXPECT_EQ(fetch_count, 0);
 }
 
@@ -556,6 +556,6 @@ TEST(resource_metadata_provider_without_a_usable_resource_fetches_nothing) {
         return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
             .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
       }};
-  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(provider.metadata(), nullptr);
   EXPECT_EQ(fetch_count, 0);
 }

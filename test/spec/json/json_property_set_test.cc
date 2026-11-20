@@ -15,7 +15,7 @@ TEST(empty) {
   const sourcemeta::core::JSONPropertySet properties;
   EXPECT_TRUE(properties.empty());
   EXPECT_EQ(properties.size(), 0);
-  EXPECT_TRUE(properties.cbegin() == properties.cend());
+  EXPECT_EQ(properties.cbegin(), properties.cend());
   EXPECT_FALSE(properties.contains("foo"));
 }
 
@@ -144,8 +144,8 @@ TEST(insert_with_the_hash_of_an_object_entry) {
   const auto &object{document.as_object()};
   const auto foo{object.find("foo")};
   const auto bar{object.find("bar")};
-  EXPECT_TRUE(foo != object.cend());
-  EXPECT_TRUE(bar != object.cend());
+  EXPECT_NE(foo, object.cend());
+  EXPECT_NE(bar, object.cend());
 
   sourcemeta::core::JSONPropertySet properties;
   EXPECT_TRUE(properties.insert(foo->first, foo->hash));
@@ -262,9 +262,9 @@ TEST(iterators) {
   ++iterator;
   EXPECT_EQ(iterator->first, "foo");
   ++iterator;
-  EXPECT_TRUE(iterator == properties.cend());
-  EXPECT_TRUE(properties.begin() == properties.cbegin());
-  EXPECT_TRUE(properties.end() == properties.cend());
+  EXPECT_EQ(iterator, properties.cend());
+  EXPECT_EQ(properties.begin(), properties.cbegin());
+  EXPECT_EQ(properties.end(), properties.cend());
 }
 
 TEST(hash_type_matches_the_object_hash_type) {
@@ -294,8 +294,8 @@ TEST(entries_feed_the_hash_taking_document_accessors) {
   EXPECT_EQ(document.at(foo.first, foo.second).to_integer(), 1);
   EXPECT_EQ(document.at(bar.first, bar.second).to_integer(), 2);
 
-  EXPECT_TRUE(document.try_at(foo.first, foo.second) != nullptr);
-  EXPECT_TRUE(document.try_at(baz.first, baz.second) == nullptr);
+  EXPECT_NE(document.try_at(foo.first, foo.second), nullptr);
+  EXPECT_EQ(document.try_at(baz.first, baz.second), nullptr);
 
   const sourcemeta::core::JSON fallback{0};
   EXPECT_EQ(document.at_or(baz.first, baz.second, fallback).to_integer(), 0);
@@ -315,11 +315,11 @@ TEST(object_entries_feed_the_set_lookups) {
   const auto &object{document.as_object()};
 
   const auto foo{object.find("foo")};
-  EXPECT_TRUE(foo != object.cend());
+  EXPECT_NE(foo, object.cend());
   EXPECT_TRUE(properties.contains(foo->first, foo->hash));
 
   const auto qux{object.find("qux")};
-  EXPECT_TRUE(qux != object.cend());
+  EXPECT_NE(qux, object.cend());
   EXPECT_FALSE(properties.contains(qux->first, qux->hash));
 }
 

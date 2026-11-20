@@ -177,6 +177,10 @@ TEST(parse_request_ignores_line_without_colon) {
                             "X-Amz-Date:20150830T123600Z"};
   const auto request{parse_request(content)};
   EXPECT_EQ(request.headers.size(), 2);
+  EXPECT_EQ(request.headers.at(0).first, "Host");
+  EXPECT_EQ(request.headers.at(0).second, "example.amazonaws.com");
+  EXPECT_EQ(request.headers.at(1).first, "X-Amz-Date");
+  EXPECT_EQ(request.headers.at(1).second, "20150830T123600Z");
 }
 
 auto main(int argc, char **argv) -> int {

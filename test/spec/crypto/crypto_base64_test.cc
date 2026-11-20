@@ -182,25 +182,25 @@ TEST(decode_rejects_nonzero_pad_bits_three_characters) {
 TEST(encode_secure_string_overload_appends) {
   sourcemeta::core::SecureString output{"prefix:"};
   sourcemeta::core::base64_encode("foobar", output);
-  EXPECT_TRUE(output == "prefix:Zm9vYmFy");
+  EXPECT_EQ(output, "prefix:Zm9vYmFy");
 }
 
 TEST(encode_secure_string_overload_pads) {
   sourcemeta::core::SecureString output;
   sourcemeta::core::base64_encode("foo", output);
-  EXPECT_TRUE(output == "Zm9v");
+  EXPECT_EQ(output, "Zm9v");
 }
 
 TEST(encode_secure_string_overload_single_padding) {
   sourcemeta::core::SecureString output;
   sourcemeta::core::base64_encode("fooba", output);
-  EXPECT_TRUE(output == "Zm9vYmE=");
+  EXPECT_EQ(output, "Zm9vYmE=");
 }
 
 TEST(encode_secure_string_overload_double_padding) {
   sourcemeta::core::SecureString output;
   sourcemeta::core::base64_encode("foob", output);
-  EXPECT_TRUE(output == "Zm9vYg==");
+  EXPECT_EQ(output, "Zm9vYg==");
 }
 
 TEST(encode_secure_string_overload_empty) {
@@ -212,13 +212,13 @@ TEST(encode_secure_string_overload_empty) {
 TEST(decode_secure_string_overload_foobar) {
   sourcemeta::core::SecureString output;
   EXPECT_TRUE(sourcemeta::core::base64_decode("Zm9vYmFy", output));
-  EXPECT_TRUE(output == "foobar");
+  EXPECT_EQ(output, "foobar");
 }
 
 TEST(decode_secure_string_overload_appends) {
   sourcemeta::core::SecureString output{"x:"};
   EXPECT_TRUE(sourcemeta::core::base64_decode("Zm9v", output));
-  EXPECT_TRUE(output == "x:foo");
+  EXPECT_EQ(output, "x:foo");
 }
 
 TEST(decode_secure_string_overload_rejects_invalid) {
@@ -231,7 +231,7 @@ TEST(decode_secure_string_overload_leaves_output_unchanged_on_failure) {
   // decode is rolled back and the prior buffer contents survive
   sourcemeta::core::SecureString output{"prefix"};
   EXPECT_FALSE(sourcemeta::core::base64_decode("Zm9v!!!!", output));
-  EXPECT_TRUE(output == "prefix");
+  EXPECT_EQ(output, "prefix");
 }
 
 TEST(is_base64_accepts_rfc4648_empty) {

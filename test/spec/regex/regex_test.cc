@@ -114,7 +114,7 @@ TEST(non_empty_shortcuts_are_equal) {
   const auto right{sourcemeta::core::to_regex(".")};
   EXPECT_TRUE(left.has_value());
   EXPECT_TRUE(right.has_value());
-  EXPECT_TRUE(left.value() == right.value());
+  EXPECT_EQ(left.value(), right.value());
 }
 
 TEST(noop_shortcuts_are_equal) {
@@ -122,7 +122,7 @@ TEST(noop_shortcuts_are_equal) {
   const auto right{sourcemeta::core::to_regex(".*")};
   EXPECT_TRUE(left.has_value());
   EXPECT_TRUE(right.has_value());
-  EXPECT_TRUE(left.value() == right.value());
+  EXPECT_EQ(left.value(), right.value());
 }
 
 // Exhausting a matching resource counts as finding nothing to rewrite, the

@@ -6,6 +6,7 @@
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 #include <utility> // std::move
+#include <vector>  // std::vector
 
 namespace {
 
@@ -44,6 +45,16 @@ auto deep_candidate_document() -> sourcemeta::core::JSON {
   return document;
 }
 
+auto locations_of(const std::vector<ResultNode> &nodes)
+    -> std::vector<std::string> {
+  std::vector<std::string> result;
+  result.reserve(nodes.size());
+  for (const auto &node : nodes) {
+    result.push_back(sourcemeta::core::to_string(node.location));
+  }
+  return result;
+}
+
 } // namespace
 
 TEST(jsonpath_filter_existence) {
@@ -52,6 +63,7 @@ TEST(jsonpath_filter_existence) {
   const sourcemeta::core::JSONPath path{"$[?@.a]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/2"}));
 }
 
 TEST(jsonpath_filter_existence_null_is_present) {
@@ -60,6 +72,7 @@ TEST(jsonpath_filter_existence_null_is_present) {
   const sourcemeta::core::JSONPath path{"$[?@.a]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_negated_existence) {
@@ -68,6 +81,7 @@ TEST(jsonpath_filter_negated_existence) {
   const sourcemeta::core::JSONPath path{"$[?!@.a]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/1"}));
 }
 
 TEST(jsonpath_filter_equals_integer) {
@@ -76,6 +90,7 @@ TEST(jsonpath_filter_equals_integer) {
   const sourcemeta::core::JSONPath path{"$[?@.a == 2]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/1"}));
 }
 
 TEST(jsonpath_filter_equals_integer_and_real) {
@@ -84,6 +99,7 @@ TEST(jsonpath_filter_equals_integer_and_real) {
   const sourcemeta::core::JSONPath path{"$[?@.a == 1.0]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_equals_deep) {
@@ -92,6 +108,7 @@ TEST(jsonpath_filter_equals_deep) {
   const sourcemeta::core::JSONPath path{"$[?@.a == $[0].a]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/2"}));
 }
 
 TEST(jsonpath_filter_equals_absent_both_sides) {
@@ -100,6 +117,7 @@ TEST(jsonpath_filter_equals_absent_both_sides) {
   const sourcemeta::core::JSONPath path{"$[?@.x == @.y]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 TEST(jsonpath_filter_equals_absent_one_side) {
@@ -116,6 +134,7 @@ TEST(jsonpath_filter_not_equals) {
   const sourcemeta::core::JSONPath path{"$[?@.a != 1]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/1", "/2"}));
 }
 
 TEST(jsonpath_filter_less_than_numbers) {
@@ -124,6 +143,7 @@ TEST(jsonpath_filter_less_than_numbers) {
   const sourcemeta::core::JSONPath path{"$[?@.a < 3]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 TEST(jsonpath_filter_less_than_strings) {
@@ -132,6 +152,7 @@ TEST(jsonpath_filter_less_than_strings) {
   const sourcemeta::core::JSONPath path{"$[?@.a < 'b']"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_less_than_mixed_types) {
@@ -140,6 +161,7 @@ TEST(jsonpath_filter_less_than_mixed_types) {
   const sourcemeta::core::JSONPath path{"$[?@.a < '2']"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/1"}));
 }
 
 TEST(jsonpath_filter_less_equal_absent) {
@@ -147,6 +169,7 @@ TEST(jsonpath_filter_less_equal_absent) {
   const sourcemeta::core::JSONPath path{"$[?@.a <= @.b]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_boolean_literals) {
@@ -155,6 +178,7 @@ TEST(jsonpath_filter_boolean_literals) {
   const sourcemeta::core::JSONPath path{"$[?@.a == true]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_null_literal) {
@@ -163,6 +187,7 @@ TEST(jsonpath_filter_null_literal) {
   const sourcemeta::core::JSONPath path{"$[?@.a == null]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_conjunction) {
@@ -171,6 +196,7 @@ TEST(jsonpath_filter_conjunction) {
   const sourcemeta::core::JSONPath path{"$[?@.a && @.b]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_disjunction) {
@@ -179,6 +205,7 @@ TEST(jsonpath_filter_disjunction) {
   const sourcemeta::core::JSONPath path{"$[?@.a || @.b]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 TEST(jsonpath_filter_negated_parenthesized) {
@@ -187,6 +214,7 @@ TEST(jsonpath_filter_negated_parenthesized) {
   const sourcemeta::core::JSONPath path{"$[?!(@.a && @.b)]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 TEST(jsonpath_filter_on_object_members) {
@@ -195,6 +223,7 @@ TEST(jsonpath_filter_on_object_members) {
   const sourcemeta::core::JSONPath path{"$[?@.a]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/x"}));
 }
 
 TEST(jsonpath_filter_absolute_query) {
@@ -203,6 +232,8 @@ TEST(jsonpath_filter_absolute_query) {
   const sourcemeta::core::JSONPath path{"$.values[?@ <= $.limit]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes),
+            (std::vector<std::string>{"/values/0", "/values/1"}));
 }
 
 TEST(jsonpath_filter_nested_filter) {
@@ -211,6 +242,7 @@ TEST(jsonpath_filter_nested_filter) {
   const sourcemeta::core::JSONPath path{"$[?@.a[?@.b]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_length_string) {
@@ -219,6 +251,7 @@ TEST(jsonpath_filter_length_string) {
   const sourcemeta::core::JSONPath path{"$[?length(@.a) == 2]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_length_counts_code_points) {
@@ -227,6 +260,7 @@ TEST(jsonpath_filter_length_counts_code_points) {
   const sourcemeta::core::JSONPath path{"$[?length(@.a) == 5]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_length_array_and_object) {
@@ -244,6 +278,7 @@ TEST(jsonpath_filter_length_of_number_is_nothing) {
   const sourcemeta::core::JSONPath path{"$[?length(@.a) == @.b]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_count) {
@@ -252,6 +287,7 @@ TEST(jsonpath_filter_count) {
   const sourcemeta::core::JSONPath path{"$[?count(@.a[*]) == 2]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_value_single_node) {
@@ -260,6 +296,7 @@ TEST(jsonpath_filter_value_single_node) {
   const sourcemeta::core::JSONPath path{"$[?value(@..b) == 7]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_match_full) {
@@ -268,6 +305,7 @@ TEST(jsonpath_filter_match_full) {
   const sourcemeta::core::JSONPath path{"$[?match(@.a, 'ab')]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_search_substring) {
@@ -276,6 +314,7 @@ TEST(jsonpath_filter_search_substring) {
   const sourcemeta::core::JSONPath path{"$[?search(@.a, 'ab')]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 TEST(jsonpath_filter_match_non_string_input) {
@@ -300,6 +339,7 @@ TEST(jsonpath_filter_match_dynamic_pattern) {
   const sourcemeta::core::JSONPath path{"$[?match(@.a, @.p)]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_match_dot_excludes_line_feed) {
@@ -308,6 +348,7 @@ TEST(jsonpath_filter_match_dot_excludes_line_feed) {
   const sourcemeta::core::JSONPath path{"$[?match(@.a, 'x.y')]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/1"}));
 }
 
 TEST(jsonpath_filter_match_dot_accepts_line_separator) {
@@ -316,6 +357,7 @@ TEST(jsonpath_filter_match_dot_accepts_line_separator) {
   const sourcemeta::core::JSONPath path{"$[?match(@.a, 'x.y')]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_greater_than_decimal) {
@@ -324,6 +366,7 @@ TEST(jsonpath_filter_greater_than_decimal) {
   const sourcemeta::core::JSONPath path{"$[?@.a > 100]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_greater_than_exact_beyond_double_precision) {
@@ -332,6 +375,7 @@ TEST(jsonpath_filter_greater_than_exact_beyond_double_precision) {
   const sourcemeta::core::JSONPath path{"$[?@.a > 9007199254740992.0]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_match_literal_caret) {
@@ -402,6 +446,7 @@ TEST(jsonpath_filter_existence_deep_document) {
   const sourcemeta::core::JSONPath path{"$[?@..leaf]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_filter_current_node_comparison) {
@@ -409,6 +454,7 @@ TEST(jsonpath_filter_current_node_comparison) {
   const sourcemeta::core::JSONPath path{"$[?@ > 4]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/1", "/2"}));
 }
 
 TEST(jsonpath_filter_single_index_tail_existence) {

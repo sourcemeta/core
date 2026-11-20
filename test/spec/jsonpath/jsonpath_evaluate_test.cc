@@ -7,6 +7,7 @@
 #include <cstdint> // std::int64_t
 #include <string>  // std::string
 #include <utility> // std::move
+#include <vector>  // std::vector
 
 namespace {
 
@@ -40,6 +41,24 @@ auto deeply_nested_array(sourcemeta::core::JSON &&bottom)
   }
 
   return current;
+}
+
+auto locations_of(const std::vector<ResultNode> &nodes)
+    -> std::vector<std::string> {
+  std::vector<std::string> result;
+  result.reserve(nodes.size());
+  for (const auto &node : nodes) {
+    result.push_back(sourcemeta::core::to_string(node.location));
+  }
+  return result;
+}
+
+auto first_element_chain(const std::size_t depth) -> sourcemeta::core::Pointer {
+  sourcemeta::core::Pointer result;
+  for (std::size_t index{0}; index < depth; index += 1) {
+    result.push_back(sourcemeta::core::Pointer::Token::Index{0});
+  }
+  return result;
 }
 
 } // namespace
@@ -296,6 +315,7 @@ TEST(jsonpath_evaluate_move_construction) {
   const sourcemeta::core::JSONPath moved{std::move(original)};
   const auto nodes{evaluate_nodes(moved, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/a"}));
 }
 
 TEST(jsonpath_evaluate_deep_descendant_name) {
@@ -495,6 +515,11 @@ TEST(jsonpath_evaluate_deep_index_on_object) {
   const sourcemeta::core::JSONPath path{"$..[0]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 300);
+  // The run is three hundred places long, so this pins its ends
+  EXPECT_EQ(sourcemeta::core::to_pointer(nodes.front().location),
+            first_element_chain(1));
+  EXPECT_EQ(sourcemeta::core::to_pointer(nodes.back().location),
+            first_element_chain(300));
 }
 
 TEST(jsonpath_evaluate_deep_index_past_the_end) {
@@ -586,6 +611,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_name) {
   const sourcemeta::core::JSONPath path{"$[?@..a]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_evaluate_deep_filter_with_a_descendant_index) {
@@ -597,6 +623,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_index) {
   const sourcemeta::core::JSONPath path{"$[?@..[0]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 TEST(jsonpath_evaluate_deep_filter_with_a_descendant_index_past_the_end) {
@@ -615,6 +642,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_negative_index) {
   const sourcemeta::core::JSONPath path{"$[?@..[-1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(
@@ -634,6 +662,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_wildcard) {
   const sourcemeta::core::JSONPath path{"$[?@..[*]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_evaluate_deep_filter_with_a_descendant_slice) {
@@ -643,6 +672,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_slice) {
   const sourcemeta::core::JSONPath path{"$[?@..[0:1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_evaluate_deep_filter_with_a_descendant_filter) {
@@ -654,6 +684,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_descendant_filter) {
   const sourcemeta::core::JSONPath path{"$[?@..[?@.a]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0", "/1"}));
 }
 
 // RFC 9535 Section 2.3.1: a name selector "selects at most one object member
@@ -697,6 +728,7 @@ TEST(jsonpath_evaluate_deep_filter_with_a_negative_index) {
   const sourcemeta::core::JSONPath path{"$[?@..a[-1]]"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/0"}));
 }
 
 TEST(jsonpath_evaluate_deep_filter_with_a_negative_index_past_the_front) {
@@ -866,6 +898,7 @@ TEST(jsonpath_evaluate_two_name_selectors_in_one_segment) {
   const sourcemeta::core::JSONPath path{"$['a','b']"};
   const auto nodes{evaluate_nodes(path, document)};
   EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(locations_of(nodes), (std::vector<std::string>{"/a", "/b"}));
 }
 
 TEST(jsonpath_evaluate_two_name_selectors_on_an_array) {

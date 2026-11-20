@@ -876,6 +876,8 @@ TEST(string_input_within_a_tighter_bound) {
   const auto document{sourcemeta::core::parse_json("[ 1 ]"sv, 5)};
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.at(0).is_integer());
+  EXPECT_EQ(document.at(0).to_integer(), 1);
 }
 
 TEST(stream_input_past_a_tighter_bound) {

@@ -7,7 +7,7 @@ TEST(build_revocation_request_emits_the_token) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_build_revocation_request("45ghiukldjahdnhzdauz", "",
                                                    body);
-  EXPECT_TRUE(body == "token=45ghiukldjahdnhzdauz");
+  EXPECT_EQ(body, "token=45ghiukldjahdnhzdauz");
 }
 
 TEST(build_revocation_request_emits_a_hint) {
@@ -15,8 +15,7 @@ TEST(build_revocation_request_emits_a_hint) {
   sourcemeta::core::oauth_build_revocation_request(
       "45ghiukldjahdnhzdauz",
       sourcemeta::core::OAUTH_TOKEN_TYPE_HINT_REFRESH_TOKEN, body);
-  EXPECT_TRUE(body ==
-              "token=45ghiukldjahdnhzdauz&token_type_hint=refresh_token");
+  EXPECT_EQ(body, "token=45ghiukldjahdnhzdauz&token_type_hint=refresh_token");
 }
 
 TEST(parse_revocation_request_reads_the_token_and_hint) {

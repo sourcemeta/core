@@ -5,7 +5,7 @@ TEST(client_secret_basic_encodes_the_credential) {
   sourcemeta::core::SecureString header;
   sourcemeta::core::oauth_client_secret_basic("s6BhdRkqt3", "gX1fBat3bV",
                                               header);
-  EXPECT_TRUE(header == "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW");
+  EXPECT_EQ(header, "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW");
 }
 
 TEST(client_secret_basic_percent_encodes_each_half) {
@@ -13,19 +13,19 @@ TEST(client_secret_basic_percent_encodes_each_half) {
   // secret are percent-encoded before the halves are joined and Base64 encoded
   sourcemeta::core::SecureString header;
   sourcemeta::core::oauth_client_secret_basic("a:b", "c d", header);
-  EXPECT_TRUE(header == "Basic YSUzQWI6YyUyMGQ=");
+  EXPECT_EQ(header, "Basic YSUzQWI6YyUyMGQ=");
 }
 
 TEST(client_secret_post_emits_both_parameters) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_client_secret_post("s6BhdRkqt3", "gX1fBat3bV", body);
-  EXPECT_TRUE(body == "client_id=s6BhdRkqt3&client_secret=gX1fBat3bV");
+  EXPECT_EQ(body, "client_id=s6BhdRkqt3&client_secret=gX1fBat3bV");
 }
 
 TEST(client_secret_post_escapes_the_secret) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_client_secret_post("abc", "s p@ce", body);
-  EXPECT_TRUE(body == "client_id=abc&client_secret=s+p%40ce");
+  EXPECT_EQ(body, "client_id=abc&client_secret=s+p%40ce");
 }
 
 // The appender joins to whatever precedes it, so a sink that already ends in
@@ -34,14 +34,14 @@ TEST(client_secret_post_after_a_trailing_separator) {
   sourcemeta::core::SecureString body;
   body.append("grant_type=client_credentials&");
   sourcemeta::core::oauth_client_secret_post("abc", "xyz", body);
-  EXPECT_TRUE(body == "grant_type=client_credentials"
-                      "&client_id=abc&client_secret=xyz");
+  EXPECT_EQ(body, "grant_type=client_credentials"
+                  "&client_id=abc&client_secret=xyz");
 }
 
 TEST(client_id_only_emits_the_identifier) {
   sourcemeta::core::SecureString body;
   sourcemeta::core::oauth_client_id_only("s6BhdRkqt3", body);
-  EXPECT_TRUE(body == "client_id=s6BhdRkqt3");
+  EXPECT_EQ(body, "client_id=s6BhdRkqt3");
 }
 
 TEST(client_id_only_composes_after_a_grant) {
@@ -49,8 +49,8 @@ TEST(client_id_only_composes_after_a_grant) {
   sourcemeta::core::oauth_build_token_request_code("abc", "", "verifier", {},
                                                    body);
   sourcemeta::core::oauth_client_id_only("s6BhdRkqt3", body);
-  EXPECT_TRUE(body == "grant_type=authorization_code&code=abc"
-                      "&code_verifier=verifier&client_id=s6BhdRkqt3");
+  EXPECT_EQ(body, "grant_type=authorization_code&code=abc"
+                  "&code_verifier=verifier&client_id=s6BhdRkqt3");
 }
 
 TEST(parse_client_authentication_reads_a_basic_credential) {

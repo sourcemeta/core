@@ -835,7 +835,7 @@ TEST(verify_shares_its_resolved_clock_reading) {
                                    "client", std::nullopt, std::nullopt,
                                    resolved_now)};
   EXPECT_FALSE(error.has_value());
-  EXPECT_TRUE(resolved_now == now);
+  EXPECT_EQ(resolved_now, now);
 }
 
 TEST(verify_access_token_accepts_an_at_jwt_token) {
