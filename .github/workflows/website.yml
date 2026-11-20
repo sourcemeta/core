@@ -60,7 +60,7 @@ jobs:
           REQUIRE_FULL_FUNCTION_COVERAGE: "1"
           REQUIRE_MINIMUM_COVERAGE: "97"
           REQUIRE_MINIMUM_BRANCH_COVERAGE: "92"
-          REQUIRE_MINIMUM_CONDITION_COVERAGE: "82"
+          REQUIRE_MINIMUM_CONDITION_COVERAGE: "90"
         run: |
           useradd --create-home builder
           chown -R builder .
