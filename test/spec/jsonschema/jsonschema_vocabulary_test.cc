@@ -116,6 +116,18 @@ static auto draft7_answered_as_2020_12(const std::string_view identifier)
   return sourcemeta::core::schema_resolver(identifier);
 }
 
+// Reading a vocabulary set hands each entry to a callback, and the type of
+// that callback is what the iteration is written out for, so one type shared
+// by every case below is what makes the arms each case takes add up
+struct VocabularyCollector {
+  std::vector<std::pair<std::string, bool>> &seen;
+
+  auto operator()(const sourcemeta::core::SchemaVocabularies::URI &uri,
+                  const bool required) const -> void {
+    this->seen.emplace_back(std::format("{}", uri), required);
+  }
+};
+
 TEST(core_vocabularies_boolean_without_default) {
   const sourcemeta::core::JSON document{true};
   try {
@@ -699,11 +711,7 @@ TEST(embedded_custom_metaschema_wrong_container) {
 TEST(for_each_empty) {
   const sourcemeta::core::SchemaVocabularies vocabularies;
   std::vector<std::pair<std::string, bool>> seen;
-  vocabularies.for_each(
-      [&seen](const sourcemeta::core::SchemaVocabularies::URI &uri,
-              const bool required) {
-        seen.emplace_back(std::format("{}", uri), required);
-      });
+  vocabularies.for_each(VocabularyCollector{seen});
 
   EXPECT_TRUE(seen.empty());
 }
@@ -715,11 +723,7 @@ TEST(for_each_known_required_and_optional) {
   vocabularies.insert(Known::JSON_SCHEMA_2020_12_VALIDATION, false);
 
   std::vector<std::pair<std::string, bool>> seen;
-  vocabularies.for_each(
-      [&seen](const sourcemeta::core::SchemaVocabularies::URI &uri,
-              const bool required) {
-        seen.emplace_back(std::format("{}", uri), required);
-      });
+  vocabularies.for_each(VocabularyCollector{seen});
 
   EXPECT_EQ(seen.size(), 2);
   EXPECT_EQ(seen.at(0).first,
@@ -736,11 +740,7 @@ TEST(for_each_unknown) {
                       true);
 
   std::vector<std::pair<std::string, bool>> seen;
-  vocabularies.for_each(
-      [&seen](const sourcemeta::core::SchemaVocabularies::URI &uri,
-              const bool required) {
-        seen.emplace_back(std::format("{}", uri), required);
-      });
+  vocabularies.for_each(VocabularyCollector{seen});
 
   EXPECT_EQ(seen.size(), 1);
   EXPECT_EQ(seen.at(0).first, "https://example.com/one");
@@ -755,11 +755,7 @@ TEST(for_each_known_and_unknown) {
                       false);
 
   std::vector<std::pair<std::string, bool>> seen;
-  vocabularies.for_each(
-      [&seen](const sourcemeta::core::SchemaVocabularies::URI &uri,
-              const bool required) {
-        seen.emplace_back(std::format("{}", uri), required);
-      });
+  vocabularies.for_each(VocabularyCollector{seen});
 
   EXPECT_EQ(seen.size(), vocabularies.size());
   EXPECT_EQ(seen.size(), 2);
@@ -1372,4 +1368,674 @@ TEST(vocabularies_uri_with_a_non_string_name) {
       sourcemeta::core::from_json<sourcemeta::core::SchemaVocabularies::URI>(
           document)};
   EXPECT_FALSE(result.has_value());
+}
+
+TEST(empty_with_a_required_known_vocabulary) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true}};
+
+  EXPECT_FALSE(vocabularies.empty());
+  EXPECT_EQ(vocabularies.size(), 1);
+}
+
+TEST(empty_with_an_optional_known_vocabulary) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CONTENT, false}};
+
+  EXPECT_FALSE(vocabularies.empty());
+  EXPECT_EQ(vocabularies.size(), 1);
+}
+
+TEST(empty_with_no_vocabulary_at_all) {
+  const sourcemeta::core::SchemaVocabularies vocabularies{};
+
+  EXPECT_TRUE(vocabularies.empty());
+  EXPECT_EQ(vocabularies.size(), 0);
+}
+
+// A vocabulary this implementation knows may still be asked for by its URI,
+// which is the slower of the two ways of asking and has to answer the same
+TEST(contains_the_first_known_vocabulary_by_its_uri) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  const sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true}};
+
+  EXPECT_TRUE(vocabularies.contains(
+      "https://json-schema.org/draft/2020-12/vocab/core"));
+  EXPECT_TRUE(
+      vocabularies.get("https://json-schema.org/draft/2020-12/vocab/core")
+          .has_value());
+  EXPECT_TRUE(
+      vocabularies.get("https://json-schema.org/draft/2020-12/vocab/core")
+          .value());
+}
+
+// Only a vocabulary a dialect requires has to be supported, which holds for
+// one this implementation does not know by name as much as for one it does
+TEST(throw_if_any_unsupported_optional_custom_not_checked) {
+  using Known = sourcemeta::core::SchemaVocabularies::Known;
+
+  sourcemeta::core::SchemaVocabularies vocabularies{
+      {Known::JSON_SCHEMA_2020_12_CORE, true}};
+  vocabularies.insert("https://example.com/custom-vocab", false);
+
+  const std::unordered_set<sourcemeta::core::SchemaVocabularies::URI> supported{
+      Known::JSON_SCHEMA_2020_12_CORE};
+
+  vocabularies.throw_if_any_unsupported(supported, "Unsupported vocabulary");
+}
+
+// A document may embed the meta-schema it names, and the chain that walks to
+// an official base dialect holds every link to the container that base
+// dialect reserves for one. Draft 7 and Draft 6 reserve `definitions` and
+// introduce an identifier with `$id`
+TEST(embedded_metaschema_chain_terminating_at_draft7_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-07/hyper-schema#"
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7_HYPER));
+}
+
+// This project keeps a vocabulary of its own in the registry, which a
+// meta-schema may declare even though no keyword of it is read here
+TEST(a_metaschema_declaring_the_extension_vocabulary_of_this_project) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "tag:sourcemeta.com,2026:extension/v1": true
+        }
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::SOURCEMETA_EXTENSION_V1));
+  EXPECT_FALSE(result.has_unknown());
+}
+
+// A relative identifier is held up to the one asked for by resolving it
+// against the identifier of the document that carries it, which a document
+// whose own identifier reads as no URI cannot anchor
+TEST(an_embedded_metaschema_relative_within_a_document_naming_no_uri) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$id": "http://[",
+    "definitions": {
+      "meta": {
+        "$id": "meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The three oldest hyper-schema drafts reserve no place for a schema to carry
+// another, so a meta-schema a document embeds can never sit where one of them
+// would read it, whichever of the two names it is written under
+TEST(embedded_metaschema_chain_terminating_at_draft2_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-02/hyper-schema#"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(embedded_metaschema_chain_terminating_at_draft1_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "meta": {
+        "id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-01/hyper-schema#"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(embedded_metaschema_chain_terminating_at_draft0_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-00/hyper-schema#"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/meta");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// 2019-09 and 2020-12 reserve `$defs`, and go on supporting `definitions`
+// for backwards compatibility, so a meta-schema a document embeds under the
+// older name stands for them as well. One declaring no vocabularies of its
+// own leaves the core vocabulary of the dialect it reads by in force, which
+// JSON Schema 2020-12 Core, section 8.1.2.1 requires of an implementation
+// that carries on reading a meta-schema it does not recognise
+TEST(embedded_metaschema_chain_under_the_older_container_of_2020_12) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+  EXPECT_FALSE(result.has_unknown());
+}
+
+TEST(embedded_metaschema_chain_under_the_older_container_of_2019_09) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2019-09/schema"
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE));
+  EXPECT_FALSE(result.has_unknown());
+}
+
+TEST(embedded_metaschema_chain_terminating_at_draft6_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-06/hyper-schema#"
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6_HYPER));
+}
+
+// Draft 4 and Draft 3 reserve `definitions` as well, while the keyword that
+// introduces an identifier for them is `id`
+TEST(embedded_metaschema_chain_terminating_at_draft4_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-04/hyper-schema#"
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4_HYPER));
+}
+
+TEST(embedded_metaschema_chain_terminating_at_draft3_hyper) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-03/hyper-schema#"
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_3_HYPER));
+}
+
+// An entry whose identifier is of no use as one names no resource, so the
+// entry that does name the resource is the one that answers for it
+TEST(embedded_metaschema_candidate_whose_identifier_is_no_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "not-a-resource": {
+        "$id": 5,
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+}
+
+// A container that holds no members at all reserves nothing to search, so the
+// search carries on to the next one
+TEST(embedded_metaschema_container_that_is_no_object) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": 5,
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/validation": true
+        }
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+  EXPECT_TRUE(result.contains(sourcemeta::core::SchemaVocabularies::Known::
+                                  JSON_SCHEMA_2020_12_VALIDATION));
+}
+
+// In 2019-09 and 2020-12 the older name for the container is still read, so a
+// document that keeps its embedded meta-schema there is honoured as well
+TEST(embedded_metaschema_under_the_older_container_name) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "definitions": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/meta-data": true
+        }
+      }
+    }
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+  EXPECT_TRUE(result.contains(sourcemeta::core::SchemaVocabularies::Known::
+                                  JSON_SCHEMA_2020_12_META_DATA));
+}
+
+// Every official dialect was published under one spelling of its scheme and
+// is widely written with the other, so both name the same base dialect
+TEST(alternate_spelling_of_the_2020_12_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft/2020-12/schema"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 7);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+}
+
+TEST(alternate_spelling_of_the_2019_09_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft/2019-09/schema"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 6);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE));
+}
+
+TEST(alternate_spelling_of_the_2020_12_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft/2020-12/hyper-schema"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+}
+
+TEST(alternate_spelling_of_the_2019_09_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft/2019-09/hyper-schema"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(result.contains(sourcemeta::core::SchemaVocabularies::Known::
+                                  JSON_SCHEMA_2019_09_HYPER_SCHEMA));
+}
+
+TEST(alternate_spelling_of_the_draft7_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-07/schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7));
+}
+
+TEST(alternate_spelling_of_the_draft7_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-07/hyper-schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_7_HYPER));
+}
+
+TEST(alternate_spelling_of_the_draft6_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-06/schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6));
+}
+
+TEST(alternate_spelling_of_the_draft6_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-06/hyper-schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_6_HYPER));
+}
+
+TEST(alternate_spelling_of_the_draft4_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-04/schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4));
+}
+
+TEST(alternate_spelling_of_the_draft4_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-04/hyper-schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_4_HYPER));
+}
+
+TEST(alternate_spelling_of_the_draft3_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-03/schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_3));
+}
+
+TEST(alternate_spelling_of_the_draft3_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-03/hyper-schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_3_HYPER));
+}
+
+TEST(alternate_spelling_of_the_draft2_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-02/hyper-schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_2_HYPER));
+}
+
+TEST(alternate_spelling_of_the_draft1_hyper_dialect) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-01/hyper-schema#"
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_1_HYPER));
+}
+
+// The keyword that names a dialect from within a subschema names one only
+// where it carries a string, so a value of any other shape leaves the
+// declaration of the schema itself to answer
+TEST(dialect_override_that_is_no_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema": 5
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 7);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+}
+
+// An empty string names no dialect either, as a dialect is named by a URI
+TEST(dialect_override_that_is_an_empty_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema": ""
+  })JSON")};
+  const auto result{vocabularies(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(result.size(), 7);
+  EXPECT_TRUE(result.contains(
+      sourcemeta::core::SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE));
+}
+
+// A link of an embedded meta-schema chain names what describes it with a URI,
+// and a name that is no URI reaches neither another link nor the resolver
+TEST(embedded_metaschema_chain_naming_something_that_is_no_uri) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "not-a-uri"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+// A chain that reaches an official base dialect may still leave the dialect
+// in force naming itself, which says nothing about what describes it
+TEST(embedded_metaschema_whose_override_names_the_dialect_it_describes) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "x-sourcemeta-dialect-override-subschema": "https://example.com/meta"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not determine the base dialect of the schema");
+  }
+}
+
+// Draft 7 reserves `definitions` for schema definitions and leaves `$defs` as
+// payload, so an embedded meta-schema kept there is not one the document can
+// be read against
+TEST(embedded_metaschema_under_a_container_the_dialect_leaves_as_payload) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "meta": {
+        "$id": "https://example.com/meta",
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+// An identifier spelled relatively resolves against the one the document
+// carries, which a declaration that is not even a string does not give
+TEST(embedded_metaschema_beside_a_base_identifier_that_is_no_string) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$id": 5,
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "meta": {
+        "$id": "meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
+}
+
+// RFC 3986 Section 3.2.3 writes a port as digits, and one past the range a
+// port number reaches reads as a URI while settling as none, which leaves the
+// dialect it names unreadable
+TEST(embedded_metaschema_named_by_a_uri_that_settles_as_none) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://example.com:99999999999999/meta",
+    "$defs": {
+      "meta": {
+        "$id": "https://example.com/other",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The dialect is not a valid URI");
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "http://example.com:99999999999999/meta");
+  }
+}
+
+TEST(embedded_metaschema_declaring_a_uri_that_settles_as_none) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/meta",
+    "$defs": {
+      "meta": {
+        "$id": "http://example.com:99999999999999/meta",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true
+        }
+      }
+    }
+  })JSON")};
+
+  try {
+    vocabularies(document, sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Could not resolve the metaschema of the schema");
+  }
 }

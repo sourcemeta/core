@@ -1,0 +1,86 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "pet": {
+        "$ref": "https://example.com/anon"
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "container": "/$defs",
+  "resolver": {
+    "https://example.com/anon": {
+      "properties": {
+        "y": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/properties"
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1example.com~1anon"
+        }
+      },
+      "$defs": {
+        "https://example.com/anon": {
+          "properties": {
+            "y": {
+              "type": "string",
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/https:~1~1example.com~1anon/properties",
+            "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "pet": {
+          "$ref": "#/$defs/https:~1~1example.com~1anon"
+        }
+      },
+      "$defs": {
+        "https://example.com/anon": {
+          "properties": {
+            "y": {
+              "type": "string",
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/https:~1~1example.com~1anon/properties",
+            "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/anon",
+        "at": "/$defs/https:~1~1example.com~1anon"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/anon",
+        "at": "/$defs/https:~1~1example.com~1anon"
+      }
+    ]
+  }
+}

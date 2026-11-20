@@ -1,0 +1,48 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "properties": {
+      "x": {
+        "$ref": "https://example.com/outer"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "carried": {
+          "$id": "https://example.com/inner",
+          "properties": {
+            "y": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "properties": {
+        "z": {
+          "$ref": "https://example.com/inner#/properties/missing"
+        }
+      }
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/inner#/properties/missing",
+      "location": "/properties/z/$ref"
+    },
+    "references": {
+      "type": "SchemaReferenceError",
+      "message": "Could not resolve schema reference",
+      "identifier": "https://example.com/inner#/properties/missing",
+      "location": "/properties/z/$ref"
+    }
+  },
+  "inserted": {}
+}

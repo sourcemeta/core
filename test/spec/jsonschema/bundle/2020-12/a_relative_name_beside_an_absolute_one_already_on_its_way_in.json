@@ -1,0 +1,75 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "allOf": [
+      {
+        "$ref": "https://example.com/inner"
+      },
+      {
+        "$ref": "inner"
+      }
+    ]
+  },
+  "resolver": {
+    "https://example.com/inner": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/inner",
+      "type": "string"
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "allOf": [
+        {
+          "$ref": "https://example.com/inner"
+        },
+        {
+          "$ref": "https://example.com/inner"
+        }
+      ],
+      "$defs": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "allOf": [
+        {
+          "$ref": "https://example.com/inner"
+        },
+        {
+          "$ref": "https://example.com/inner"
+        }
+      ],
+      "$defs": {
+        "https://example.com/inner": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/inner",
+        "at": "/$defs/https:~1~1example.com~1inner"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/inner",
+        "at": "/$defs/https:~1~1example.com~1inner"
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+    "properties": {
+      "x": {
+        "$ref": "https://www.sourcemeta.com/no"
+      }
+    }
+  },
+  "defaultDialect": "http://json-schema.org/draft-04/hyper-schema#",
+  "resolver": {
+    "https://www.sourcemeta.com/no": false
+  },
+  "accounted": [],
+  "accountedReported": [],
+  "dependencies": [],
+  "fetched": [
+    "https://www.sourcemeta.com/no"
+  ],
+  "error": {
+    "type": "SchemaReferenceError",
+    "message": "The JSON document is not a valid JSON Schema",
+    "identifier": "https://www.sourcemeta.com/no",
+    "location": "/properties/x/$ref"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/root",
+    "properties": {
+      "x": {
+        "$ref": "https://example.com/outer"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/outer",
+      "definitions": {
+        "anchored": {
+          "$id": "#named",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/root",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer"
+        }
+      },
+      "definitions": {
+        "https://example.com/outer": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://example.com/outer",
+          "definitions": {
+            "anchored": {
+              "$id": "#named",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/root",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer"
+        }
+      },
+      "definitions": {
+        "https://example.com/outer": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://example.com/outer",
+          "definitions": {
+            "anchored": {
+              "$id": "#named",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/definitions/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/definitions/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema": {
+    "$id": "https://example.com/inner",
+    "x-framed": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://example.com/outer"
+    }
+  },
+  "paths": ["/x-framed"],
+  "container": "/0",
+  "defaultBase": "https://example.com/inner",
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "friendly": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": { "type": "SchemaContainerError", "message": "Could not bundle to a container that is not an array", "location": "/0" },
+    "references": { "type": "SchemaContainerError", "message": "Could not bundle to a container that is not an array", "location": "/0" }
+  },
+  "inserted": {}
+}

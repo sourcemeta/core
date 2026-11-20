@@ -1,0 +1,57 @@
+{
+  "schema": {
+    "$ref": "https://www.sourcemeta.com/test-1"
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "http://json-schema.org/draft-03/hyper-schema#",
+      "id": "https://www.sourcemeta.com/test-1",
+      "type": "string"
+    }
+  },
+  "defaultDialect": "http://json-schema.org/draft-03/hyper-schema#",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "extends": [
+        {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      ],
+      "definitions": {
+        "https://www.sourcemeta.com/test-1": {
+          "$schema": "http://json-schema.org/draft-03/hyper-schema#",
+          "id": "https://www.sourcemeta.com/test-1",
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "extends": [
+        {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      ],
+      "definitions": {
+        "https://www.sourcemeta.com/test-1": {
+          "$schema": "http://json-schema.org/draft-03/hyper-schema#",
+          "id": "https://www.sourcemeta.com/test-1",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/test-1",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1test-1"
+      }
+    ]
+  }
+}

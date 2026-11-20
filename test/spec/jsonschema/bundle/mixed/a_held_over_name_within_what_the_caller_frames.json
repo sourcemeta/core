@@ -1,0 +1,113 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://example.com/outer"
+        }
+      }
+    }
+  },
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "container": "/components/schemas/Pet/$defs",
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "carried": {
+          "$id": "https://example.com/inner",
+          "properties": {
+            "y": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "properties": {
+        "z": {
+          "$ref": "https://example.com/inner#/properties/y"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "components": {
+        "schemas": {
+          "Pet": {
+            "$ref": "https://example.com/outer",
+            "$defs": {
+              "https://example.com/outer": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$id": "https://example.com/outer",
+                "$defs": {
+                  "carried": {
+                    "$id": "https://example.com/inner",
+                    "properties": {
+                      "y": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "properties": {
+                  "z": {
+                    "$ref": "https://example.com/inner#/properties/y"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "components": {
+        "schemas": {
+          "Pet": {
+            "$ref": "https://example.com/outer",
+            "$defs": {
+              "https://example.com/outer": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$id": "https://example.com/outer",
+                "$defs": {
+                  "carried": {
+                    "$id": "https://example.com/inner",
+                    "properties": {
+                      "y": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "properties": {
+                  "z": {
+                    "$ref": "https://example.com/inner#/properties/y"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/components/schemas/Pet/$defs/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/components/schemas/Pet/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

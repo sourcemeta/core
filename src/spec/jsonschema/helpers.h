@@ -6,6 +6,7 @@
 #include <sourcemeta/core/uri.h>
 
 #include <array>         // std::array
+#include <cassert>       // assert
 #include <deque>         // std::deque
 #include <exception>     // std::exception_ptr, std::current_exception
 #include <functional>    // std::equal_to, std::hash
@@ -44,6 +45,31 @@ constexpr auto DIALECT_OVERRIDE_KEYWORD{
     "x-sourcemeta-dialect-override-subschema"sv};
 constexpr auto JSONSCHEMA_HASH_DIALECT_OVERRIDE{
     JSON::Object::hash(DIALECT_OVERRIDE_KEYWORD)};
+
+// A switch that names every enumerator and carries no default of its own
+// still holds an arm for the value outside the enumeration that never
+// arrives, which Clang counts as one that nothing took. Writing the last arm
+// of each switch below as the default there takes that arm away, while the
+// compilers reading a case label keep being the ones that catch a base
+// dialect added later. The directives stay out of the functions because one
+// inside a body reads as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_JSONSCHEMA_LEGACY_IDENTIFIER_DIALECTS default
+#define SOURCEMETA_CORE_JSONSCHEMA_NO_DEFINITIONS_DIALECTS default
+#else
+#define SOURCEMETA_CORE_JSONSCHEMA_LEGACY_IDENTIFIER_DIALECTS                  \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4:                                 \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4_HYPER:                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3:                                 \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3_HYPER:                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_2_HYPER:                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER
+#define SOURCEMETA_CORE_JSONSCHEMA_NO_DEFINITIONS_DIALECTS                     \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_2_HYPER:                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER
+#endif
 
 /// A keyword whose name is only known once the base dialect is, paired with
 /// the hash of that name so that looking it up does not have to hash it again
@@ -96,13 +122,7 @@ inline auto id_keyword(const SchemaBaseDialect base_dialect) -> SchemaKeyword {
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_6:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_6_HYPER:
       return {.name = "$id"sv, .hash = JSONSCHEMA_HASH_ID};
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_2_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
+    SOURCEMETA_CORE_JSONSCHEMA_LEGACY_IDENTIFIER_DIALECTS:
       return {.name = "id"sv, .hash = JSONSCHEMA_HASH_LEGACY_ID};
   }
 
@@ -231,9 +251,7 @@ inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3:
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3_HYPER:
       return "definitions";
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_2_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
+    SOURCEMETA_CORE_JSONSCHEMA_NO_DEFINITIONS_DIALECTS:
       return "";
   }
 
@@ -264,6 +282,26 @@ ref_overrides_adjacent_keywords(const SchemaBaseDialect base_dialect) -> bool {
       return true;
     default:
       return false;
+  }
+}
+
+// Whether a boolean reads as a schema at all. Every dialect before Draft 6
+// says a schema is an object, which the meta-schema of each states as
+// `"type": "object"`, and Draft 6 is the first to write
+// `"type": ["object", "boolean"]` instead
+inline auto supports_boolean_schemas(const SchemaBaseDialect base_dialect)
+    -> bool {
+  switch (base_dialect) {
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4:
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_4_HYPER:
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3:
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_3_HYPER:
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_2_HYPER:
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:
+    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
+      return false;
+    default:
+      return true;
   }
 }
 
@@ -396,10 +434,12 @@ inline auto embedded_metaschema_link_valid(
     const sourcemeta::core::JSON &base_document) -> bool {
   // In 2019-09 and 2020-12, `definitions` is still supported for backwards
   // compatibility, so the older name answers for a dialect that reserves the
-  // newer one as well as for the ones that reserve it in their own right
+  // newer one as well as for the ones that reserve it in their own right. A
+  // candidate is only ever found under one of those two names, which leaves
+  // the newer one reserved as the whole of what the older name answers for
   const auto keyword{definitions_keyword(base_dialect)};
-  if (container != keyword &&
-      (keyword != "$defs" || container != "definitions")) {
+  assert(container == "$defs" || container == "definitions");
+  if (container != keyword && keyword != "$defs") {
     return false;
   }
 
@@ -434,6 +474,9 @@ inline auto guard_foreign(const Function &function) {
     }
   };
 }
+
+#undef SOURCEMETA_CORE_JSONSCHEMA_LEGACY_IDENTIFIER_DIALECTS
+#undef SOURCEMETA_CORE_JSONSCHEMA_NO_DEFINITIONS_DIALECTS
 
 } // namespace sourcemeta::core
 

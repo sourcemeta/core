@@ -41,6 +41,30 @@ constexpr auto HASH_DYNAMIC{sourcemeta::core::JSON::Object::hash("dynamic"sv)};
 constexpr auto HASH_REFERENCES{
     sourcemeta::core::JSON::Object::hash("references"sv)};
 
+} // namespace
+
+// A switch that names every enumerator and carries no default of its own
+// still holds an arm for the value outside the enumeration that never
+// arrives, which Clang counts as one that nothing took. Writing the last arm
+// of each switch below as the default there takes that arm away, while the
+// compilers reading a case label keep being the ones that catch an enumerator
+// added later. The directives stay out of the functions because one inside a
+// body reads as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_JSONSCHEMA_LOCATION_SUBSCHEMA default
+#define SOURCEMETA_CORE_JSONSCHEMA_MODE_POINTERS default
+#define SOURCEMETA_CORE_JSONSCHEMA_REFERENCE_DYNAMIC default
+#else
+#define SOURCEMETA_CORE_JSONSCHEMA_LOCATION_SUBSCHEMA                          \
+  case SchemaFrame::LocationType::Subschema
+#define SOURCEMETA_CORE_JSONSCHEMA_MODE_POINTERS                               \
+  case SchemaFrame::Mode::Pointers
+#define SOURCEMETA_CORE_JSONSCHEMA_REFERENCE_DYNAMIC                           \
+  case SchemaReferenceType::Dynamic
+#endif
+
+namespace {
+
 auto is_valid_anchor_2020_12(const std::string_view name) -> bool {
   if (name.empty()) {
     return false;
@@ -415,12 +439,14 @@ auto locate(const Locations &locations,
     return static_result->second;
   }
 
-  const auto dynamic_result{
-      locations.find({sourcemeta::core::SchemaReferenceType::Dynamic, uri})};
-  if (dynamic_result != locations.cend()) {
-    return dynamic_result->second;
-  }
-
+  // Every dynamic location answers to a URI that a static one answers to as
+  // well. A dynamic anchor declares a static anchor of the same name, which
+  // the vocabulary that reads the keyword at all is what puts there, and a
+  // recursive anchor names the resource it sits in, which is a location in its
+  // own right. Nothing takes a location back out, so the lookup above is the
+  // one that finds either of them
+  assert(locations.find({sourcemeta::core::SchemaReferenceType::Dynamic,
+                         uri}) == locations.cend());
   return std::nullopt;
 }
 
@@ -557,13 +583,13 @@ auto store(Locations &frame, const std::uint64_t max_locations,
                      .property_name = property_name,
                      .orphan = orphan}});
   if (!inserted) {
-    if (entry_type == sourcemeta::core::SchemaFrame::LocationType::Anchor) {
-      throw sourcemeta::core::SchemaAnchorCollisionError(
-          iterator->first.second,
-          sourcemeta::core::to_pointer(pointer_from_root),
-          sourcemeta::core::to_pointer(iterator->second.pointer));
-    }
-    throw_already_exists(iterator->first.second);
+    // Every other kind of location is held up to what is already registered
+    // before it gets here, which leaves an anchor as the one that finds out by
+    // colliding
+    assert(entry_type == sourcemeta::core::SchemaFrame::LocationType::Anchor);
+    throw sourcemeta::core::SchemaAnchorCollisionError(
+        iterator->first.second, sourcemeta::core::to_pointer(pointer_from_root),
+        sourcemeta::core::to_pointer(iterator->second.pointer));
   }
 
   // Charging for a location that got registered rather than for an attempt to
@@ -576,7 +602,9 @@ auto store(Locations &frame, const std::uint64_t max_locations,
     throw sourcemeta::core::SchemaFrameLimitError(max_locations);
   }
 
-  if (inserted && iterator->first.second == base) {
+  // Every insertion that did not take has thrown by now
+  assert(inserted);
+  if (iterator->first.second == base) {
     iterator->second.base = iterator->first.second;
   }
 }
@@ -651,7 +679,7 @@ auto to_json(const SchemaFrame::LocationType value) -> sourcemeta::core::JSON {
       return sourcemeta::core::JSON{"anchor"};
     case SchemaFrame::LocationType::Pointer:
       return sourcemeta::core::JSON{"pointer"};
-    case SchemaFrame::LocationType::Subschema:
+    SOURCEMETA_CORE_JSONSCHEMA_LOCATION_SUBSCHEMA:
       return sourcemeta::core::JSON{"subschema"};
   }
 
@@ -678,7 +706,7 @@ auto SchemaFrame::to_json(
     case SchemaFrame::Mode::References:
       root.assign_assume_new("mode", sourcemeta::core::JSON{"references"});
       break;
-    case SchemaFrame::Mode::Pointers:
+    SOURCEMETA_CORE_JSONSCHEMA_MODE_POINTERS:
       root.assign_assume_new("mode", sourcemeta::core::JSON{"pointers"});
       break;
   }
@@ -761,7 +789,7 @@ auto SchemaFrame::to_json(
         static_locations.assign_assume_new(location.first.second,
                                            std::move(entry));
         break;
-      case SchemaReferenceType::Dynamic:
+      SOURCEMETA_CORE_JSONSCHEMA_REFERENCE_DYNAMIC:
         dynamic_locations.assign_assume_new(location.first.second,
                                             std::move(entry));
         break;
@@ -811,21 +839,10 @@ auto SchemaFrame::to_json(
 // the vocabularies it resolved, and the graphs that answer reachability
 // queries. None of it belongs in the public declaration
 struct SchemaFrame::Cache {
+  // Every location the walk takes in is reachable, and one it never reaches
+  // is simply absent, so membership is the whole of what this holds
   using ReachabilityCache =
-      std::unordered_map<const sourcemeta::core::WeakPointer *, bool>;
-  struct ReachabilityKey {
-    const sourcemeta::core::WeakPointer *pointer;
-    bool orphan;
-    auto operator==(const ReachabilityKey &other) const noexcept -> bool {
-      return this->pointer == other.pointer && this->orphan == other.orphan;
-    }
-  };
-  struct ReachabilityKeyHasher {
-    auto operator()(const ReachabilityKey &key) const noexcept -> std::size_t {
-      return std::hash<const void *>{}(key.pointer) ^
-             (std::hash<bool>{}(key.orphan) << 1);
-    }
-  };
+      std::unordered_set<const sourcemeta::core::WeakPointer *>;
   struct ReachabilityEdge {
     const Location *target;
     bool orphan_context_only;
@@ -863,7 +880,10 @@ struct SchemaFrame::Cache {
       std::vector<const Location *>, sourcemeta::core::WeakPointer::Hasher,
       sourcemeta::core::WeakPointer::Comparator>
       pointer_to_location;
-  std::unordered_map<ReachabilityKey, ReachabilityCache, ReachabilityKeyHasher>
+  // What a location reaches, asked for by the position of the location
+  // itself, which is what tells two of them apart. Whether the context is an
+  // orphan is read off that same location, so it says nothing further here
+  std::unordered_map<const sourcemeta::core::WeakPointer *, ReachabilityCache>
       reachability;
   std::unordered_map<
       std::reference_wrapper<const sourcemeta::core::WeakPointer>,
@@ -1057,9 +1077,13 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         }
       }
 
-      const auto maybe_id{root_declares_anchor || declared_id.empty()
-                              ? default_id
-                              : declared_id};
+      // An identifier that names an anchor of the document introduces no
+      // resource, and neither does one the document never declared, which
+      // leaves the name the caller gave it as the one it answers to
+      const auto takes_the_name_it_was_given{root_declares_anchor ||
+                                             declared_id.empty()};
+      const auto maybe_id{takes_the_name_it_was_given ? default_id
+                                                      : declared_id};
       if (!maybe_id.empty()) {
         try {
           root_id = canonicalize_identifier(maybe_id, default_base);
@@ -1144,8 +1168,12 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
 
       if (root_id.has_value()) {
         const sourcemeta::core::URI identifier{root_id.value()};
+        // The identifier was settled to its canonical spelling above, which
+        // leaves no empty fragment behind, so one that is there carries
+        // something
         const auto fragment{identifier.fragment()};
-        if (fragment.has_value() && !fragment.value().empty()) {
+        assert(!fragment.has_value() || !fragment.value().empty());
+        if (fragment.has_value()) {
           throw SchemaFrameError(
               supports_id_anchors(root_base_dialect.value())
                   ? StaticString{"Identifiers may only carry a fragment when "
@@ -1211,14 +1239,19 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
       // Schema identifier
       // We need to store the default_id in a local variable to ensure
       // it survives the identify() call, as identify() returns a string_view
+      const auto entry_is_the_document{entry.pointer.empty() &&
+                                       root_id.has_value()};
       const std::string default_id_for_entry{
-          entry.pointer.empty() && root_id.has_value() ? root_id.value()
-                                                       : std::string{}};
+          entry_is_the_document ? root_id.value() : std::string{}};
       // An identifier that only names the top of the document in place was
       // taken apart above, which leaves the name the caller gave it, if any,
       // as the one that identifies the document
-      auto maybe_id{entry.pointer.empty() && root_declares_anchor &&
-                            !default_id_for_entry.empty()
+      // A name for the entry only stands where the entry is the top of the
+      // document, which is the one place the name above comes from, so asking
+      // for that name is asking where the entry sits as well
+      const auto document_answers_to_the_name_given{
+          root_declares_anchor && !default_id_for_entry.empty()};
+      auto maybe_id{document_answers_to_the_name_given
                         ? std::string_view{default_id_for_entry}
                         : sourcemeta::core::identify(entry.subschema.get(),
                                                      entry.base_dialect.value(),
@@ -1355,9 +1388,12 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                   entry.id.value());
             }
 
+            // An identifier of the document that names an anchor was taken
+            // apart above, so a document reaching here with one declared it as
+            // a resource, which is the name the frame came back with
             sourcemeta::core::JSON::String new_id;
-            if (common_pointer_weak.empty() && root_id.has_value() &&
-                base_string == root_id.value()) {
+            assert(!common_pointer_weak.empty() || root_id.has_value());
+            if (common_pointer_weak.empty() && base_string == root_id.value()) {
               new_id = root_id.value();
             } else if (!stated.has_value()) {
               // RFC 3986 Section 5.2.3 merges a relative reference into the
@@ -1492,17 +1528,19 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
             }
           }
         } else {
-          bool is_first = true;
+          [[maybe_unused]] bool is_first{true};
           for (const auto &base_string : bases.first) {
             sourcemeta::core::URI anchor_uri_builder{base_string};
             anchor_uri_builder.fragment(name);
             anchor_uri_builder.canonicalize();
             const auto anchor_uri{anchor_uri_builder.recompose()};
 
-            if (!is_first && this->locations_.contains(
-                                 {SchemaReferenceType::Static, anchor_uri})) {
-              continue;
-            }
+            // Two bases of one place never spell a single anchor, as the
+            // fragment put on them is the same and each base is a name of its
+            // own, so the first of them is the only one that can have taken
+            // the name this one is about to
+            assert(is_first || !this->locations_.contains(
+                                   {SchemaReferenceType::Static, anchor_uri}));
 
             const auto base_view{
                 owned_base_view(this->locations_, this->cache_->bases,
@@ -1638,13 +1676,14 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                   subschema_it->second.property_name,
                   subschema_it->second.orphan, true);
           } else {
+            // What a dialect match names is the schema nearest above the
+            // place, which the traversal reported as a subschema of its own
             const auto &parent_pointer{combined.dialect_match->second};
             const auto parent_subschema_it{subschemas.find(parent_pointer)};
+            assert(parent_subschema_it != subschemas.cend());
             const bool parent_property_name{
-                parent_subschema_it != subschemas.cend() &&
                 parent_subschema_it->second.property_name};
-            const bool parent_orphan{parent_subschema_it != subschemas.cend() &&
-                                     parent_subschema_it->second.orphan};
+            const bool parent_orphan{parent_subschema_it->second.orphan};
 
             store(this->locations_, max_locations, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Pointer, std::move(result),
@@ -1660,14 +1699,16 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
     // location that owns that URI, so that no location ends up with a view
     // into a member of this class
     if (has_explicit_different_id) {
+      // The name the caller gave the document took a location of its own
+      // before the traversal, and the name the document gives itself took one
+      // during it, so both are there to be found
       const auto alias{this->locations_.find(
           {SchemaReferenceType::Static, default_id_canonical})};
       const auto canonical{
           this->locations_.find({SchemaReferenceType::Static, this->root_})};
-      if (alias != this->locations_.cend() &&
-          canonical != this->locations_.cend()) {
-        alias->second.base = canonical->first.second;
-      }
+      assert(alias != this->locations_.cend());
+      assert(canonical != this->locations_.cend());
+      alias->second.base = canonical->first.second;
     }
   }
 
@@ -1812,9 +1853,8 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         const auto maybe_dynamic_frame{
             this->locations_.find({SchemaReferenceType::Dynamic, ref_string})};
         const auto behaves_as_static{
-            !has_fragment ||
-            (has_fragment && maybe_static_frame != this->locations_.end() &&
-             maybe_dynamic_frame == this->locations_.end())};
+            !has_fragment || (maybe_static_frame != this->locations_.end() &&
+                              maybe_dynamic_frame == this->locations_.end())};
         auto dynamic_ref_pointer{common_pointer_weak};
         dynamic_ref_pointer.push_back(std::cref(KEYWORD_DYNAMIC_REF));
         const auto [entry_iterator, inserted] =
@@ -1885,36 +1925,34 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
         }
 
         nearest_base_depth = candidate.second.size();
+        // Every base a subschema reads against was registered as a resource
+        // of this frame on the way down
         const auto candidate_entry{this->locations_.find(
             {SchemaReferenceType::Static,
              sourcemeta::core::JSON::String{candidate.first}})};
-        if (candidate_entry != this->locations_.cend()) {
-          nearest_base_view = candidate_entry->first.second;
-        }
+        assert(candidate_entry != this->locations_.cend());
+        nearest_base_view = candidate_entry->first.second;
 
         break;
       }
 
-      const auto parent{combined.dialect_match.has_value()
-                            ? combined.dialect_match->second
-                            : base_entry->second.pointer};
+      // The document states a dialect at its root, which sits above wherever
+      // this destination landed, so the search above always comes back with
+      // one
+      assert(combined.dialect_match.has_value());
+      const auto &parent{combined.dialect_match->second};
+      // The place above is a schema that the traversal reported, so it is one
+      // of the subschemas gathered here
       const auto parent_subschema{subschemas.find(parent)};
+      assert(parent_subschema != subschemas.cend());
       store(this->locations_, max_locations, SchemaReferenceType::Static,
             SchemaFrame::LocationType::Pointer,
             sourcemeta::core::JSON::String{reference.second.destination},
             nearest_base_view, pointer_weak, nearest_base_depth,
-            combined.dialect_match.has_value()
-                ? combined.dialect_match->first.get().dialects.front()
-                : base_entry->second.dialect,
-            combined.dialect_match.has_value()
-                ? combined.dialect_match->first.get().base_dialect
-                : base_entry->second.base_dialect,
-            parent,
-            parent_subschema != subschemas.cend() &&
-                parent_subschema->second.property_name,
-            parent_subschema != subschemas.cend() &&
-                parent_subschema->second.orphan,
-            true);
+            combined.dialect_match->first.get().dialects.front(),
+            combined.dialect_match->first.get().base_dialect, parent,
+            parent_subschema->second.property_name,
+            parent_subschema->second.orphan, true);
     }
   }
 
@@ -1935,10 +1973,15 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
   for (const auto &reference : this->references_) {
     assert(!reference.first.second.empty());
     assert(reference.first.second.back().is_property());
+    // A dynamic location answers to a URI that a static one answers to as
+    // well, for the reason the lookup of a location by URI reads out, so
+    // asking after the static one is asking after either
+    assert(!this->locations_.contains(
+               {SchemaReferenceType::Dynamic, reference.second.destination}) ||
+           this->locations_.contains(
+               {SchemaReferenceType::Static, reference.second.destination}));
     if (this->locations_.contains(
-            {SchemaReferenceType::Static, reference.second.destination}) ||
-        this->locations_.contains(
-            {SchemaReferenceType::Dynamic, reference.second.destination})) {
+            {SchemaReferenceType::Static, reference.second.destination})) {
       continue;
     }
 
@@ -1965,10 +2008,13 @@ SchemaFrame::SchemaFrame(const Mode mode, const sourcemeta::core::JSON &root,
                        std::vector<const sourcemeta::core::JSON::String *>>
         dynamic_anchors;
     for (const auto &entry : this->locations_) {
-      if (entry.first.first != SchemaReferenceType::Dynamic ||
-          entry.second.type != SchemaFrame::LocationType::Anchor) {
+      if (entry.first.first != SchemaReferenceType::Dynamic) {
         continue;
       }
+
+      // An anchor is the only thing a dialect lets a dynamic name reach, so it
+      // is the only kind of location registered under one
+      assert(entry.second.type == SchemaFrame::LocationType::Anchor);
 
       const sourcemeta::core::URI anchor_uri{entry.first.second};
       // Copy the fragment to avoid dangling string_view (anchor_uri is local)
@@ -2049,10 +2095,10 @@ auto SchemaFrame::metaschema(const SchemaResolver &resolver) const
     throw SchemaFrameError("The schema has no root location", this->root_);
   }
 
+  // A frame cannot be built unless the dialect of the document settles to a
+  // base dialect that is known, so the location this reads has one
   const auto &dialect{location.value().get().dialect};
-  if (dialect.empty()) {
-    throw SchemaUnknownDialectError();
-  }
+  assert(!dialect.empty());
 
   const auto embedded{this->cache_->probed_metaschemas.find(
       sourcemeta::core::JSON::String{dialect})};
@@ -2220,10 +2266,13 @@ auto SchemaFrame::traverse(const sourcemeta::core::WeakPointer &pointer) const
   this->cache_->populate_pointer_to_location(*this);
   const auto iterator{
       this->cache_->pointer_to_location.find(std::cref(pointer))};
-  if (iterator == this->cache_->pointer_to_location.cend() ||
-      iterator->second.empty()) {
+  if (iterator == this->cache_->pointer_to_location.cend()) {
     return std::nullopt;
   }
+
+  // A pointer reaches this map by a location being added under it, and none is
+  // ever taken back out, so one that is there holds at least one
+  assert(!iterator->second.empty());
 
   return *(iterator->second.front());
 }
@@ -2264,14 +2313,13 @@ auto SchemaFrame::uri(const sourcemeta::core::WeakPointer &pointer) const
     }
   }
 
-  if (best != nullptr) {
-    const auto match{this->cache_->location_to_uri.find(best)};
-    if (match != this->cache_->location_to_uri.cend()) {
-      return *(match->second);
-    }
-  }
-
-  return std::nullopt;
+  // A pointer reaches that map by a location being added under it, so the
+  // search above has at least one to settle on, and a URI was recorded for
+  // every location of this frame
+  assert(best != nullptr);
+  const auto match{this->cache_->location_to_uri.find(best)};
+  assert(match != this->cache_->location_to_uri.cend());
+  return *(match->second);
 }
 
 auto SchemaFrame::dereference(
@@ -2320,8 +2368,11 @@ auto SchemaFrame::has_references_to(
         if (location.second.type == LocationType::Anchor &&
             location.first.first == SchemaReferenceType::Dynamic &&
             location.second.pointer == pointer) {
-          if (!reference.second.fragment.has_value() ||
-              sourcemeta::core::URI{location.first.second}.fragment().value_or(
+          // A reference reads as dynamic only where it names an anchor,
+          // which is what its fragment holds, so there is always a name to
+          // hold the one of the location up against
+          assert(reference.second.fragment.has_value());
+          if (sourcemeta::core::URI{location.first.second}.fragment().value_or(
                   "") == reference.second.fragment.value()) {
             return true;
           }
@@ -2351,8 +2402,11 @@ auto SchemaFrame::has_references_through(
         if (location.second.type == LocationType::Anchor &&
             location.first.first == SchemaReferenceType::Dynamic &&
             location.second.pointer.starts_with(pointer)) {
-          if (!reference.second.fragment.has_value() ||
-              sourcemeta::core::URI{location.first.second}.fragment().value_or(
+          // A reference reads as dynamic only where it names an anchor,
+          // which is what its fragment holds, so there is always a name to
+          // hold the one of the location up against
+          assert(reference.second.fragment.has_value());
+          if (sourcemeta::core::URI{location.first.second}.fragment().value_or(
                   "") == reference.second.fragment.value()) {
             return true;
           }
@@ -2383,8 +2437,11 @@ auto SchemaFrame::has_references_through(
         if (location.second.type == LocationType::Anchor &&
             location.first.first == SchemaReferenceType::Dynamic &&
             location.second.pointer.starts_with(pointer, tail)) {
-          if (!reference.second.fragment.has_value() ||
-              sourcemeta::core::URI{location.first.second}.fragment().value_or(
+          // A reference reads as dynamic only where it names an anchor,
+          // which is what its fragment holds, so there is always a name to
+          // hold the one of the location up against
+          assert(reference.second.fragment.has_value());
+          if (sourcemeta::core::URI{location.first.second}.fragment().value_or(
                   "") == reference.second.fragment.value()) {
             return true;
           }
@@ -2434,13 +2491,14 @@ auto SchemaFrame::Cache::populate_location_members(
     }
     const auto &parent_pointer{entry.second.parent.value()};
     const auto relative{entry.second.pointer.slice(parent_pointer.size())};
-    if (relative.empty() || !relative.at(0).is_property()) {
-      continue;
-    }
+    // A subschema sits where a keyword of the schema enclosing it put it, so
+    // what its pointer holds past that schema opens with the keyword itself
+    assert(!relative.empty());
+    assert(relative.at(0).is_property());
+    // The parent of a subschema is the schema enclosing it, which framing
+    // reported as a location of its own before this reads any of them
     const auto parent_location{frame.traverse(parent_pointer)};
-    if (!parent_location.has_value()) {
-      continue;
-    }
+    assert(parent_location.has_value());
     const auto &vocabs{frame.vocabularies(parent_location->get(), resolver)};
     const auto &keyword_result{walker(relative.at(0).to_property(), vocabs)};
     if (keyword_result.type == SchemaKeywordType::LocationMembers) {
@@ -2457,8 +2515,8 @@ auto SchemaFrame::Cache::populate_reference_graph(const SchemaFrame &frame)
                      std::vector<const sourcemeta::core::WeakPointer *>>
       dynamic_anchors_by_fragment;
   for (const auto &location : frame.locations_) {
-    if (location.first.first == SchemaReferenceType::Dynamic &&
-        location.second.type == LocationType::Anchor) {
+    if (location.first.first == SchemaReferenceType::Dynamic) {
+      assert(location.second.type == LocationType::Anchor);
       const auto &uri{location.first.second};
       const auto hash_pos{uri.rfind('#')};
       if (hash_pos != std::string::npos) {
@@ -2476,10 +2534,10 @@ auto SchemaFrame::Cache::populate_reference_graph(const SchemaFrame &frame)
   reference_destinations.reserve(frame.references_.size());
 
   for (const auto &reference : frame.references_) {
+    // A reference is written down at the keyword that makes it, so what names
+    // it always holds that keyword as its last token
     const auto &source_pointer{reference.first.second};
-    if (source_pointer.empty()) {
-      continue;
-    }
+    assert(!source_pointer.empty());
 
     if (reference.first.first == SchemaReferenceType::Dynamic &&
         reference.second.fragment.has_value()) {
@@ -2528,11 +2586,12 @@ auto SchemaFrame::Cache::populate_reachability_graph(
       continue;
     }
 
+    // The parent of a location is the schema enclosing it, which framing
+    // reported as a location of its own, and the map above was built by taking
+    // every one of them
     const auto parent_iterator{
         this->pointer_to_location.find(std::cref(entry.second.parent.value()))};
-    if (parent_iterator == this->pointer_to_location.end()) {
-      continue;
-    }
+    assert(parent_iterator != this->pointer_to_location.end());
 
     for (const Location *parent_location : parent_iterator->second) {
       this->reachability_graph[parent_location].push_back(
@@ -2544,11 +2603,13 @@ auto SchemaFrame::Cache::populate_reachability_graph(
 
   for (const auto &[destination_reference, sources] :
        this->references_by_destination) {
+    // Where a reference resolves is the pointer of a location, which is what
+    // the destinations were gathered from, and taking one location at a time
+    // is what leaves every entry of the map holding at least one
     auto destination_locations_iterator =
         this->pointer_to_location.find(destination_reference);
-    if (destination_locations_iterator == this->pointer_to_location.end()) {
-      continue;
-    }
+    assert(destination_locations_iterator != this->pointer_to_location.end());
+    assert(!destination_locations_iterator->second.empty());
 
     const Location *destination_location{nullptr};
     for (const auto *location : destination_locations_iterator->second) {
@@ -2558,26 +2619,18 @@ auto SchemaFrame::Cache::populate_reachability_graph(
       }
     }
 
-    if ((destination_location == nullptr) &&
-        !destination_locations_iterator->second.empty()) {
+    if (destination_location == nullptr) {
       destination_location = destination_locations_iterator->second.front();
     }
 
-    if (destination_location == nullptr) {
-      continue;
-    }
-
     for (const auto *source_pointer : sources) {
-      if (source_pointer->empty()) {
-        continue;
-      }
-
+      // What a reference is written at holds the keyword making it, so taking
+      // that keyword off names the schema that made it, which is a location
+      assert(!source_pointer->empty());
       const auto source_parent_pointer{source_pointer->initial()};
       auto source_parent_iterator =
           this->pointer_to_location.find(std::cref(source_parent_pointer));
-      if (source_parent_iterator == this->pointer_to_location.end()) {
-        continue;
-      }
+      assert(source_parent_iterator != this->pointer_to_location.end());
 
       for (const Location *source_parent_location :
            source_parent_iterator->second) {
@@ -2602,7 +2655,7 @@ auto SchemaFrame::Cache::populate_reachability(const SchemaFrame &frame,
                                                const SchemaWalker &walker,
                                                const SchemaResolver &resolver)
     -> const ReachabilityCache & {
-  const ReachabilityKey key{.pointer = &base.pointer, .orphan = base.orphan};
+  const auto *key{&base.pointer};
   auto cache_iterator = this->reachability.find(key);
   if (cache_iterator != this->reachability.end()) {
     return cache_iterator->second;
@@ -2617,11 +2670,13 @@ auto SchemaFrame::Cache::populate_reachability(const SchemaFrame &frame,
 
   queue.push_back(base_location);
   visited.insert(base_location);
+  // Every location of the frame was paired with a canonical pointer just
+  // above, and both the base this starts from and the targets it reaches are
+  // locations of the frame
   auto base_canonical_iterator =
       this->location_to_canonical.find(base_location);
-  if (base_canonical_iterator != this->location_to_canonical.end()) {
-    cache.emplace(base_canonical_iterator->second, true);
-  }
+  assert(base_canonical_iterator != this->location_to_canonical.end());
+  cache.emplace(base_canonical_iterator->second);
 
   std::size_t queue_index{0};
   while (queue_index < queue.size()) {
@@ -2641,14 +2696,16 @@ auto SchemaFrame::Cache::populate_reachability(const SchemaFrame &frame,
         continue;
       }
 
+      // An edge that is no reference joins a schema to what sits inside it,
+      // so where the target is an entry of a place the dialect reserves for
+      // names, the keyword holding it sits under the schema this is standing
+      // on
       if (!edge.is_reference && edge.orphan_context_only) {
         auto target_iterator = this->location_members_children.find(
             std::cref(edge.target->pointer));
         if (target_iterator != this->location_members_children.end()) {
-          const auto keyword_path{edge.target->pointer.initial()};
-          if (keyword_path.starts_with(current->pointer)) {
-            continue;
-          }
+          assert(edge.target->pointer.initial().starts_with(current->pointer));
+          continue;
         }
       }
 
@@ -2657,9 +2714,8 @@ auto SchemaFrame::Cache::populate_reachability(const SchemaFrame &frame,
 
       auto target_canonical_iterator =
           this->location_to_canonical.find(edge.target);
-      if (target_canonical_iterator != this->location_to_canonical.end()) {
-        cache.emplace(target_canonical_iterator->second, true);
-      }
+      assert(target_canonical_iterator != this->location_to_canonical.end());
+      cache.emplace(target_canonical_iterator->second);
     }
   }
 
@@ -2672,12 +2728,16 @@ auto SchemaFrame::is_reachable(const Location &base, const Location &location,
   assert(location.type != LocationType::Pointer);
   const auto &cache{
       this->cache_->populate_reachability(*this, base, walker, resolver)};
+  // The question is about a location of this frame, as the assertion above
+  // already holds the caller to, and the reading built just now took every one
+  // of them
   auto canonical_iterator = this->cache_->location_to_canonical.find(&location);
-  if (canonical_iterator == this->cache_->location_to_canonical.end()) {
-    return false;
-  }
-  const auto iterator{cache.find(canonical_iterator->second)};
-  return iterator != cache.end() && iterator->second;
+  assert(canonical_iterator != this->cache_->location_to_canonical.end());
+  return cache.contains(canonical_iterator->second);
 }
 
 } // namespace sourcemeta::core
+
+#undef SOURCEMETA_CORE_JSONSCHEMA_LOCATION_SUBSCHEMA
+#undef SOURCEMETA_CORE_JSONSCHEMA_MODE_POINTERS
+#undef SOURCEMETA_CORE_JSONSCHEMA_REFERENCE_DYNAMIC

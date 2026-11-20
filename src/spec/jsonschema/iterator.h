@@ -264,9 +264,12 @@ walk(const std::optional<sourcemeta::core::WeakPointer> &root_parent,
     // make the keyword mean something the dialect says it does not. The caller
     // has to name such a dialect from the outside instead
     if (subschema.is_object()) {
+      // A declaration that is not a string names no dialect, which resolving
+      // the dialect right above refuses before this is read
       const auto *declared{
           subschema.try_at("$schema"sv, JSONSCHEMA_HASH_SCHEMA)};
-      if (declared != nullptr && declared->is_string() &&
+      assert(declared == nullptr || declared->is_string());
+      if (declared != nullptr &&
           !declaration_counts(subschema, declared->to_string(), resolver,
                               walker)) {
         throw sourcemeta::core::SchemaDialectImpossibleError(

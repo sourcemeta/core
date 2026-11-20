@@ -20,6 +20,28 @@ constexpr std::size_t BASE_DIALECT_CHAIN_LIMIT{64};
 
 } // namespace
 
+// A switch that names every enumerator and carries no default of its own
+// still holds an arm for the value outside the enumeration that never
+// arrives, which Clang counts as one that nothing took, and so does the arm
+// of a switch that stands for the values its caller never hands it. Writing
+// the last arm of each switch below as the default there takes that arm away,
+// while the compilers reading a case label keep being the ones that catch a
+// base dialect added later. The directives stay out of the functions because
+// one inside a body reads as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_JSONSCHEMA_LAST_BASE_DIALECT default
+#define SOURCEMETA_CORE_JSONSCHEMA_CORE_OF_2019_09 default
+#define SOURCEMETA_CORE_JSONSCHEMA_LAST_PRE_VOCABULARY default
+#else
+#define SOURCEMETA_CORE_JSONSCHEMA_LAST_BASE_DIALECT                           \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER
+#define SOURCEMETA_CORE_JSONSCHEMA_CORE_OF_2019_09                             \
+  case SchemaBaseDialect::JSON_SCHEMA_2019_09:                                 \
+  case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER
+#define SOURCEMETA_CORE_JSONSCHEMA_LAST_PRE_VOCABULARY                         \
+  case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER
+#endif
+
 // TODO: Make this function detect schemas only using identifier/comment
 // keywords, etc
 auto sourcemeta::core::base_dialect_uri(const SchemaBaseDialect base_dialect)
@@ -53,7 +75,7 @@ auto sourcemeta::core::base_dialect_uri(const SchemaBaseDialect base_dialect)
       return "http://json-schema.org/draft-02/hyper-schema#";
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:
       return "http://json-schema.org/draft-01/hyper-schema#";
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
+    SOURCEMETA_CORE_JSONSCHEMA_LAST_BASE_DIALECT:
       return "http://json-schema.org/draft-00/hyper-schema#";
   }
 
@@ -598,12 +620,14 @@ auto core_vocabulary_known(
     case SchemaBaseDialect::JSON_SCHEMA_2020_12:
     case SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER:
       return SchemaVocabularies::Known::JSON_SCHEMA_2020_12_CORE;
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09:
-    case SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER:
+    SOURCEMETA_CORE_JSONSCHEMA_CORE_OF_2019_09:
       return SchemaVocabularies::Known::JSON_SCHEMA_2019_09_CORE;
-    // Only the dialects that carry vocabularies reach here
+      // Only the dialects that carry vocabularies reach here, which Clang
+      // settles on its own once the arm above stands for whatever else arrives
+#if !defined(__clang__)
     default:
       std::unreachable();
+#endif
   }
 }
 
@@ -672,11 +696,14 @@ auto base_dialect_to_known(const sourcemeta::core::SchemaBaseDialect dialect)
       return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_2_HYPER;
     case SchemaBaseDialect::JSON_SCHEMA_DRAFT_1_HYPER:
       return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_1_HYPER;
-    case SchemaBaseDialect::JSON_SCHEMA_DRAFT_0_HYPER:
+    SOURCEMETA_CORE_JSONSCHEMA_LAST_PRE_VOCABULARY:
       return SchemaVocabularies::Known::JSON_SCHEMA_DRAFT_0_HYPER;
-    // Only the dialects that predate vocabularies reach here
+      // Only the dialects that predate vocabularies reach here, which Clang
+      // settles on its own once the arm above stands for whatever else arrives
+#if !defined(__clang__)
     default:
       std::unreachable();
+#endif
   }
 }
 
@@ -701,24 +728,24 @@ auto is_pre_vocabulary_base_dialect(
   }
 }
 
-auto parse_vocabularies(const sourcemeta::core::JSON &schema,
-                        const sourcemeta::core::SchemaBaseDialect base_dialect,
-                        const std::string_view dialect)
+auto parse_vocabularies(
+    const sourcemeta::core::JSON &schema,
+    [[maybe_unused]] const sourcemeta::core::SchemaBaseDialect base_dialect,
+    const std::string_view dialect)
     -> std::optional<sourcemeta::core::SchemaVocabularies> {
-  if (base_dialect !=
-          sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12 &&
-      base_dialect !=
-          sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER &&
-      base_dialect !=
-          sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2019_09 &&
-      base_dialect !=
-          sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER) {
-    return std::nullopt;
-  }
-
-  if (!schema.is_object()) {
-    return std::nullopt;
-  }
+  // Only a base dialect that carries vocabularies of its own reaches here, as
+  // the caller answers for every other one before asking, and what carries
+  // them is a schema that reads as an object, as a boolean one names the
+  // dialect it was handed and so settles no base dialect at all
+  assert(base_dialect ==
+             sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12 ||
+         base_dialect ==
+             sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2020_12_HYPER ||
+         base_dialect ==
+             sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2019_09 ||
+         base_dialect ==
+             sourcemeta::core::SchemaBaseDialect::JSON_SCHEMA_2019_09_HYPER);
+  assert(schema.is_object());
 
   const auto *vocabulary_entry{schema.try_at(
       "$vocabulary"sv, sourcemeta::core::JSONSCHEMA_HASH_VOCABULARY)};
@@ -850,11 +877,18 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
         "The core vocabulary must always be present");
   }
 
+  // The check above settled that the core vocabulary is there, which is what
+  // leaves it a standing of its own to read
   const auto core_status{result.get(core)};
-  if (core_status.has_value() && !core_status.value()) {
+  assert(core_status.has_value());
+  if (!core_status.value()) {
     throw sourcemeta::core::SchemaError(
         "The core vocabulary must always be required");
   }
 
   return result;
 }
+
+#undef SOURCEMETA_CORE_JSONSCHEMA_LAST_BASE_DIALECT
+#undef SOURCEMETA_CORE_JSONSCHEMA_CORE_OF_2019_09
+#undef SOURCEMETA_CORE_JSONSCHEMA_LAST_PRE_VOCABULARY

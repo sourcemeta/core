@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://www.sourcemeta.com/main",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/host#/definitions/bar"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/host": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/host",
+      "definitions": {
+        "bar": {
+          "id": "https://www.sourcemeta.com/named",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/main",
+      "properties": {
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/named"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/host": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://www.sourcemeta.com/host",
+          "definitions": {
+            "bar": {
+              "id": "https://www.sourcemeta.com/named",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/main",
+      "properties": {
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/named"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/host": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://www.sourcemeta.com/host",
+          "definitions": {
+            "bar": {
+              "id": "https://www.sourcemeta.com/named",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/host",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1host"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/host",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1host"
+      }
+    ]
+  }
+}

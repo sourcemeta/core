@@ -1,0 +1,58 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/host",
+    "type": "object",
+    "allOf": [
+      {
+        "$ref": "https://example.com/first"
+      },
+      {
+        "$ref": "https://example.com/remote"
+      }
+    ]
+  },
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/remote",
+      "$defs": {
+        "https://example.com/host": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/host",
+          "type": "object",
+          "$defs": {
+            "held": {
+              "type": "number"
+            }
+          },
+          "allOf": [
+            {
+              "$ref": "https://example.com/first"
+            },
+            {
+              "$ref": "https://example.com/remote"
+            }
+          ]
+        }
+      }
+    },
+    "https://example.com/first": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/first",
+      "type": "number"
+    }
+  },
+  "result": {},
+  "inserted": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaError",
+      "message": "Conflicting embedded resources with the same identifier"
+    },
+    "references": {
+      "type": "SchemaError",
+      "message": "Conflicting embedded resources with the same identifier"
+    }
+  }
+}

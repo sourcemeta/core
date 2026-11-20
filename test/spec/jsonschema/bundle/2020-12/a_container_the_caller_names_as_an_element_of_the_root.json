@@ -1,0 +1,29 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$ref": "https://example.com/remote"
+  },
+  "container": "/0",
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/remote",
+      "type": "string"
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/0"
+    },
+    "references": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/0"
+    }
+  },
+  "inserted": {}
+}

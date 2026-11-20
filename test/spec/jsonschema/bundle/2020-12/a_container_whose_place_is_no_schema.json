@@ -1,0 +1,30 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "x-payload": { "note": "nothing reads this as a schema" },
+    "properties": { "x": { "$ref": "https://example.com/outer" } }
+  },
+  "container": "/x-payload/$defs",
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "type": "string"
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/x-payload/$defs"
+    },
+    "references": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that the dialect does not reserve for schema definitions",
+      "location": "/x-payload/$defs"
+    }
+  },
+  "inserted": {}
+}

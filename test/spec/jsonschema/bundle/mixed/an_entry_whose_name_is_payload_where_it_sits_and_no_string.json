@@ -1,0 +1,84 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$ref": "https://example.com/outer"
+  },
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "entry": {
+          "$schema": "https://example.com/legacy-meta",
+          "$id": 5,
+          "id": "https://example.com/named"
+        }
+      }
+    },
+    "https://example.com/legacy-meta": {
+      "id": "https://example.com/legacy-meta",
+      "$schema": "http://json-schema.org/draft-04/schema#"
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "$ref": "https://example.com/outer",
+      "$defs": {
+        "https://example.com/legacy-meta": {
+          "id": "https://example.com/legacy-meta",
+          "$schema": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "$defs": {
+            "entry": {
+              "$schema": "https://example.com/legacy-meta",
+              "$id": 5,
+              "id": "https://example.com/named"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "$ref": "https://example.com/outer",
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "$defs": {
+            "entry": {
+              "$schema": "https://example.com/legacy-meta",
+              "$id": 5,
+              "id": "https://example.com/named"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      },
+      {
+        "from": "https://example.com/legacy-meta",
+        "at": "/$defs/https:~1~1example.com~1legacy-meta"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

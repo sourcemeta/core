@@ -1,0 +1,17 @@
+{
+  "schema": {
+    "type": "string"
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaUnknownBaseDialectError",
+      "message": "Could not determine the base dialect of the schema"
+    },
+    "references": {
+      "type": "SchemaUnknownBaseDialectError",
+      "message": "Could not determine the base dialect of the schema"
+    }
+  },
+  "inserted": {}
+}

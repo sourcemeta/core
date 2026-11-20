@@ -1,0 +1,94 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "allOf": [
+      {
+        "$comment": "where the caller keeps what is gathered"
+      }
+    ],
+    "properties": {
+      "x": {
+        "$ref": "https://example.com/outer"
+      }
+    }
+  },
+  "container": "/allOf/0/$defs",
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "helper": {
+          "$id": "https://example.com/helper"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "allOf": [
+        {
+          "$comment": "where the caller keeps what is gathered",
+          "$defs": {
+            "https://example.com/outer": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/outer",
+              "$defs": {
+                "helper": {
+                  "$id": "https://example.com/helper"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "allOf": [
+        {
+          "$comment": "where the caller keeps what is gathered",
+          "$defs": {
+            "https://example.com/outer": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/outer",
+              "$defs": {
+                "helper": {
+                  "$id": "https://example.com/helper"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/allOf/0/$defs/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/allOf/0/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

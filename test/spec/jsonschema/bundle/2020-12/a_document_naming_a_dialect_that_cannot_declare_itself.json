@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "$schema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+    "properties": {
+      "x": {
+        "type": "string"
+      }
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaDialectImpossibleError",
+      "message": "The dialect that this schema declares does not define the keyword that declares it",
+      "location": "",
+      "keyword": "$schema",
+      "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+    },
+    "references": {
+      "type": "SchemaDialectImpossibleError",
+      "message": "The dialect that this schema declares does not define the keyword that declares it",
+      "location": "",
+      "keyword": "$schema",
+      "dialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+    }
+  },
+  "inserted": {}
+}
