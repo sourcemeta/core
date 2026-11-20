@@ -1,0 +1,48 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "allOf": [
+      { "$ref": "https://example.com/outer" },
+      { "$ref": "https://example.com/inner" }
+    ]
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "resolver": {
+    "https://example.com/dialect": {
+      "$id": "https://example.com/dialect",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://json-schema.org/draft/2020-12/vocab/validation": true
+      }
+    },
+    "https://example.com/inner": {
+      "$id": "https://example.com/inner",
+      "type": "string"
+    },
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "friendly": {
+          "$schema": "https://example.com/dialect",
+          "$id": "https://example.com/inner",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaError",
+      "message": "Conflicting embedded resources with the same identifier"
+    },
+    "references": {
+      "type": "SchemaError",
+      "message": "Conflicting embedded resources with the same identifier"
+    }
+  },
+  "inserted": {}
+}

@@ -1,0 +1,30 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "x": {
+        "$ref": "https://www.sourcemeta.com/yes"
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "resolver": {
+    "https://www.sourcemeta.com/yes": true
+  },
+  "accounted": [],
+  "accountedReported": [
+    "https://www.sourcemeta.com/yes"
+  ],
+  "dependencies": [
+    {
+      "origin": "",
+      "pointer": "/properties/x/$ref",
+      "destination": "https://www.sourcemeta.com/yes",
+      "resolved": true
+    }
+  ],
+  "fetched": [
+    "https://www.sourcemeta.com/yes"
+  ],
+  "locations": 2
+}

@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "properties": {
+      "x": {
+        "$ref": "https://example.com/outer#/prefixItems/0/type"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "prefixItems": [
+        {
+          "$id": "https://example.com/carried",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer#/prefixItems/0/type"
+        }
+      },
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "prefixItems": [
+            {
+              "$id": "https://example.com/carried",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer#/prefixItems/0/type"
+        }
+      },
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "prefixItems": [
+            {
+              "$id": "https://example.com/carried",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

@@ -58,17 +58,6 @@ TEST(reference_error_throw) {
   }
 }
 
-TEST(unknown_dialect_error_throw) {
-  static_assert(std::is_base_of_v<std::exception,
-                                  sourcemeta::core::SchemaUnknownDialectError>,
-                "Must subclass std::exception");
-  try {
-    throw sourcemeta::core::SchemaUnknownDialectError();
-  } catch (const sourcemeta::core::SchemaUnknownDialectError &error) {
-    EXPECT_STREQ(error.what(), "Could not determine the dialect of the schema");
-  }
-}
-
 TEST(reference_object_resource_error_throw) {
   static_assert(
       std::is_base_of_v<std::exception,

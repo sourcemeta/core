@@ -1,0 +1,84 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$defs": {
+      "mine": {
+        "$id": "https://example.com/inner",
+        "type": "string"
+      }
+    },
+    "properties": {
+      "x": {
+        "$ref": "https://example.com/outer"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "friendly": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/inner",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "$defs": {
+        "mine": {
+          "$id": "https://example.com/inner",
+          "type": "string"
+        },
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer"
+        }
+      },
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "$defs": {
+        "mine": {
+          "$id": "https://example.com/inner",
+          "type": "string"
+        },
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer"
+        }
+      },
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

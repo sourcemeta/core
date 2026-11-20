@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "properties": {
+      "x": {
+        "$ref": "https://example.com/outer#anchored"
+      }
+    }
+  },
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "one": {
+          "$anchor": "anchored",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer#anchored"
+        }
+      },
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "$defs": {
+            "one": {
+              "$anchor": "anchored",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/root",
+      "properties": {
+        "x": {
+          "$ref": "https://example.com/outer#anchored"
+        }
+      },
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "$defs": {
+            "one": {
+              "$anchor": "anchored",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

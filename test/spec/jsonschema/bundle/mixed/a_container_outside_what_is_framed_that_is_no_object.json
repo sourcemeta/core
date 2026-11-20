@@ -1,0 +1,44 @@
+{
+  "schema": {
+    "components": {
+      "schemas": {
+        "Pet": {
+          "$ref": "https://www.sourcemeta.com/test-1"
+        }
+      }
+    },
+    "x-definitions": 5
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/test-1": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/test-1",
+      "type": "string",
+      "$defs": {
+        "carried": {
+          "$id": "https://www.sourcemeta.com/carried",
+          "type": "number"
+        }
+      }
+    }
+  },
+  "defaultDialect": "https://json-schema.org/draft/2020-12/schema",
+  "container": "/x-definitions",
+  "result": {},
+  "inserted": {},
+  "paths": [
+    "/components/schemas/Pet"
+  ],
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that is not an object",
+      "location": "/x-definitions"
+    },
+    "references": {
+      "type": "SchemaContainerError",
+      "message": "Could not bundle to a container that is not an object",
+      "location": "/x-definitions"
+    }
+  }
+}

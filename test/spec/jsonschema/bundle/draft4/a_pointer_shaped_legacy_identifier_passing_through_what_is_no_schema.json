@@ -1,0 +1,84 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://www.sourcemeta.com/main",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/pointer-shaped-id#/type/deeper"
+      }
+    }
+  },
+  "resolver": {
+    "https://www.sourcemeta.com/pointer-shaped-id": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/pointer-shaped-id",
+      "type": "object",
+      "definitions": {
+        "bar": {
+          "id": "#/type/deeper",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/main",
+      "properties": {
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/pointer-shaped-id#/type/deeper"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/pointer-shaped-id": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://www.sourcemeta.com/pointer-shaped-id",
+          "type": "object",
+          "definitions": {
+            "bar": {
+              "id": "#/type/deeper",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://www.sourcemeta.com/main",
+      "properties": {
+        "foo": {
+          "$ref": "https://www.sourcemeta.com/pointer-shaped-id#/type/deeper"
+        }
+      },
+      "definitions": {
+        "https://www.sourcemeta.com/pointer-shaped-id": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://www.sourcemeta.com/pointer-shaped-id",
+          "type": "object",
+          "definitions": {
+            "bar": {
+              "id": "#/type/deeper",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://www.sourcemeta.com/pointer-shaped-id",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1pointer-shaped-id"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://www.sourcemeta.com/pointer-shaped-id",
+        "at": "/definitions/https:~1~1www.sourcemeta.com~1pointer-shaped-id"
+      }
+    ]
+  }
+}

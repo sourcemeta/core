@@ -3437,3 +3437,226 @@ TEST(embedded_metaschema_relative_base_is_not_resolved) {
     FAIL();
   }
 }
+
+// JSON Schema 2020-12 Section 8.2.2 holds the opening character of an anchor
+// to a letter or an underscore, which a digit is neither of
+TEST(an_anchor_that_opens_with_a_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "1foo" } }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The characters an anchor may carry past the first are letters, digits, the
+// hyphen, the underscore, and the period, and nothing else
+TEST(an_anchor_that_carries_a_character_of_no_class) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "a!b" } }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "a!b");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(a_2019_09_anchor_that_carries_a_character_of_no_class) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "a!b" } }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "a!b");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// Two resources of the same identifier name one place twice, which leaves
+// every reference to it naming two schemas at once
+TEST(two_subschemas_that_declare_the_same_identifier) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$defs": {
+      "one": { "$id": "https://example.com/same" },
+      "two": { "$id": "https://example.com/same" }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_STREQ(error.what(), "Schema identifier already exists");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A dialect is named by a URI, and framing writes down a reference to the one
+// every schema names, so a name that reads as no URI is nothing to write down
+TEST(a_subschema_whose_dialect_is_no_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$defs": {
+      "one": { "$schema": "http://[" }
+    }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The dialect is not a valid URI");
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "http://[");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The letters an anchor may open with are the two alphabetic ranges, and the
+// characters between them are of neither, which the underscore of 2020-12 is
+// the one exception to
+TEST(an_anchor_that_opens_between_the_two_letter_ranges) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "[foo" } }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "[foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(an_anchor_that_carries_a_character_between_the_two_letter_ranges) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "a[b" } }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "a[b");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(a_2019_09_anchor_that_carries_a_character_between_the_letter_ranges) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "a[b" } }
+  })JSON");
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "Invalid anchor value");
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "a[b");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A dialect the resolver answers for settles the base dialect without the name
+// it answers to having to read as a URI, which the pass that reads references
+// then has to turn down, since a reference is resolved against a base and a
+// name that is no URI states none
+TEST(dialect_that_resolves_without_reading_as_a_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://[",
+    "$id": "https://example.com/root"
+  })JSON");
+
+  const sourcemeta::core::JSON metaschema =
+      sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true
+    }
+  })JSON");
+
+  const auto resolver = [&metaschema](std::string_view identifier)
+      -> sourcemeta::core::SchemaResolverResult {
+    if (identifier == "http://[") {
+      return metaschema;
+    }
+
+    return sourcemeta::core::schema_resolver(identifier);
+  };
+
+  try {
+    [[maybe_unused]] const sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References, document,
+        sourcemeta::core::schema_walker, resolver};
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_STREQ(error.what(), "The dialect is not a valid URI");
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "http://[");
+  } catch (...) {
+    FAIL();
+  }
+}

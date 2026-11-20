@@ -962,11 +962,8 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_EQ(sourcemeta::core::to_string(error.location()),
               test.at("error").at("location").to_string());
   } catch (const sourcemeta::core::SchemaUnknownBaseDialectError &error) {
-    refused = true;
-    check_schema_refusal(test, error.what());
-  } catch (const sourcemeta::core::SchemaUnknownDialectError &error) {
-    // Neither of these two carries anything beyond what it says, so unlike
-    // every other refusal above there is no second half to hold it to
+    // This one carries nothing beyond what it says, so unlike every other
+    // refusal above there is no second half to hold it to
     refused = true;
     check_schema_refusal(test, error.what());
   } catch (const std::exception &error) {

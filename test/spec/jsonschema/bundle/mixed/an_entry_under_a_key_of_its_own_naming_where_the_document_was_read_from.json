@@ -1,0 +1,70 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com/outer"
+  },
+  "defaultBase": "https://example.com/retrieved",
+  "resolver": {
+    "https://example.com/outer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/outer",
+      "$defs": {
+        "friendly": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/retrieved",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://example.com/outer",
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "$defs": {
+            "friendly": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/retrieved",
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://example.com/outer",
+      "$defs": {
+        "https://example.com/outer": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/outer",
+          "$defs": {
+            "friendly": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://example.com/retrieved",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/$defs/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

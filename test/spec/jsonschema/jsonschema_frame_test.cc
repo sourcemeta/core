@@ -189,6 +189,65 @@ static auto metaschema_test_resolver(std::string_view identifier)
   return sourcemeta::core::schema_resolver(identifier);
 }
 
+struct LocationUriIs {
+  std::string_view expected;
+
+  auto operator()(const sourcemeta::core::SchemaReferenceType,
+                  const std::string_view uri,
+                  const sourcemeta::core::SchemaFrame::Location &) const
+      -> bool {
+    return uri == this->expected;
+  }
+};
+
+// What this looks at is whichever of its members is set, which is what lets
+// every reference search below read off one instantiation
+struct ReferenceMatches {
+  std::optional<sourcemeta::core::SchemaReferenceType> type{};
+  std::string_view origin{};
+  std::string_view destination{};
+  bool otherwise{false};
+
+  auto
+  operator()(const sourcemeta::core::SchemaReferenceType reference_type,
+             const sourcemeta::core::WeakPointer &written_at,
+             const sourcemeta::core::SchemaFrame::Reference &reference) const
+      -> bool {
+    if (this->type.has_value()) {
+      return reference_type == this->type.value();
+    }
+
+    if (!this->origin.empty()) {
+      return sourcemeta::core::to_string(written_at) == this->origin;
+    }
+
+    if (!this->destination.empty()) {
+      return reference.destination == this->destination;
+    }
+
+    return this->otherwise;
+  }
+};
+
+struct AnchorUriIs {
+  std::string_view expected;
+
+  auto operator()(const std::string_view uri,
+                  const sourcemeta::core::SchemaFrame::Location &) const
+      -> bool {
+    return uri == this->expected;
+  }
+};
+
+struct LocationPointerIs {
+  std::string_view expected;
+
+  auto operator()(const sourcemeta::core::SchemaFrame::Location &location) const
+      -> bool {
+    return sourcemeta::core::to_string(location.pointer) == this->expected;
+  }
+};
+
 TEST(to_json_mode_references_with_tracking) {
   sourcemeta::core::PointerPositionTracker tracker;
   sourcemeta::core::JSON document{nullptr};
@@ -794,12 +853,8 @@ TEST(accessors_has_dynamic_references) {
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
   EXPECT_TRUE(frame.has_dynamic_references());
-  EXPECT_TRUE(
-      frame.any_reference([](const sourcemeta::core::SchemaReferenceType type,
-                             const sourcemeta::core::WeakPointer &,
-                             const sourcemeta::core::SchemaFrame::Reference &) {
-        return type == sourcemeta::core::SchemaReferenceType::Dynamic;
-      }));
+  EXPECT_TRUE(frame.any_reference(ReferenceMatches{
+      .type = sourcemeta::core::SchemaReferenceType::Dynamic}));
 }
 
 TEST(accessors_has_dynamic_references_after_static_rewrite) {
@@ -1199,6 +1254,9 @@ TEST(accessors_for_each_subschema_under) {
   EXPECT_EQ(pointers.at(5), "/$defs/foo");
 }
 
+// Reading a frame hands each entry to a predicate, and the type of that
+// predicate is what each of these searches is written out for, so one type
+// shared by every case below is what makes the arms each case takes add up
 TEST(accessors_any_subschema) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
@@ -1223,15 +1281,11 @@ TEST(accessors_any_subschema) {
       sourcemeta::core::SchemaFrame::Mode::References, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
-  EXPECT_TRUE(frame.any_subschema(
-      [](const sourcemeta::core::SchemaFrame::Location &location) {
-        return sourcemeta::core::to_string(location.pointer) ==
-               "/properties/two";
-      }));
-  EXPECT_FALSE(frame.any_subschema(
-      [](const sourcemeta::core::SchemaFrame::Location &location) {
-        return sourcemeta::core::to_string(location.pointer) == "/nowhere";
-      }));
+  EXPECT_TRUE(frame.any_subschema(LocationPointerIs{"/properties/two"}));
+  EXPECT_FALSE(frame.any_subschema(LocationPointerIs{"/nowhere"}));
+  // A resource is a schema of the document as much as a subschema is, and the
+  // one the document declares at its top is the first of them
+  EXPECT_TRUE(frame.any_subschema(LocationPointerIs{""}));
 }
 
 TEST(accessors_any_subschema_under) {
@@ -1260,18 +1314,21 @@ TEST(accessors_any_subschema_under) {
 
   const sourcemeta::core::Pointer properties{"properties"};
   const sourcemeta::core::Pointer definitions{"$defs"};
-  EXPECT_TRUE(frame.any_subschema_under(
-      sourcemeta::core::to_weak_pointer(properties),
-      [](const sourcemeta::core::SchemaFrame::Location &location) {
-        return sourcemeta::core::to_string(location.pointer) ==
-               "/properties/one";
-      }));
-  EXPECT_FALSE(frame.any_subschema_under(
-      sourcemeta::core::to_weak_pointer(definitions),
-      [](const sourcemeta::core::SchemaFrame::Location &location) {
-        return sourcemeta::core::to_string(location.pointer) ==
-               "/properties/one";
-      }));
+  EXPECT_TRUE(
+      frame.any_subschema_under(sourcemeta::core::to_weak_pointer(properties),
+                                LocationPointerIs{"/properties/one"}));
+  EXPECT_FALSE(
+      frame.any_subschema_under(sourcemeta::core::to_weak_pointer(definitions),
+                                LocationPointerIs{"/properties/one"}));
+  // A resource below the place asked about answers as much as a subschema
+  // does, while the place itself is not below itself
+  const sourcemeta::core::Pointer nested{"$defs", "baz"};
+  EXPECT_TRUE(
+      frame.any_subschema_under(sourcemeta::core::to_weak_pointer(definitions),
+                                LocationPointerIs{"/$defs/baz"}));
+  EXPECT_FALSE(
+      frame.any_subschema_under(sourcemeta::core::to_weak_pointer(nested),
+                                LocationPointerIs{"/$defs/baz"}));
 }
 
 TEST(accessors_for_each_anchor_static) {
@@ -1368,22 +1425,13 @@ TEST(accessors_any_anchor) {
 
   EXPECT_TRUE(frame.any_anchor(
       sourcemeta::core::SchemaReferenceType::Dynamic,
-      [](const std::string_view uri,
-         const sourcemeta::core::SchemaFrame::Location &) {
-        return uri == "https://example.com/schema#dynamic-anchor";
-      }));
+      AnchorUriIs{"https://example.com/schema#dynamic-anchor"}));
   EXPECT_FALSE(frame.any_anchor(
       sourcemeta::core::SchemaReferenceType::Dynamic,
-      [](const std::string_view uri,
-         const sourcemeta::core::SchemaFrame::Location &) {
-        return uri == "https://example.com/schema#static-anchor";
-      }));
+      AnchorUriIs{"https://example.com/schema#static-anchor"}));
   EXPECT_TRUE(frame.any_anchor(
       sourcemeta::core::SchemaReferenceType::Static,
-      [](const std::string_view uri,
-         const sourcemeta::core::SchemaFrame::Location &) {
-        return uri == "https://example.com/schema#static-anchor";
-      }));
+      AnchorUriIs{"https://example.com/schema#static-anchor"}));
 }
 
 TEST(accessors_for_each_resource) {
@@ -1492,18 +1540,10 @@ TEST(accessors_any_location) {
       sourcemeta::core::SchemaFrame::Mode::References, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
-  EXPECT_TRUE(
-      frame.any_location([](const sourcemeta::core::SchemaReferenceType,
-                            const std::string_view uri,
-                            const sourcemeta::core::SchemaFrame::Location &) {
-        return uri == "https://example.com/nested#/properties/deep";
-      }));
+  EXPECT_TRUE(frame.any_location(
+      LocationUriIs{"https://example.com/nested#/properties/deep"}));
   EXPECT_FALSE(
-      frame.any_location([](const sourcemeta::core::SchemaReferenceType,
-                            const std::string_view uri,
-                            const sourcemeta::core::SchemaFrame::Location &) {
-        return uri == "https://example.com/nowhere";
-      }));
+      frame.any_location(LocationUriIs{"https://example.com/nowhere"}));
 }
 
 TEST(accessors_for_each_reference) {
@@ -1582,17 +1622,9 @@ TEST(accessors_any_reference) {
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
   EXPECT_TRUE(
-      frame.any_reference([](const sourcemeta::core::SchemaReferenceType,
-                             const sourcemeta::core::WeakPointer &origin,
-                             const sourcemeta::core::SchemaFrame::Reference &) {
-        return sourcemeta::core::to_string(origin) == "/properties/one/$ref";
-      }));
+      frame.any_reference(ReferenceMatches{.origin = "/properties/one/$ref"}));
   EXPECT_FALSE(frame.any_reference(
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &entry) {
-        return entry.destination == "https://example.com/nowhere";
-      }));
+      ReferenceMatches{.destination = "https://example.com/nowhere"}));
 }
 
 TEST(accessors_for_each_reference_from) {
@@ -1660,16 +1692,12 @@ TEST(accessors_any_reference_from) {
 
   const sourcemeta::core::Pointer definitions{"$defs"};
   const sourcemeta::core::Pointer nowhere{"nowhere"};
-  EXPECT_TRUE(frame.any_reference_from(
-      sourcemeta::core::to_weak_pointer(definitions),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
-  EXPECT_FALSE(frame.any_reference_from(
-      sourcemeta::core::to_weak_pointer(nowhere),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
+  EXPECT_TRUE(
+      frame.any_reference_from(sourcemeta::core::to_weak_pointer(definitions),
+                               ReferenceMatches{.otherwise = true}));
+  EXPECT_FALSE(
+      frame.any_reference_from(sourcemeta::core::to_weak_pointer(nowhere),
+                               ReferenceMatches{.otherwise = true}));
 }
 
 // A predicate that turns every reference down is how the search reports none
@@ -1687,11 +1715,9 @@ TEST(accessors_any_reference_from_with_a_predicate_that_declines) {
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
   const sourcemeta::core::Pointer properties{"properties"};
-  EXPECT_FALSE(frame.any_reference_from(
-      sourcemeta::core::to_weak_pointer(properties),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &) { return false; }));
+  EXPECT_FALSE(
+      frame.any_reference_from(sourcemeta::core::to_weak_pointer(properties),
+                               ReferenceMatches{.otherwise = false}));
 }
 
 TEST(accessors_any_reference_into_with_a_predicate_that_declines) {
@@ -1707,16 +1733,12 @@ TEST(accessors_any_reference_into_with_a_predicate_that_declines) {
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
 
   const sourcemeta::core::Pointer definitions{"$defs"};
-  EXPECT_TRUE(frame.any_reference_into(
-      sourcemeta::core::to_weak_pointer(definitions),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
-  EXPECT_FALSE(frame.any_reference_into(
-      sourcemeta::core::to_weak_pointer(definitions),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &) { return false; }));
+  EXPECT_TRUE(
+      frame.any_reference_into(sourcemeta::core::to_weak_pointer(definitions),
+                               ReferenceMatches{.otherwise = true}));
+  EXPECT_FALSE(
+      frame.any_reference_into(sourcemeta::core::to_weak_pointer(definitions),
+                               ReferenceMatches{.otherwise = false}));
 }
 
 TEST(accessors_for_each_reference_into) {
@@ -1786,17 +1808,9 @@ TEST(accessors_any_reference_into) {
   const sourcemeta::core::Pointer one{"properties", "one"};
   EXPECT_TRUE(frame.any_reference_into(
       sourcemeta::core::to_weak_pointer(bar),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &origin,
-         const sourcemeta::core::SchemaFrame::Reference &) {
-        return sourcemeta::core::to_string(origin) ==
-               "/properties/two/$dynamicRef";
-      }));
-  EXPECT_FALSE(frame.any_reference_into(
-      sourcemeta::core::to_weak_pointer(one),
-      [](const sourcemeta::core::SchemaReferenceType,
-         const sourcemeta::core::WeakPointer &,
-         const sourcemeta::core::SchemaFrame::Reference &) { return true; }));
+      ReferenceMatches{.origin = "/properties/two/$dynamicRef"}));
+  EXPECT_FALSE(frame.any_reference_into(sourcemeta::core::to_weak_pointer(one),
+                                        ReferenceMatches{.otherwise = true}));
 }
 
 TEST(accessors_has_references_to) {
@@ -2348,14 +2362,12 @@ TEST(mode_reads_back_what_the_frame_was_given) {
   sourcemeta::core::SchemaFrame references{
       sourcemeta::core::SchemaFrame::Mode::References, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-  EXPECT_TRUE(references.mode() ==
-              sourcemeta::core::SchemaFrame::Mode::References);
+  EXPECT_EQ(references.mode(), sourcemeta::core::SchemaFrame::Mode::References);
 
   sourcemeta::core::SchemaFrame locations{
       sourcemeta::core::SchemaFrame::Mode::Locations, document,
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
-  EXPECT_TRUE(locations.mode() ==
-              sourcemeta::core::SchemaFrame::Mode::Locations);
+  EXPECT_EQ(locations.mode(), sourcemeta::core::SchemaFrame::Mode::Locations);
 }
 
 // RFC 6901 Section 6 only asks for the characters that the fragment rule of
@@ -2587,4 +2599,490 @@ TEST(location_of_a_pointer_fragment_that_percent_encodes_a_delimiter) {
                    .location(sourcemeta::core::SchemaReferenceType::Static,
                              "https://example.com/slash#/$defs/a%2Fb")
                    .has_value());
+}
+
+// An applicator keyword says where subschemas sit only where its value is of
+// the shape the keyword takes. A value of any other shape holds no subschema,
+// however much it looks like a place one would sit
+TEST(applicator_keywords_whose_values_are_of_the_wrong_shape) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/shapes",
+    "prefixItems": 5,
+    "allOf": 5,
+    "anyOf": 5,
+    "oneOf": 5,
+    "properties": 5,
+    "patternProperties": 5,
+    "dependentSchemas": 5
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/shapes").has_value());
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/shapes#/prefixItems/0").has_value());
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/shapes#/allOf/0").has_value());
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/shapes#/anyOf/0").has_value());
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/shapes#/oneOf/0").has_value());
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/shapes#/properties").has_value());
+  EXPECT_FALSE(frame.traverse("https://example.com/shapes#/patternProperties")
+                   .has_value());
+  EXPECT_FALSE(frame.traverse("https://example.com/shapes#/dependentSchemas")
+                   .has_value());
+}
+
+// Draft 7 and older leave nothing beside a reference read, which takes the
+// identifier of the schema that makes it with them. The hyper-schema dialects
+// of those drafts read a reference the same way
+// See
+// https://json-schema.org/draft-07/draft-handrews-json-schema-01#rfc.section.8.3
+TEST(a_reference_beside_an_identifier_under_draft7_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/hyper-7",
+    "$schema": "http://json-schema.org/draft-07/hyper-schema#",
+    "$ref": "#/definitions/string",
+    "definitions": { "string": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.root().empty());
+  EXPECT_FALSE(frame.traverse("https://example.com/hyper-7").has_value());
+}
+
+TEST(a_reference_beside_an_identifier_under_draft6_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/hyper-6",
+    "$schema": "http://json-schema.org/draft-06/hyper-schema#",
+    "$ref": "#/definitions/string",
+    "definitions": { "string": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.root().empty());
+  EXPECT_FALSE(frame.traverse("https://example.com/hyper-6").has_value());
+}
+
+// Draft 4 and Draft 3 introduce an identifier with `id` rather than with
+// `$id`, and a reference takes that one with it just the same
+TEST(a_reference_beside_an_identifier_under_draft4_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "https://example.com/hyper-4",
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+    "$ref": "#/definitions/string",
+    "definitions": { "string": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.root().empty());
+  EXPECT_FALSE(frame.traverse("https://example.com/hyper-4").has_value());
+}
+
+TEST(a_reference_beside_an_identifier_under_draft3_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "https://example.com/hyper-3",
+    "$schema": "http://json-schema.org/draft-03/hyper-schema#",
+    "$ref": "#/definitions/string",
+    "definitions": { "string": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.root().empty());
+  EXPECT_FALSE(frame.traverse("https://example.com/hyper-3").has_value());
+}
+
+// RFC 9535 is not what spells an anchor out: JSON Schema 2020-12 Section
+// 8.2.2 holds the name to a letter or an underscore followed by letters,
+// digits, hyphens, underscores, and periods
+TEST(an_anchor_that_opens_with_an_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "_private" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(
+      frame.traverse("https://example.com/anchors#_private").has_value());
+}
+
+TEST(an_anchor_that_carries_an_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "a_b" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/anchors#a_b").has_value());
+}
+
+// 2019-09 Section 8.2.3 spells an anchor the same way but for the opening
+// character, which it holds to a letter
+TEST(a_2019_09_anchor_that_carries_an_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/anchors",
+    "$defs": { "one": { "$anchor": "a_b" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/anchors#a_b").has_value());
+}
+
+// 2019-09 Section 8.2.4.2.2 gives the recursive anchor its meaning without a
+// name of its own, so what it names is the resource it sits in, which the
+// frame knows under the spelling of that resource
+TEST(a_recursive_anchor_names_the_resource_it_sits_in) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/recursive",
+    "$recursiveAnchor": true,
+    "additionalItems": { "$recursiveRef": "#" }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Pointers, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/recursive").has_value());
+  EXPECT_TRUE(frame.traverse("https://example.com/recursive#").has_value());
+  EXPECT_TRUE(frame
+                  .location(sourcemeta::core::SchemaReferenceType::Dynamic,
+                            "https://example.com/recursive")
+                  .has_value());
+}
+
+// A fragment is all that Draft 7 and older let an identifier be when it names
+// an anchor, which introduces no resource of its own. The name the caller
+// supplied is then what identifies the document, and the fragment goes on
+// naming an anchor within it
+TEST(a_root_anchor_identifier_beside_a_name_the_caller_supplied) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#root",
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "https://example.com/supplied"};
+
+  EXPECT_EQ(frame.root(), "https://example.com/supplied");
+  EXPECT_TRUE(frame.traverse("https://example.com/supplied").has_value());
+  EXPECT_TRUE(frame.traverse("https://example.com/supplied#root").has_value());
+}
+
+// Nothing of the document names it, so the name the caller supplied is the
+// only one it answers to
+TEST(no_root_identifier_beside_a_name_the_caller_supplied) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": { "one": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "https://example.com/supplied"};
+
+  EXPECT_EQ(frame.root(), "https://example.com/supplied");
+  EXPECT_TRUE(frame.traverse("https://example.com/supplied").has_value());
+  EXPECT_TRUE(frame.traverse("https://example.com/supplied#/definitions/one")
+                  .has_value());
+}
+
+// 2020-12 Section 8.2.3.2 leaves a dynamic reference that names no anchor
+// behaving as a plain one, so what it reaches is the resource it names rather
+// than any dynamic anchor within it
+TEST(accessors_of_a_dynamic_reference_without_a_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "bar": { "$dynamicAnchor": "dynamic-anchor", "type": "number" }
+    },
+    "properties": {
+      "two": { "$dynamicRef": "https://example.com/schema" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer bar{"$defs", "bar"};
+  const sourcemeta::core::Pointer root;
+  const sourcemeta::core::Pointer reference{"properties", "two", "$dynamicRef"};
+  EXPECT_FALSE(frame.has_references_to(sourcemeta::core::to_weak_pointer(bar)));
+  EXPECT_TRUE(frame.has_references_to(sourcemeta::core::to_weak_pointer(root)));
+  EXPECT_TRUE(frame
+                  .reference(sourcemeta::core::SchemaReferenceType::Static,
+                             sourcemeta::core::to_weak_pointer(reference))
+                  .has_value());
+}
+
+// A document the caller names as well as naming itself is known by two names,
+// and an anchor within it answers to one fragment of each
+TEST(an_anchor_within_a_document_that_answers_to_two_names) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/own",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": { "one": { "$anchor": "named", "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "https://example.com/supplied"};
+
+  EXPECT_EQ(frame.root(), "https://example.com/own");
+  EXPECT_TRUE(frame.traverse("https://example.com/own#named").has_value());
+  EXPECT_TRUE(frame.traverse("https://example.com/supplied#named").has_value());
+}
+
+// Draft 3 lets a schema say what an instance must not be, over one schema or
+// a list of them, and a value of any other shape holds neither
+TEST(a_draft3_disallow_whose_value_is_of_the_wrong_shape) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "id": "https://example.com/shapes",
+    "disallow": 5
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.traverse("https://example.com/shapes").has_value());
+  EXPECT_FALSE(
+      frame.traverse("https://example.com/shapes#/disallow/0").has_value());
+}
+
+// 2020-12 Section 8.2.1 leaves an identifier naming a resource only where it
+// carries no fragment, and one that carries an empty fragment names the same
+// resource as one that carries none
+TEST(a_root_identifier_that_carries_an_empty_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/empty#",
+    "$defs": { "one": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_EQ(frame.root(), "https://example.com/empty");
+  EXPECT_TRUE(frame.traverse("https://example.com/empty").has_value());
+  EXPECT_TRUE(
+      frame.traverse("https://example.com/empty#/$defs/one").has_value());
+}
+
+// Draft 7 and older let an identifier be a fragment alone, which names an
+// anchor of the document rather than a resource. Where the caller supplies no
+// name of its own, the document answers to none and the fragment goes on
+// naming the anchor
+TEST(a_root_anchor_identifier_with_no_name_beside_it) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#root",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": { "one": { "type": "string" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  EXPECT_TRUE(frame.root().empty());
+  EXPECT_TRUE(frame.traverse("#root").has_value());
+  EXPECT_TRUE(frame.traverse("#/definitions/one").has_value());
+}
+
+// The OpenAPI 3.0 dialect reads by the Draft 4 base dialect while bringing no
+// keyword of its own that introduces an identifier, and none that declares a
+// dialect either, so it can only be named from outside. A subschema under it
+// that names a dialect spelling identifiers the other way is read for one
+// twice, under the dialect it names and under the dialect it inherits, and
+// neither reading leaves it naming a resource
+TEST(a_subschema_whose_identifier_neither_dialect_in_play_can_read) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "properties": {
+      "one": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "id": "https://example.com/one",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver,
+      "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"};
+
+  EXPECT_TRUE(frame.root().empty());
+  EXPECT_FALSE(frame.traverse("https://example.com/one").has_value());
+  EXPECT_TRUE(frame.traverse("#/properties/one").has_value());
+}
+
+// A caller may hand a document a name of its own alongside the one it
+// declares. A name of nothing but a number sign is a same-document reference
+// in the sense of RFC 3986 Section 4.4, and carries an empty fragment that
+// settles to nothing once there is no base to resolve it against, so what it
+// registers answers to no name while the declared one goes on standing
+TEST(a_caller_supplied_name_that_settles_to_nothing) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/declared",
+    "$defs": { "one": { "$id": "nested" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations,
+      document,
+      sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver,
+      "",
+      "#"};
+
+  EXPECT_EQ(frame.root(), "https://example.com/declared");
+  EXPECT_TRUE(frame.traverse("https://example.com/declared").has_value());
+  EXPECT_TRUE(frame.traverse("https://example.com/nested").has_value());
+  const auto nameless{frame.traverse("")};
+  EXPECT_TRUE(nameless.has_value());
+  EXPECT_EQ(nameless.value().get().type,
+            sourcemeta::core::SchemaFrame::LocationType::Resource);
+  EXPECT_TRUE(nameless.value().get().pointer.empty());
+}
+
+// A dynamic reference names an anchor, so what it reaches is settled by the
+// name rather than by the place, and a subschema carrying a dynamic anchor of
+// another name is not reached by it
+TEST(accessors_has_references_to_a_dynamic_anchor_of_another_name) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "named": { "$dynamicAnchor": "wanted", "type": "number" },
+      "other": { "$dynamicAnchor": "ignored", "type": "string" }
+    },
+    "properties": {
+      "one": { "$dynamicRef": "#wanted" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer named{"$defs", "named"};
+  const sourcemeta::core::Pointer other{"$defs", "other"};
+  EXPECT_TRUE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(named)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(other)));
+}
+
+// Asking what reaches through a place reads a dynamic reference by the anchor
+// it names, so a dynamic anchor of another name sitting under that place is
+// not something anything reaches through it
+TEST(accessors_has_references_through_a_dynamic_anchor_of_another_name) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "named": { "$dynamicAnchor": "wanted", "type": "number" },
+      "other": { "$dynamicAnchor": "ignored", "type": "string" }
+    },
+    "properties": {
+      "one": { "$dynamicRef": "#wanted" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer named{"$defs", "named"};
+  const sourcemeta::core::Pointer other{"$defs", "other"};
+  EXPECT_TRUE(
+      frame.has_references_through(sourcemeta::core::to_weak_pointer(named)));
+  EXPECT_FALSE(
+      frame.has_references_through(sourcemeta::core::to_weak_pointer(other)));
+}
+
+// A reference reads as dynamic where the name it holds reaches no anchor of
+// the resource it was written in, and what it reaches then is settled by that
+// name, so a resource carrying a dynamic anchor of another name is not
+// something it reaches through
+TEST(accessors_has_references_through_a_resource_holding_another_anchor) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "inner": {
+        "$id": "https://example.com/inner",
+        "$dynamicAnchor": "wanted",
+        "type": "number"
+      },
+      "other": {
+        "$id": "https://example.com/other",
+        "$dynamicAnchor": "ignored",
+        "type": "string"
+      }
+    },
+    "properties": {
+      "one": { "$dynamicRef": "#wanted" }
+    }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const sourcemeta::core::Pointer inner{"$defs", "inner"};
+  const sourcemeta::core::Pointer other{"$defs", "other"};
+  const sourcemeta::core::JSON::String anchor{"$dynamicAnchor"};
+  const sourcemeta::core::WeakPointer::Token anchor_token{std::cref(anchor)};
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(inner), anchor_token));
+  EXPECT_FALSE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(other), anchor_token));
 }

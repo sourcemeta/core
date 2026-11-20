@@ -1,0 +1,22 @@
+{
+  "schema": {
+    "x-framed": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$ref": "https://example.com/remote"
+    }
+  },
+  "paths": ["/x-framed"],
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/remote",
+      "type": "string"
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": { "type": "SchemaError", "message": "Could not determine how to perform bundling in this dialect" },
+    "references": { "type": "SchemaError", "message": "Could not determine how to perform bundling in this dialect" }
+  },
+  "inserted": {}
+}

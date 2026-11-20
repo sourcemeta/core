@@ -1,0 +1,77 @@
+{
+  "schema": {
+    "properties": {
+      "pet": {
+        "$ref": "https://example.com/outer"
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "container": "/x-definitions",
+  "resolver": {
+    "https://example.com/outer": {
+      "x-definitions": {
+        "helper": {
+          "type": "string"
+        }
+      },
+      "x-payload": {
+        "$schema": 5
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1example.com~1outer"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/outer": {
+          "x-definitions": {
+            "helper": {
+              "type": "string"
+            }
+          },
+          "x-payload": {
+            "$schema": 5
+          }
+        }
+      }
+    },
+    "references": {
+      "properties": {
+        "pet": {
+          "$ref": "#/x-definitions/https:~1~1example.com~1outer"
+        }
+      },
+      "x-definitions": {
+        "https://example.com/outer": {
+          "x-definitions": {
+            "helper": {
+              "type": "string"
+            }
+          },
+          "x-payload": {
+            "$schema": 5
+          }
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/x-definitions/https:~1~1example.com~1outer"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/outer",
+        "at": "/x-definitions/https:~1~1example.com~1outer"
+      }
+    ]
+  }
+}

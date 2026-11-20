@@ -1,0 +1,124 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "nested": {
+        "$id": "https://example.com/nested",
+        "properties": {
+          "x": {
+            "$ref": "https://example.com/anon"
+          },
+          "y": {
+            "$ref": "https://example.com/anon#/properties/y"
+          }
+        }
+      }
+    }
+  },
+  "defaultDialect": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect",
+  "resolver": {
+    "https://example.com/anon": {
+      "properties": {
+        "y": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$defs": {
+        "nested": {
+          "$id": "https://example.com/nested",
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/https:~1~1example.com~1anon"
+            },
+            "y": {
+              "$ref": "#/$defs/https:~1~1example.com~1anon/properties/y"
+            }
+          },
+          "$defs": {
+            "https://example.com/anon": {
+              "properties": {
+                "y": {
+                  "type": "string",
+                  "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+                }
+              },
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          }
+        },
+        "https://example.com/anon": {
+          "properties": {
+            "y": {
+              "type": "string",
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$defs": {
+        "nested": {
+          "$id": "https://example.com/nested",
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/https:~1~1example.com~1anon"
+            },
+            "y": {
+              "$ref": "#/$defs/https:~1~1example.com~1anon/properties/y"
+            }
+          },
+          "$defs": {
+            "https://example.com/anon": {
+              "properties": {
+                "y": {
+                  "type": "string",
+                  "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+                }
+              },
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          }
+        },
+        "https://example.com/anon": {
+          "properties": {
+            "y": {
+              "type": "string",
+              "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+            }
+          },
+          "x-sourcemeta-dialect-override-subschema": "tag:spec.openapis.org,2024-10-18:oas/3.0/dialect"
+        }
+      }
+    }
+  },
+  "inserted": {
+    "nonOfficialMetaschemas": [
+      {
+        "from": "https://example.com/anon",
+        "at": "/$defs/https:~1~1example.com~1anon"
+      },
+      {
+        "from": "https://example.com/anon",
+        "at": "/$defs/nested/$defs/https:~1~1example.com~1anon"
+      }
+    ],
+    "references": [
+      {
+        "from": "https://example.com/anon",
+        "at": "/$defs/https:~1~1example.com~1anon"
+      },
+      {
+        "from": "https://example.com/anon",
+        "at": "/$defs/nested/$defs/https:~1~1example.com~1anon"
+      }
+    ]
+  }
+}

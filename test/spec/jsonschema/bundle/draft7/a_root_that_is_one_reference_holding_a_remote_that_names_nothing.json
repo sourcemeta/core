@@ -1,0 +1,31 @@
+{
+  "schema": {
+    "$ref": "https://example.com/remote"
+  },
+  "defaultDialect": "http://json-schema.org/draft-07/schema#",
+  "resolver": {
+    "https://example.com/remote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/remote",
+      "items": [
+        {
+          "$ref": "https://example.com/missing"
+        }
+      ]
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://example.com/missing"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://example.com/missing"
+    }
+  },
+  "inserted": {}
+}

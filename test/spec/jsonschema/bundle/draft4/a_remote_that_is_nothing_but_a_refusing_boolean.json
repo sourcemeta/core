@@ -12,52 +12,20 @@
     "https://www.sourcemeta.com/b": false
   },
   "defaultDialect": "http://json-schema.org/draft-04/schema#",
-  "result": {
+  "result": {},
+  "inserted": {},
+  "errors": {
     "nonOfficialMetaschemas": {
-      "id": "https://example.com",
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "properties": {
-        "x": {
-          "$ref": "https://www.sourcemeta.com/b"
-        }
-      },
-      "definitions": {
-        "https://www.sourcemeta.com/b": {
-          "not": {},
-          "id": "https://www.sourcemeta.com/b",
-          "$schema": "http://json-schema.org/draft-04/schema#"
-        }
-      }
+      "type": "SchemaReferenceError",
+      "message": "The JSON document is not a valid JSON Schema",
+      "identifier": "https://www.sourcemeta.com/b",
+      "location": "/properties/x/$ref"
     },
     "references": {
-      "id": "https://example.com",
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "properties": {
-        "x": {
-          "$ref": "https://www.sourcemeta.com/b"
-        }
-      },
-      "definitions": {
-        "https://www.sourcemeta.com/b": {
-          "not": {},
-          "id": "https://www.sourcemeta.com/b",
-          "$schema": "http://json-schema.org/draft-04/schema#"
-        }
-      }
+      "type": "SchemaReferenceError",
+      "message": "The JSON document is not a valid JSON Schema",
+      "identifier": "https://www.sourcemeta.com/b",
+      "location": "/properties/x/$ref"
     }
-  },
-  "inserted": {
-    "nonOfficialMetaschemas": [
-      {
-        "from": "https://www.sourcemeta.com/b",
-        "at": "/definitions/https:~1~1www.sourcemeta.com~1b"
-      }
-    ],
-    "references": [
-      {
-        "from": "https://www.sourcemeta.com/b",
-        "at": "/definitions/https:~1~1www.sourcemeta.com~1b"
-      }
-    ]
   }
 }
