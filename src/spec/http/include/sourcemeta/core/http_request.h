@@ -16,17 +16,24 @@ namespace sourcemeta::core {
 /// @ingroup http
 /// Outcome of parsing the head of an HTTP/1.1 request.
 enum class HTTPRequestHeadStatus : std::uint8_t {
+  /// The request line and all header fields were parsed.
   Complete,
+  /// More input is needed to finish a line or find the terminating blank line.
   Incomplete,
+  /// The parser rejected a line or its ending.
   Malformed
 };
 
 /// @ingroup http
 /// The parsed HTTP request line and field lines. String views borrow the input.
 struct HTTPRequestHead {
+  /// The outcome of the parse.
   HTTPRequestHeadStatus status{HTTPRequestHeadStatus::Incomplete};
+  /// Bytes through the terminating blank line, or zero unless complete.
   std::size_t consumed{0};
+  /// The method token as sent, or an empty view unless complete.
   std::string_view method{};
+  /// The request target as sent, or an empty view unless complete.
   std::string_view target{};
   /// Field names and values in wire order, including repeated names.
   std::vector<std::pair<std::string_view, std::string_view>> fields{};
