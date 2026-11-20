@@ -10,7 +10,7 @@ endif()
 
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME http
   PRIVATE_HEADERS problem.h status.h method.h message.h error.h system.h
-    aws_sigv4.h syntax.h tracecontext.h baggage.h
+    aws_sigv4.h syntax.h tracecontext.h baggage.h request.h
   SOURCES helpers.h entropy.h problem.cc match_accept.cc match_accept_language.cc
           negotiate_encoding.cc from_date.cc format_link.cc format_vary.cc
           field_list.cc
@@ -22,7 +22,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME http
           make_traceparent.cc continue_traceparent.cc
           is_baggage.cc is_baggage_value.cc
           serialize_cache_control.cc
-          scan_quoted_string.cc
+          scan_quoted_string.cc parse_request_head.cc
           ${SOURCEMETA_CORE_HTTP_CLIENT_SOURCE})
 
 if(SOURCEMETA_CORE_INSTALL)
