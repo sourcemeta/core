@@ -7,9 +7,11 @@
 
 namespace sourcemeta::core {
 
-auto http_parse_request_head(const std::string_view input) -> HTTPRequestHead {
-  constexpr HTTPRequestHeadStatus MALFORMED{HTTPRequestHeadStatus::Malformed};
-  HTTPRequestHead result;
+auto http_parse_request_line_and_headers(const std::string_view input)
+    -> HTTPRequestLineAndHeaders {
+  constexpr HTTPRequestLineAndHeadersStatus MALFORMED{
+      HTTPRequestLineAndHeadersStatus::Malformed};
+  HTTPRequestLineAndHeaders result;
   std::size_t offset{0};
   while (true) {
     const auto end{input.find_first_of("\r\n", offset)};
@@ -52,7 +54,7 @@ auto http_parse_request_head(const std::string_view input) -> HTTPRequestHead {
         return {.status = MALFORMED};
       }
     } else if (line.empty()) {
-      result.status = HTTPRequestHeadStatus::Complete;
+      result.status = HTTPRequestLineAndHeadersStatus::Complete;
       result.consumed = end + 2;
       return result;
     } else {
@@ -67,7 +69,7 @@ auto http_parse_request_head(const std::string_view input) -> HTTPRequestHead {
         return {.status = MALFORMED};
       }
 
-      result.fields.emplace_back(
+      result.headers.emplace_back(
           line.substr(0, colon),
           http_trim_trailing_ows(http_trim_leading_ows(value)));
     }

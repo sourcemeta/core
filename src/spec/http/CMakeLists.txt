@@ -22,7 +22,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME http
           make_traceparent.cc continue_traceparent.cc
           is_baggage.cc is_baggage_value.cc
           serialize_cache_control.cc
-          scan_quoted_string.cc parse_request_head.cc
+          scan_quoted_string.cc parse_request_line_and_headers.cc
           ${SOURCEMETA_CORE_HTTP_CLIENT_SOURCE})
 
 if(SOURCEMETA_CORE_INSTALL)
