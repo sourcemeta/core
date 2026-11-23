@@ -1441,7 +1441,7 @@ auto expand_unresolved_reference(
   const JSON::String identifier{reference.base};
 
   // Framing already holds every base and every resource URI it reports to
-  // its canonical spelling, as the comment above says, so what it hands
+  // its canonical spelling, as `expand_references` notes, so what it hands
   // back needs no second pass. Only a name the caller wrote or the
   // document carries has to be settled
   const auto &canonical{identifier};

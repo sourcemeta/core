@@ -66,7 +66,7 @@ auto relativize(const JSON::String &iri, const JSON::String &base)
 }
 
 // Steps 2 to 4 of IRI Compaction: the term that the inverse context picks
-// for the value, where it names one (JSON-LD 1.1 API Section 6.3)
+// for the value, where it names one (JSON-LD 1.1 API Section 6.2)
 auto select_compact_term(const ActiveContext &active_context,
                          const JSON &inverse_context,
                          const JSON::String &variable, const JSON *const value,

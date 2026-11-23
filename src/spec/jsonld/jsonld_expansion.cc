@@ -627,8 +627,9 @@ auto expand_type_entry(
   }
 }
 
-// Steps 13.4.9 and 13.4.10 of the Expansion algorithm, the @list and @set
-// entries of a map (JSON-LD 1.1 API Section 5.1.2 steps 13.4.9, 13.4.10)
+// Steps 13.4.11 and 13.4.12 of the Expansion algorithm, the @list and
+// @set entries of a map (JSON-LD 1.1 API Section 5.1.2 steps 13.4.11,
+// 13.4.12)
 auto expand_collection_entry(
     ExpansionState &state, ActiveContext &active_context, JSON &result,
     KeywordOrigins &origins, const std::optional<JSON::String> &active_property,
@@ -692,8 +693,8 @@ auto expand_collection_entry(
   result.assign(name, std::move(elements));
 }
 
-// Step 13.4.8 of the Expansion algorithm, the @included entry of a map
-// (JSON-LD 1.1 API Section 5.1.2 step 13.4.8)
+// Step 13.4.6 of the Expansion algorithm, the @included entry of a map
+// (JSON-LD 1.1 API Section 5.1.2 step 13.4.6)
 auto expand_included_entry(
     ExpansionState &state, ActiveContext &active_context, JSON &result,
     const std::pair<const JSON::String &, const JSON &> &entry,

@@ -709,7 +709,7 @@ inline auto exceeds_class_depth(const std::string &pattern) -> bool {
 // A group opener, which this dialect allows only in the forms the
 // specification names (RFC 9485 Section 3)
 inline auto check_group_opener(const std::string &pattern,
-                               std::size_t &position, bool &ecma_valid)
+                               const std::size_t position, bool &ecma_valid)
     -> void {
   // (*...) backtracking control verbs
   if (pattern[position + 1] == '*') {

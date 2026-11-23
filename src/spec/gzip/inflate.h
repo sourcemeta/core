@@ -1320,8 +1320,6 @@ private:
     return this->decode_huffman_careful(buffers);
   }
 
-  // Returns whether the block ended
-
   // A run of literals from the primary table, which the margins let this
   // emit without re-checking the buffers between them. Answers whether
   // the decode loop carries on
@@ -1362,6 +1360,7 @@ private:
     bits_available |= 56;
     return true;
   }
+  // Returns whether the block ended
   auto decode_huffman_fast(InflateBuffers &buffers) -> bool {
     const auto *literal_length_table{this->literal_length_table_.data()};
     const auto *distance_table{this->distance_table_.data()};

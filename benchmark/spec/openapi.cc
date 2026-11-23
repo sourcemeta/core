@@ -6,7 +6,7 @@
 #include <optional>    // std::nullopt
 #include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <utility>     // std::move, std::pair
 #include <vector>      // std::vector
 
 #include <sourcemeta/core/openapi.h>
@@ -112,29 +112,30 @@ static auto make_shared_document(const std::size_t index)
   return document;
 }
 
-static auto make_shared_documents() -> std::vector<sourcemeta::core::JSON> {
-  std::vector<sourcemeta::core::JSON> result;
+using SharedDocument = std::pair<std::string, sourcemeta::core::JSON>;
+
+static auto make_shared_documents() -> std::vector<SharedDocument> {
+  std::vector<SharedDocument> result;
   result.reserve(SHARED_COUNT);
   for (std::size_t index = 0; index < SHARED_COUNT; index += 1) {
-    result.push_back(make_shared_document(index));
+    result.emplace_back(shared_identifier(index), make_shared_document(index));
   }
   return result;
 }
 
-// Bundling reads each of these more than once, so they outlive the resolver
-// that hands them over rather than being built per call
-static auto shared_documents() -> const std::vector<sourcemeta::core::JSON> & {
-  static const std::vector<sourcemeta::core::JSON> INSTANCE{
-      make_shared_documents()};
+// The resolver below runs inside the timed loop, so each document is stored
+// against the identifier it answers to rather than having one built per
+// candidate on every lookup
+static auto shared_documents() -> const std::vector<SharedDocument> & {
+  static const std::vector<SharedDocument> INSTANCE{make_shared_documents()};
   return INSTANCE;
 }
 
 static auto bundle_resolver(const std::string_view identifier)
     -> sourcemeta::core::OpenAPIResolverResult {
-  const auto &documents{shared_documents()};
-  for (std::size_t index = 0; index < documents.size(); index += 1) {
-    if (identifier == shared_identifier(index)) {
-      return documents[index];
+  for (const auto &entry : shared_documents()) {
+    if (identifier == entry.first) {
+      return entry.second;
     }
   }
 
