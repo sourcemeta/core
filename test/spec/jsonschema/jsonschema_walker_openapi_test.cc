@@ -24,6 +24,30 @@ static const sourcemeta::core::SchemaVocabularies VOCABULARIES_OPENAPI_3_2{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://spec.openapis.org/oas/3.2/vocab/base", true}};
 
+static const sourcemeta::core::SchemaVocabularies
+    VOCABULARIES_OPENAPI_3_1_FORMAT_ANNOTATION{
+        {"https://json-schema.org/draft/2020-12/vocab/core", true},
+        {"https://json-schema.org/draft/2020-12/vocab/format-annotation", true},
+        {"https://spec.openapis.org/oas/3.1/vocab/base", true}};
+
+static const sourcemeta::core::SchemaVocabularies
+    VOCABULARIES_OPENAPI_3_1_FORMAT_ASSERTION{
+        {"https://json-schema.org/draft/2020-12/vocab/core", true},
+        {"https://json-schema.org/draft/2020-12/vocab/format-assertion", true},
+        {"https://spec.openapis.org/oas/3.1/vocab/base", true}};
+
+static const sourcemeta::core::SchemaVocabularies
+    VOCABULARIES_OPENAPI_3_2_FORMAT_ANNOTATION{
+        {"https://json-schema.org/draft/2020-12/vocab/core", true},
+        {"https://json-schema.org/draft/2020-12/vocab/format-annotation", true},
+        {"https://spec.openapis.org/oas/3.2/vocab/base", true}};
+
+static const sourcemeta::core::SchemaVocabularies
+    VOCABULARIES_OPENAPI_3_2_FORMAT_ASSERTION{
+        {"https://json-schema.org/draft/2020-12/vocab/core", true},
+        {"https://json-schema.org/draft/2020-12/vocab/format-assertion", true},
+        {"https://spec.openapis.org/oas/3.2/vocab/base", true}};
+
 static const sourcemeta::core::SchemaVocabularies VOCABULARIES_OPENAPI_3_0{
     {"tag:spec.openapis.org,2017:oas/3.0/vocab/base", true}};
 
@@ -123,6 +147,42 @@ TEST(openapi_3_1_example_without_vocabulary) {
   EXPECT_TRUE(result.instances.none());
 }
 
+TEST(openapi_3_1_format_annotation) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("format", VOCABULARIES_OPENAPI_3_1_FORMAT_ANNOTATION)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Annotation);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
+                          JSON_SCHEMA_2020_12_FORMAT_ANNOTATION);
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(openapi_3_1_format_assertion) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("format", VOCABULARIES_OPENAPI_3_1_FORMAT_ASSERTION)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
+                          JSON_SCHEMA_2020_12_FORMAT_ASSERTION);
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(openapi_3_1_format_without_format_vocabulary) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("format", VOCABULARIES_OPENAPI_3_1)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
 TEST(openapi_3_2_discriminator) {
   using namespace sourcemeta::core;
   using namespace sourcemeta::core;
@@ -208,6 +268,42 @@ TEST(openapi_3_2_example_without_vocabulary) {
   using namespace sourcemeta::core;
   using namespace sourcemeta::core;
   const auto &result{schema_walker("example", VOCABULARIES_2020_12_CORE)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
+  EXPECT_FALSE(result.vocabulary.has_value());
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(openapi_3_2_format_annotation) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("format", VOCABULARIES_OPENAPI_3_2_FORMAT_ANNOTATION)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Annotation);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
+                          JSON_SCHEMA_2020_12_FORMAT_ANNOTATION);
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(openapi_3_2_format_assertion) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("format", VOCABULARIES_OPENAPI_3_2_FORMAT_ASSERTION)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
+                          JSON_SCHEMA_2020_12_FORMAT_ASSERTION);
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(openapi_3_2_format_without_format_vocabulary) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("format", VOCABULARIES_OPENAPI_3_2)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
