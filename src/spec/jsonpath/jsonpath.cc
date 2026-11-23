@@ -290,6 +290,242 @@ struct FilterWorkItem {
   std::size_t cursor;
 };
 
+// Mutually recursive with visit_selector below
+auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
+                        const std::size_t cursor, const JSON &current,
+                        const JSON &root, FilterCollector &collector,
+                        const std::size_t depth = 0) -> bool;
+
+// What one selector of a segment contributes, pushed onto the work stack
+// rather than followed down
+template <typename Selector>
+auto push_selector_work(const JSON &current, const JSON &root,
+                        const FilterWorkItem &item,
+                        std::vector<FilterWorkItem> &pool,
+                        const Selector &selector, const JSON::Type type)
+    -> void {
+  switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
+    case JSONPath::SelectorKind::Name:
+      if (type == JSON::Type::Object) {
+        const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
+        const auto *child{current.try_at(entry->name, entry->hash)};
+        if (child != nullptr) {
+          pool.push_back({.node = child, .cursor = item.cursor + 1});
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Wildcard:
+      if (type == JSON::Type::Object) {
+        const auto &object{current.as_object()};
+        auto [member, members_end]{member_range(object)};
+        for (; member != members_end; ++member) {
+          pool.push_back({.node = &member->second, .cursor = item.cursor + 1});
+        }
+      } else if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        auto [element, elements_end]{element_range(array)};
+        for (; element != elements_end; ++element) {
+          pool.push_back({.node = element, .cursor = item.cursor + 1});
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Index:
+      if (type == JSON::Type::Array) {
+        const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        const auto index{entry->index < 0 ? entry->index + size : entry->index};
+        if (index >= 0 && index < size) {
+          pool.push_back(
+              {.node = first_element(array) + static_cast<std::size_t>(index),
+               .cursor = item.cursor + 1});
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Slice: {
+      const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
+      if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        std::int64_t lower{0};
+        std::int64_t upper{0};
+        if (!slice_bounds(*entry, size, lower, upper)) {
+          break;
+        }
+
+        const auto *const array_base{first_element(array)};
+        if (entry->step > 0) {
+          for (auto index{lower}; index < upper; index += entry->step) {
+            pool.push_back(
+                {.node = array_base + static_cast<std::size_t>(index),
+                 .cursor = item.cursor + 1});
+          }
+        } else {
+          for (auto index{upper}; index > lower; index += entry->step) {
+            pool.push_back(
+                {.node = array_base + static_cast<std::size_t>(index),
+                 .cursor = item.cursor + 1});
+          }
+        }
+      }
+
+      break;
+    }
+    SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
+      const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
+      if (type == JSON::Type::Object) {
+        const auto &object{current.as_object()};
+        auto [member, members_end]{member_range(object)};
+        for (; member != members_end; ++member) {
+          if (filter_matches(entry->expression, member->second, root)) {
+            pool.push_back(
+                {.node = &member->second, .cursor = item.cursor + 1});
+          }
+        }
+      } else if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        auto [element, elements_end]{element_range(array)};
+        for (; element != elements_end; ++element) {
+          if (filter_matches(entry->expression, *element, root)) {
+            pool.push_back({.node = element, .cursor = item.cursor + 1});
+          }
+        }
+      }
+
+      break;
+    }
+  }
+}
+
+// What one selector of a segment contributes, following each match down
+// the segments that remain. Answers whether the walk carries on
+template <typename Selector>
+auto visit_selector(const std::vector<JSONPath::Segment> &segments,
+                    const std::size_t cursor, const JSON &current,
+                    const JSON &root, FilterCollector &collector,
+                    const std::size_t depth, const Selector &selector,
+                    const JSON::Type type) -> bool {
+  switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
+    case JSONPath::SelectorKind::Name: {
+      const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
+      if (type == JSON::Type::Object) {
+        const auto *child{current.try_at(entry->name, entry->hash)};
+        if (child != nullptr &&
+            !filter_query_visit(segments, cursor + 1, *child, root, collector,
+                                depth + 1)) {
+          return false;
+        }
+      }
+
+      break;
+    }
+    case JSONPath::SelectorKind::Wildcard:
+      if (type == JSON::Type::Object) {
+        const auto &object{current.as_object()};
+        auto [member, members_end]{member_range(object)};
+        for (; member != members_end; ++member) {
+          if (!filter_query_visit(segments, cursor + 1, member->second, root,
+                                  collector, depth + 1)) {
+            return false;
+          }
+        }
+      } else if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        auto [element, elements_end]{element_range(array)};
+        for (; element != elements_end; ++element) {
+          if (!filter_query_visit(segments, cursor + 1, *element, root,
+                                  collector, depth + 1)) {
+            return false;
+          }
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Index: {
+      const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
+      if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        const auto index{entry->index < 0 ? entry->index + size : entry->index};
+        if (index >= 0 && index < size &&
+            !filter_query_visit(
+                segments, cursor + 1,
+                *(first_element(array) + static_cast<std::size_t>(index)), root,
+                collector, depth + 1)) {
+          return false;
+        }
+      }
+
+      break;
+    }
+    case JSONPath::SelectorKind::Slice: {
+      const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
+      if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        std::int64_t lower{0};
+        std::int64_t upper{0};
+        if (!slice_bounds(*entry, size, lower, upper)) {
+          break;
+        }
+
+        const auto *const array_base{first_element(array)};
+        if (entry->step > 0) {
+          for (auto index{lower}; index < upper; index += entry->step) {
+            if (!filter_query_visit(
+                    segments, cursor + 1,
+                    *(array_base + static_cast<std::size_t>(index)), root,
+                    collector, depth + 1)) {
+              return false;
+            }
+          }
+        } else {
+          for (auto index{upper}; index > lower; index += entry->step) {
+            if (!filter_query_visit(
+                    segments, cursor + 1,
+                    *(array_base + static_cast<std::size_t>(index)), root,
+                    collector, depth + 1)) {
+              return false;
+            }
+          }
+        }
+      }
+
+      break;
+    }
+    SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
+      const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
+      if (type == JSON::Type::Object) {
+        const auto &object{current.as_object()};
+        auto [member, members_end]{member_range(object)};
+        for (; member != members_end; ++member) {
+          if (filter_matches(entry->expression, member->second, root) &&
+              !filter_query_visit(segments, cursor + 1, member->second, root,
+                                  collector, depth + 1)) {
+            return false;
+          }
+        }
+      } else if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        auto [element, elements_end]{element_range(array)};
+        for (; element != elements_end; ++element) {
+          if (filter_matches(entry->expression, *element, root) &&
+              !filter_query_visit(segments, cursor + 1, *element, root,
+                                  collector, depth + 1)) {
+            return false;
+          }
+        }
+      }
+
+      break;
+    }
+  }
+
+  return true;
+}
 auto filter_query_visit_iterative(
     const std::vector<JSONPath::Segment> &segments, const std::size_t cursor,
     const JSON &origin, const JSON &root, FilterCollector &collector) -> bool {
@@ -351,102 +587,7 @@ auto filter_query_visit_iterative(
     const auto *selector{segment.selectors.data()};
     const auto *const selectors_end{selector + segment.selectors.size()};
     for (; selector != selectors_end; ++selector) {
-      switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
-        case JSONPath::SelectorKind::Name:
-          if (type == JSON::Type::Object) {
-            const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
-            const auto *child{current.try_at(entry->name, entry->hash)};
-            if (child != nullptr) {
-              pool.push_back({.node = child, .cursor = item.cursor + 1});
-            }
-          }
-
-          break;
-        case JSONPath::SelectorKind::Wildcard:
-          if (type == JSON::Type::Object) {
-            const auto &object{current.as_object()};
-            auto [member, members_end]{member_range(object)};
-            for (; member != members_end; ++member) {
-              pool.push_back(
-                  {.node = &member->second, .cursor = item.cursor + 1});
-            }
-          } else if (type == JSON::Type::Array) {
-            const auto &array{current.as_array()};
-            auto [element, elements_end]{element_range(array)};
-            for (; element != elements_end; ++element) {
-              pool.push_back({.node = element, .cursor = item.cursor + 1});
-            }
-          }
-
-          break;
-        case JSONPath::SelectorKind::Index:
-          if (type == JSON::Type::Array) {
-            const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
-            const auto &array{current.as_array()};
-            const auto size{static_cast<std::int64_t>(array.size())};
-            const auto index{entry->index < 0 ? entry->index + size
-                                              : entry->index};
-            if (index >= 0 && index < size) {
-              pool.push_back({.node = first_element(array) +
-                                      static_cast<std::size_t>(index),
-                              .cursor = item.cursor + 1});
-            }
-          }
-
-          break;
-        case JSONPath::SelectorKind::Slice: {
-          const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
-          if (type == JSON::Type::Array) {
-            const auto &array{current.as_array()};
-            const auto size{static_cast<std::int64_t>(array.size())};
-            std::int64_t lower{0};
-            std::int64_t upper{0};
-            if (!slice_bounds(*entry, size, lower, upper)) {
-              break;
-            }
-
-            const auto *const array_base{first_element(array)};
-            if (entry->step > 0) {
-              for (auto index{lower}; index < upper; index += entry->step) {
-                pool.push_back(
-                    {.node = array_base + static_cast<std::size_t>(index),
-                     .cursor = item.cursor + 1});
-              }
-            } else {
-              for (auto index{upper}; index > lower; index += entry->step) {
-                pool.push_back(
-                    {.node = array_base + static_cast<std::size_t>(index),
-                     .cursor = item.cursor + 1});
-              }
-            }
-          }
-
-          break;
-        }
-        SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
-          const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
-          if (type == JSON::Type::Object) {
-            const auto &object{current.as_object()};
-            auto [member, members_end]{member_range(object)};
-            for (; member != members_end; ++member) {
-              if (filter_matches(entry->expression, member->second, root)) {
-                pool.push_back(
-                    {.node = &member->second, .cursor = item.cursor + 1});
-              }
-            }
-          } else if (type == JSON::Type::Array) {
-            const auto &array{current.as_array()};
-            auto [element, elements_end]{element_range(array)};
-            for (; element != elements_end; ++element) {
-              if (filter_matches(entry->expression, *element, root)) {
-                pool.push_back({.node = element, .cursor = item.cursor + 1});
-              }
-            }
-          }
-
-          break;
-        }
-      }
+      push_selector_work(current, root, item, pool, selector, type);
     }
 
     if (segment.descendant) {
@@ -481,7 +622,7 @@ constexpr std::size_t JSONPATH_EVALUATION_RECURSION_LIMIT{256};
 auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
                         const std::size_t cursor, const JSON &current,
                         const JSON &root, FilterCollector &collector,
-                        const std::size_t depth = 0) -> bool {
+                        const std::size_t depth) -> bool {
   if (depth >= JSONPATH_EVALUATION_RECURSION_LIMIT) {
     return filter_query_visit_iterative(segments, cursor, current, root,
                                         collector);
@@ -530,121 +671,9 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
   const auto *selector{segment.selectors.data()};
   const auto *const selectors_end{selector + segment.selectors.size()};
   for (; selector != selectors_end; ++selector) {
-    switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
-      case JSONPath::SelectorKind::Name: {
-        const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
-        if (type == JSON::Type::Object) {
-          const auto *child{current.try_at(entry->name, entry->hash)};
-          if (child != nullptr &&
-              !filter_query_visit(segments, cursor + 1, *child, root, collector,
-                                  depth + 1)) {
-            return false;
-          }
-        }
-
-        break;
-      }
-      case JSONPath::SelectorKind::Wildcard:
-        if (type == JSON::Type::Object) {
-          const auto &object{current.as_object()};
-          auto [member, members_end]{member_range(object)};
-          for (; member != members_end; ++member) {
-            if (!filter_query_visit(segments, cursor + 1, member->second, root,
-                                    collector, depth + 1)) {
-              return false;
-            }
-          }
-        } else if (type == JSON::Type::Array) {
-          const auto &array{current.as_array()};
-          auto [element, elements_end]{element_range(array)};
-          for (; element != elements_end; ++element) {
-            if (!filter_query_visit(segments, cursor + 1, *element, root,
-                                    collector, depth + 1)) {
-              return false;
-            }
-          }
-        }
-
-        break;
-      case JSONPath::SelectorKind::Index: {
-        const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
-        if (type == JSON::Type::Array) {
-          const auto &array{current.as_array()};
-          const auto size{static_cast<std::int64_t>(array.size())};
-          const auto index{entry->index < 0 ? entry->index + size
-                                            : entry->index};
-          if (index >= 0 && index < size &&
-              !filter_query_visit(
-                  segments, cursor + 1,
-                  *(first_element(array) + static_cast<std::size_t>(index)),
-                  root, collector, depth + 1)) {
-            return false;
-          }
-        }
-
-        break;
-      }
-      case JSONPath::SelectorKind::Slice: {
-        const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
-        if (type == JSON::Type::Array) {
-          const auto &array{current.as_array()};
-          const auto size{static_cast<std::int64_t>(array.size())};
-          std::int64_t lower{0};
-          std::int64_t upper{0};
-          if (!slice_bounds(*entry, size, lower, upper)) {
-            break;
-          }
-
-          const auto *const array_base{first_element(array)};
-          if (entry->step > 0) {
-            for (auto index{lower}; index < upper; index += entry->step) {
-              if (!filter_query_visit(
-                      segments, cursor + 1,
-                      *(array_base + static_cast<std::size_t>(index)), root,
-                      collector, depth + 1)) {
-                return false;
-              }
-            }
-          } else {
-            for (auto index{upper}; index > lower; index += entry->step) {
-              if (!filter_query_visit(
-                      segments, cursor + 1,
-                      *(array_base + static_cast<std::size_t>(index)), root,
-                      collector, depth + 1)) {
-                return false;
-              }
-            }
-          }
-        }
-
-        break;
-      }
-      SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
-        const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
-        if (type == JSON::Type::Object) {
-          const auto &object{current.as_object()};
-          auto [member, members_end]{member_range(object)};
-          for (; member != members_end; ++member) {
-            if (filter_matches(entry->expression, member->second, root) &&
-                !filter_query_visit(segments, cursor + 1, member->second, root,
-                                    collector, depth + 1)) {
-              return false;
-            }
-          }
-        } else if (type == JSON::Type::Array) {
-          const auto &array{current.as_array()};
-          auto [element, elements_end]{element_range(array)};
-          for (; element != elements_end; ++element) {
-            if (filter_matches(entry->expression, *element, root) &&
-                !filter_query_visit(segments, cursor + 1, *element, root,
-                                    collector, depth + 1)) {
-              return false;
-            }
-          }
-        }
-
-        break;
-      }
+    if (!visit_selector(segments, cursor, current, root, collector, depth,
+                        selector, type)) {
+      return false;
     }
   }
 
@@ -974,6 +1003,112 @@ inline auto filter_matches(const JSONPath::FilterExpression &expression,
 #endif
 }
 
+// What one selector of a segment contributes to the evaluation stack
+template <typename Selector, typename WorkStack, typename WorkItem>
+inline auto evaluate_selector(const JSON &current, const WorkItem &item,
+                              WorkStack &stack, EvaluationState &state,
+                              const Selector &selector, const JSON::Type type,
+                              const std::size_t child_depth) -> void {
+  switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
+    case JSONPath::SelectorKind::Name:
+      if (type == JSON::Type::Object) {
+        const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
+        const auto *child{current.try_at(entry->name, entry->hash)};
+        if (child != nullptr) {
+          stack.push_visit_property(child, item.cursor + 1, child_depth,
+                                    entry->name, entry->hash);
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Wildcard:
+      if (type == JSON::Type::Object) {
+        const auto &object{current.as_object()};
+        auto [member, members_end]{member_range(object)};
+        for (; member != members_end; ++member) {
+          stack.push_visit_property(&member->second, item.cursor + 1,
+                                    child_depth, member->first, member->hash);
+        }
+      } else if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        auto [element, elements_end]{element_range(array)};
+        for (std::size_t index{0}; element != elements_end;
+             ++element, ++index) {
+          stack.push_visit_index(element, item.cursor + 1, child_depth, index);
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Index:
+      if (type == JSON::Type::Array) {
+        const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        const auto index{entry->index < 0 ? entry->index + size : entry->index};
+        if (index >= 0 && index < size) {
+          stack.push_visit_index(
+              first_element(array) + static_cast<std::size_t>(index),
+              item.cursor + 1, child_depth, static_cast<std::size_t>(index));
+        }
+      }
+
+      break;
+    case JSONPath::SelectorKind::Slice: {
+      const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
+      if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        std::int64_t lower{0};
+        std::int64_t upper{0};
+        if (!slice_bounds(*entry, size, lower, upper)) {
+          break;
+        }
+
+        const auto *const array_base{first_element(array)};
+        if (entry->step > 0) {
+          for (auto index{lower}; index < upper; index += entry->step) {
+            stack.push_visit_index(array_base + static_cast<std::size_t>(index),
+                                   item.cursor + 1, child_depth,
+                                   static_cast<std::size_t>(index));
+          }
+        } else {
+          for (auto index{upper}; index > lower; index += entry->step) {
+            stack.push_visit_index(array_base + static_cast<std::size_t>(index),
+                                   item.cursor + 1, child_depth,
+                                   static_cast<std::size_t>(index));
+          }
+        }
+      }
+
+      break;
+    }
+    SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
+      const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
+      if (type == JSON::Type::Object) {
+        const auto &object{current.as_object()};
+        auto [member, members_end]{member_range(object)};
+        for (; member != members_end; ++member) {
+          if (filter_matches(entry->expression, member->second, *state.root)) {
+            stack.push_visit_property(&member->second, item.cursor + 1,
+                                      child_depth, member->first, member->hash);
+          }
+        }
+      } else if (type == JSON::Type::Array) {
+        const auto &array{current.as_array()};
+        auto [element, elements_end]{element_range(array)};
+        for (std::size_t index{0}; element != elements_end;
+             ++element, ++index) {
+          if (filter_matches(entry->expression, *element, *state.root)) {
+            stack.push_visit_index(element, item.cursor + 1, child_depth,
+                                   index);
+          }
+        }
+      }
+
+      break;
+    }
+  }
+}
 // The main walk is iterative over an explicit stack, so document depth
 // cannot exhaust the machine stack, as RFC 9535 Section 4.1 warns about
 // naive recursive implementations of the descendant segment
@@ -1051,113 +1186,8 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
     const auto *selector{segment.selectors.data()};
     const auto *const selectors_end{selector + segment.selectors.size()};
     for (; selector != selectors_end; ++selector) {
-      switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
-        case JSONPath::SelectorKind::Name:
-          if (type == JSON::Type::Object) {
-            const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
-            const auto *child{current.try_at(entry->name, entry->hash)};
-            if (child != nullptr) {
-              stack.push_visit_property(child, item.cursor + 1, child_depth,
-                                        entry->name, entry->hash);
-            }
-          }
-
-          break;
-        case JSONPath::SelectorKind::Wildcard:
-          if (type == JSON::Type::Object) {
-            const auto &object{current.as_object()};
-            auto [member, members_end]{member_range(object)};
-            for (; member != members_end; ++member) {
-              stack.push_visit_property(&member->second, item.cursor + 1,
-                                        child_depth, member->first,
-                                        member->hash);
-            }
-          } else if (type == JSON::Type::Array) {
-            const auto &array{current.as_array()};
-            auto [element, elements_end]{element_range(array)};
-            for (std::size_t index{0}; element != elements_end;
-                 ++element, ++index) {
-              stack.push_visit_index(element, item.cursor + 1, child_depth,
-                                     index);
-            }
-          }
-
-          break;
-        case JSONPath::SelectorKind::Index:
-          if (type == JSON::Type::Array) {
-            const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
-            const auto &array{current.as_array()};
-            const auto size{static_cast<std::int64_t>(array.size())};
-            const auto index{entry->index < 0 ? entry->index + size
-                                              : entry->index};
-            if (index >= 0 && index < size) {
-              stack.push_visit_index(first_element(array) +
-                                         static_cast<std::size_t>(index),
-                                     item.cursor + 1, child_depth,
-                                     static_cast<std::size_t>(index));
-            }
-          }
-
-          break;
-        case JSONPath::SelectorKind::Slice: {
-          const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
-          if (type == JSON::Type::Array) {
-            const auto &array{current.as_array()};
-            const auto size{static_cast<std::int64_t>(array.size())};
-            std::int64_t lower{0};
-            std::int64_t upper{0};
-            if (!slice_bounds(*entry, size, lower, upper)) {
-              break;
-            }
-
-            const auto *const array_base{first_element(array)};
-            if (entry->step > 0) {
-              for (auto index{lower}; index < upper; index += entry->step) {
-                stack.push_visit_index(array_base +
-                                           static_cast<std::size_t>(index),
-                                       item.cursor + 1, child_depth,
-                                       static_cast<std::size_t>(index));
-              }
-            } else {
-              for (auto index{upper}; index > lower; index += entry->step) {
-                stack.push_visit_index(array_base +
-                                           static_cast<std::size_t>(index),
-                                       item.cursor + 1, child_depth,
-                                       static_cast<std::size_t>(index));
-              }
-            }
-          }
-
-          break;
-        }
-        SOURCEMETA_CORE_JSONPATH_SELECTOR_FILTER: {
-          const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
-          if (type == JSON::Type::Object) {
-            const auto &object{current.as_object()};
-            auto [member, members_end]{member_range(object)};
-            for (; member != members_end; ++member) {
-              if (filter_matches(entry->expression, member->second,
-                                 *state.root)) {
-                stack.push_visit_property(&member->second, item.cursor + 1,
-                                          child_depth, member->first,
-                                          member->hash);
-              }
-            }
-          } else if (type == JSON::Type::Array) {
-            const auto &array{current.as_array()};
-            auto [element, elements_end]{element_range(array)};
-            for (std::size_t index{0}; element != elements_end;
-                 ++element, ++index) {
-              if (filter_matches(entry->expression, *element, *state.root)) {
-                stack.push_visit_index(element, item.cursor + 1, child_depth,
-                                       index);
-              }
-            }
-          }
-
-          break;
-        }
-      }
+      evaluate_selector(current, item, stack, state, selector, type,
+                        child_depth);
     }
 
     if (segment.descendant) {

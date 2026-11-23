@@ -48,6 +48,10 @@ if(SOURCEMETA_CORE_MARKDOWN)
   list(APPEND BENCHMARK_SOURCES spec/markdown.cc)
 endif()
 
+if(SOURCEMETA_CORE_YAML)
+  list(APPEND BENCHMARK_SOURCES spec/yaml.cc)
+endif()
+
 if(SOURCEMETA_CORE_GZIP)
   list(APPEND BENCHMARK_SOURCES spec/gzip.cc)
 endif()
@@ -106,6 +110,11 @@ if(BENCHMARK_SOURCES)
     target_link_libraries(sourcemeta_core_benchmarks
       PRIVATE sourcemeta::core::jsonpath sourcemeta::core::json
               sourcemeta::core::jsonpointer)
+  endif()
+
+  if(SOURCEMETA_CORE_YAML)
+    target_link_libraries(sourcemeta_core_benchmarks
+      PRIVATE sourcemeta::core::yaml sourcemeta::core::json)
   endif()
 
   if(SOURCEMETA_CORE_URITEMPLATE)
