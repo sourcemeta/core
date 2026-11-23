@@ -49,35 +49,11 @@ static auto append_record(std::string &result, const std::size_t index)
                 "        note: updated\n");
 }
 
-static auto make_records() -> std::string {
-  std::string result{"records:\n"};
-  for (std::size_t index = 0; index < RECORD_COUNT; index += 1) {
-    append_record(result, index);
-  }
-  return result;
-}
-
-// A document that is almost entirely block scalars, so that what it measures
-// is scanning them rather than the surrounding mapping
-static auto make_paragraphs() -> std::string {
-  std::string result{"paragraphs:\n"};
-  for (std::size_t index = 0; index < PARAGRAPH_COUNT; index += 1) {
-    const auto number{std::to_string(index)};
-    result.append("  paragraph-");
-    result.append(number);
-    result.append(": |-\n    The first line of paragraph ");
-    result.append(number);
-    result.append(".\n"
-                  "    A second line that carries on from it.\n"
-                  "    A third line, indented the same as the rest.\n"
-                  "      A fourth line indented further than the rest.\n"
-                  "    A fifth line back at the original indentation.\n");
-  }
-  return result;
-}
-
 BENCHMARK(YAML_Parse_Records) {
-  const auto input{make_records()};
+  std::string input{"records:\n"};
+  for (std::size_t index = 0; index < RECORD_COUNT; index += 1) {
+    append_record(input, index);
+  }
 
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_yaml(input)};
@@ -90,8 +66,22 @@ BENCHMARK(YAML_Parse_Records) {
   }
 }
 
+// A document that is almost entirely block scalars, so that what this measures
+// is scanning them rather than the surrounding mapping
 BENCHMARK(YAML_Parse_Block_Scalars) {
-  const auto input{make_paragraphs()};
+  std::string input{"paragraphs:\n"};
+  for (std::size_t index = 0; index < PARAGRAPH_COUNT; index += 1) {
+    const auto number{std::to_string(index)};
+    input.append("  paragraph-")
+        .append(number)
+        .append(": |-\n    The first line of paragraph ")
+        .append(number)
+        .append(".\n"
+                "    A second line that carries on from it.\n"
+                "    A third line, indented the same as the rest.\n"
+                "      A fourth line indented further than the rest.\n"
+                "    A fifth line back at the original indentation.\n");
+  }
 
   for (auto iteration : state) {
     auto result{sourcemeta::core::parse_yaml(input)};

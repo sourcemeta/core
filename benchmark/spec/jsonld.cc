@@ -353,8 +353,10 @@ static auto populate_annotation_list(
 // language map, an index map, set containers, a date and a decimal coercion,
 // a typed identifier, a property scoped context and a reverse property, and
 // the catalog carries a value of every one of those shapes
-static auto catalog_context() -> sourcemeta::core::JSON {
-  return sourcemeta::core::parse_json(R"JSON({
+// Parsing this at namespace scope would be a static initialiser that throws,
+// so it is built on first use the way the keys above are
+static auto catalog_context() -> const sourcemeta::core::JSON & {
+  static const auto INSTANCE{sourcemeta::core::parse_json(R"JSON({
     "@vocab": "https://example.com/vocab/",
     "schema": "https://schema.org/",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
@@ -380,23 +382,13 @@ static auto catalog_context() -> sourcemeta::core::JSON {
     "series": "schema:isPartOf",
     "metadata": { "@id": "schema:additionalProperty", "@container": "@index" },
     "provenance": { "@reverse": "schema:about" }
-  })JSON");
+  })JSON")};
+  return INSTANCE;
 }
 
 static auto make_described_catalog() -> sourcemeta::core::JSON {
   auto catalog{make_catalog()};
   catalog.assign("@context", catalog_context());
-  return catalog;
-}
-
-// Processing the context happens once per document, so a catalog of one member
-// is what shows a change to it, while the full catalog amortises it away
-static auto make_described_member() -> sourcemeta::core::JSON {
-  auto members{sourcemeta::core::JSON::make_array()};
-  members.push_back(make_member(0));
-  auto catalog{sourcemeta::core::JSON::make_object()};
-  catalog.assign("@context", catalog_context());
-  catalog.assign("members", std::move(members));
   return catalog;
 }
 
@@ -437,8 +429,14 @@ BENCHMARK(JSONLD_Catalog_Expand) {
   }
 }
 
+// Processing the context happens once per document, so a catalog of one member
+// is what shows a change to it, while the full catalog amortises it away
 BENCHMARK(JSONLD_Member_Expand) {
-  const auto instance{make_described_member()};
+  auto members{sourcemeta::core::JSON::make_array()};
+  members.push_back(make_member(0));
+  auto instance{sourcemeta::core::JSON::make_object()};
+  instance.assign("@context", catalog_context());
+  instance.assign("members", std::move(members));
 
   for (auto iteration : state) {
     auto result{sourcemeta::core::jsonld_expand(instance)};
@@ -457,7 +455,7 @@ BENCHMARK(JSONLD_Member_Expand) {
 BENCHMARK(JSONLD_Catalog_Compact) {
   const auto expanded{
       sourcemeta::core::jsonld_expand(make_described_catalog())};
-  const auto context{catalog_context()};
+  const auto &context{catalog_context()};
 
   for (auto iteration : state) {
     auto result{sourcemeta::core::jsonld_compact(expanded, context)};
