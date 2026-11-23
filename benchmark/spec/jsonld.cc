@@ -349,6 +349,57 @@ static auto populate_annotation_list(
   }
 }
 
+// Expansion branches on how a term is defined, so the context states a
+// language map, an index map, set containers, a date and a decimal coercion,
+// a typed identifier, a property scoped context and a reverse property, and
+// the catalog carries a value of every one of those shapes
+static auto catalog_context() -> sourcemeta::core::JSON {
+  return sourcemeta::core::parse_json(R"JSON({
+    "@vocab": "https://example.com/vocab/",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "id": "@id",
+    "members": { "@id": "schema:hasPart", "@container": "@set" },
+    "isbn": "schema:isbn",
+    "title": { "@id": "schema:name", "@container": "@language" },
+    "abstract": "schema:abstract",
+    "datePublished": { "@id": "schema:datePublished", "@type": "xsd:date" },
+    "authors": { "@id": "schema:author", "@container": "@set" },
+    "name": "schema:name",
+    "keywords": { "@id": "schema:keywords", "@container": "@set" },
+    "identifiers": { "@id": "schema:identifier", "@container": "@index" },
+    "price": {
+      "@id": "schema:offers",
+      "@context": {
+        "value": { "@id": "schema:price", "@type": "xsd:decimal" },
+        "currency": "schema:priceCurrency"
+      }
+    },
+    "publisher": "schema:publisher",
+    "url": { "@id": "schema:url", "@type": "@id" },
+    "series": "schema:isPartOf",
+    "metadata": { "@id": "schema:additionalProperty", "@container": "@index" },
+    "provenance": { "@reverse": "schema:about" }
+  })JSON");
+}
+
+static auto make_described_catalog() -> sourcemeta::core::JSON {
+  auto catalog{make_catalog()};
+  catalog.assign("@context", catalog_context());
+  return catalog;
+}
+
+// Processing the context happens once per document, so a catalog of one member
+// is what shows a change to it, while the full catalog amortises it away
+static auto make_described_member() -> sourcemeta::core::JSON {
+  auto members{sourcemeta::core::JSON::make_array()};
+  members.push_back(make_member(0));
+  auto catalog{sourcemeta::core::JSON::make_object()};
+  catalog.assign("@context", catalog_context());
+  catalog.assign("members", std::move(members));
+  return catalog;
+}
+
 BENCHMARK(JSONLD_Catalog_Annotation_List_Populate) {
   for (auto iteration : state) {
     sourcemeta::core::JSONLDWeakAnnotationList annotations;
@@ -368,6 +419,50 @@ BENCHMARK(JSONLD_Catalog_Materialize) {
     auto result{sourcemeta::core::jsonld_materialize(instance, annotations)};
     assert(result.is_array());
     assert(!result.empty());
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(JSONLD_Catalog_Expand) {
+  const auto instance{make_described_catalog()};
+
+  for (auto iteration : state) {
+    auto result{sourcemeta::core::jsonld_expand(instance)};
+    assert(result.is_array());
+    assert(result.size() == 1);
+    assert(result.at(0).defines("https://schema.org/hasPart"));
+    assert(result.at(0).at("https://schema.org/hasPart").size() ==
+           CATALOG_MEMBER_COUNT);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(JSONLD_Member_Expand) {
+  const auto instance{make_described_member()};
+
+  for (auto iteration : state) {
+    auto result{sourcemeta::core::jsonld_expand(instance)};
+    assert(result.is_array());
+    assert(result.size() == 1);
+    assert(result.at(0).at("https://schema.org/hasPart").size() == 1);
+    [[maybe_unused]] const auto &member{
+        result.at(0).at("https://schema.org/hasPart").at(0)};
+    assert(member.defines("@reverse"));
+    assert(member.at("https://schema.org/name").size() == 3);
+    assert(member.at("https://schema.org/identifier").size() == 3);
+    sourcemeta::core::benchmark_do_not_optimize(result);
+  }
+}
+
+BENCHMARK(JSONLD_Catalog_Compact) {
+  const auto expanded{
+      sourcemeta::core::jsonld_expand(make_described_catalog())};
+  const auto context{catalog_context()};
+
+  for (auto iteration : state) {
+    auto result{sourcemeta::core::jsonld_compact(expanded, context)};
+    assert(result.is_object());
+    assert(result.at("members").size() == CATALOG_MEMBER_COUNT);
     sourcemeta::core::benchmark_do_not_optimize(result);
   }
 }
