@@ -91,6 +91,11 @@ TEST(dns_sd_anycast) {
             sourcemeta::core::IPAddressClass::Public);
 }
 
+TEST(anycast_block_2001_1_without_a_host) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
 TEST(beyond_anycast_2001_1_4) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::4").value(),
             sourcemeta::core::IPAddressClass::Reserved);
@@ -292,6 +297,46 @@ TEST(near_miss_of_the_link_local_prefix) {
 
 TEST(near_miss_of_the_nat64_well_known_prefix) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("64:1::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_second_group) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff00::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_third_group) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:100::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_fourth_group_high_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:0:100::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_fourth_group_low_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:0:1::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_fifth_group_high_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:0:0:100::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_fifth_group_low_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:0:0:1::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_sixth_group_high_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:0:0:0:100::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(near_miss_of_the_nat64_prefix_at_the_sixth_group_low_byte) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("64:ff9b:0:0:0:1::1").value(),
             sourcemeta::core::IPAddressClass::Reserved);
 }
 

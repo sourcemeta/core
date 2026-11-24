@@ -35,6 +35,24 @@ TEST(ascii_with_consecutive_hyphens_classify_as_ascii) {
   EXPECT_EQ(decoded, U"a--b");
 }
 
+// RFC 5890 §2.3.2.1: the ACE prefix is the two letters followed by two
+// hyphens, so a label that opens with the letters alone is not in A-label form
+TEST(ascii_with_the_ace_letters_and_no_hyphens) {
+  std::u32string decoded;
+  const auto kind{sourcemeta::core::idna_classify_label(U"xnab", decoded)};
+  EXPECT_TRUE(kind.has_value());
+  EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::Ascii);
+  EXPECT_EQ(decoded, U"xnab");
+}
+
+TEST(ascii_with_the_ace_letters_and_one_hyphen) {
+  std::u32string decoded;
+  const auto kind{sourcemeta::core::idna_classify_label(U"xn-a", decoded)};
+  EXPECT_TRUE(kind.has_value());
+  EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::Ascii);
+  EXPECT_EQ(decoded, U"xn-a");
+}
+
 // RFC 5890 §2.3.2.1: ACE prefix "xn--" detection is case-insensitive
 TEST(valid_a_label_lowercase_prefix) {
   std::u32string decoded;

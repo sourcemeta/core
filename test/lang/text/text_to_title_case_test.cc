@@ -195,3 +195,9 @@ TEST(leading_character_above_the_letters) {
   sourcemeta::core::to_title_case(value);
   EXPECT_EQ(value, "~Foo");
 }
+
+TEST(leading_character_between_the_letter_ranges) {
+  std::string value{"[foo"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "[Foo");
+}

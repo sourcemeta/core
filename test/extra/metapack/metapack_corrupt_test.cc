@@ -275,6 +275,24 @@ TEST_F(MetapackCorruption,
   EXPECT_FALSE(sourcemeta::core::metapack_read_json(path, 2).has_value());
 }
 
+// The counterpart of the test above: a declared size that divides exactly by
+// the payload lands within the limit rather than over it, so the ratio guard
+// admits it and the size it declares is then checked on its own, which these
+// contents do not match
+TEST_F(MetapackCorruption,
+       read_json_no_value_on_a_ratio_that_lands_exactly_on_the_limit) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".metapack-"};
+  const auto path{directory.path() / "document.metapack"};
+  write_document(path, sourcemeta::core::MetapackEncoding::GZIP);
+
+  const auto payload_size{payload_size_of(path)};
+
+  set_content_bytes(path, payload_size * 2);
+
+  EXPECT_FALSE(sourcemeta::core::metapack_read_json(path, 2).has_value());
+}
+
 TEST_F(MetapackCorruption, read_json_no_value_when_contents_inflate_short) {
   const sourcemeta::core::TemporaryDirectory directory{
       std::filesystem::temp_directory_path(), ".metapack-"};

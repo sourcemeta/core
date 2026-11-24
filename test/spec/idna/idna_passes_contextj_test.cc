@@ -100,3 +100,10 @@ TEST(position_out_of_range) {
 TEST(empty_label) {
   EXPECT_FALSE(sourcemeta::core::idna_passes_contextj(U"", 0));
 }
+
+// RFC 5892 Appendix A.1 rule B: the character before the joiner may carry
+// joining type L as well as D, which U+A872 PHAGS-PA SUPERFIXED LETTER RA
+// does, with U+0628 ARABIC LETTER BEH carrying D after it
+TEST(zero_width_non_joiner_after_a_left_joining_character) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_contextj(U"\uA872\u200C\u0628", 1));
+}

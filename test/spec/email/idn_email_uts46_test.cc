@@ -163,3 +163,58 @@ TEST(invalid_utf8_domain) {
 TEST(invalid_utf8_local) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\xc0\x80@b"));
 }
+
+// RFC 5321 §4.1.2 and RFC 6531 §3.3: the lookup variant reads a quoted
+// Local-part the way the strict variant does
+TEST(valid_quoted_ascii) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email_uts46("\"abc\"@example.com"));
+}
+
+TEST(valid_quoted_with_two_byte_utf8) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email_uts46("\"\xc3\xa9\"@example.com"));
+}
+
+TEST(valid_quoted_with_a_quoted_pair) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email_uts46("\"a\\\"b\"@example.com"));
+}
+
+TEST(invalid_unterminated_quoted_local_part) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"abc"));
+}
+
+TEST(invalid_trailing_backslash_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"abc\\"));
+}
+
+TEST(invalid_control_octet_after_a_backslash_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"a\\\x01\"@example.com"));
+}
+
+TEST(invalid_delete_octet_after_a_backslash_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"a\\\x7f\"@example.com"));
+}
+
+TEST(invalid_bare_control_octet_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"a\x01"
+                                                    "b\"@example.com"));
+}
+
+TEST(invalid_octet_after_the_closing_quote) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"abc\"x@example.com"));
+}
+
+// RFC 5321 §4.5.3.1.3: the mailbox is at most 254 octets. The pair below sits
+// either side of that total with a Local-part at its own 64 octet limit and a
+// Domain within both its 253 octet limit and its 63 octet label limit, so the
+// total is the only rule that can tell them apart
+TEST(valid_mailbox_at_the_octet_total) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email_uts46(
+      std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
+      std::string(63, 'c') + "." + std::string(61, 'd')));
+}
+
+TEST(invalid_mailbox_past_the_octet_total) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46(
+      std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
+      std::string(63, 'c') + "." + std::string(62, 'd')));
+}

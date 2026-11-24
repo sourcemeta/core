@@ -18,6 +18,18 @@ TEST(valid_int_tabs_and_newlines) {
   EXPECT_TRUE(sourcemeta::core::is_css2_rgb_function("rgb(\t255,\n0,\r128)"));
 }
 
+TEST(valid_int_form_feeds) {
+  EXPECT_TRUE(sourcemeta::core::is_css2_rgb_function("rgb(\f255,\f0,\f128)"));
+}
+
+TEST(invalid_truncated_after_the_open_parenthesis) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb("));
+}
+
+TEST(invalid_truncated_after_a_decimal_point) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(1."));
+}
+
 TEST(invalid_leading_whitespace) {
   EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function(" rgb(0,0,0)"));
 }
