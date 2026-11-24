@@ -1,0 +1,24 @@
+{
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://www.sourcemeta.com/metadata-tree",
+    "$recursiveAnchor": true,
+    "unevaluatedProperties": false
+  },
+  "defaultId": "https://www.sourcemeta.com/default",
+  "result": {
+    "nonOfficialMetaschemas": {
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "$id": "https://www.sourcemeta.com/metadata-tree",
+      "$recursiveAnchor": true,
+      "unevaluatedProperties": false
+    },
+    "references": {
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "$id": "https://www.sourcemeta.com/metadata-tree",
+      "$recursiveAnchor": true,
+      "unevaluatedProperties": false
+    }
+  },
+  "inserted": { "nonOfficialMetaschemas": [], "references": [] }
+}

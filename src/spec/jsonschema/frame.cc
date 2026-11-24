@@ -505,6 +505,21 @@ auto set_base_and_fragment(sourcemeta::core::SchemaFrame::Reference &entry)
   }
 }
 
+// A dynamic reference seeks an anchor by name, which its fragment holds. A
+// `$recursiveRef` names no anchor at all, as Section 8.2.4.2.2 of JSON Schema
+// 2019-09 settles its target by looking for a `$recursiveAnchor` of true
+// rather than for a name, so what it seeks is the empty name that such an
+// anchor is recorded under. That is also what the URI of one reads back as,
+// given that canonicalising it dropped the empty fragment
+// See
+// https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.4.2.2
+auto reference_seeks_anchor(
+    const sourcemeta::core::SchemaFrame::Reference &reference,
+    const sourcemeta::core::JSON::String &anchor_uri) -> bool {
+  return sourcemeta::core::URI{anchor_uri}.fragment().value_or("") ==
+         reference.fragment.value_or("");
+}
+
 // A location reports its base as a view, so that view has to point at a
 // string that outlives the frame. The key of the location that owns the base
 // is the usual answer
@@ -896,20 +911,23 @@ auto store_anchors(Locations &locations, Owned &owned,
       continue;
     }
 
-    [[maybe_unused]] bool is_first{true};
+    bool is_first{true};
     for (const auto &base_string : bases.first) {
       sourcemeta::core::URI anchor_uri_builder{base_string};
       anchor_uri_builder.fragment(name);
       anchor_uri_builder.canonicalize();
       const auto anchor_uri{anchor_uri_builder.recompose()};
 
-      // Two bases of one place never spell a single anchor, as the fragment
-      // put on them is the same and each base is a name of its own, so the
-      // first of them is the only one that can have taken the name this one
-      // is about to
-      assert(is_first ||
-             !locations.contains(
-                 {sourcemeta::core::SchemaReferenceType::Static, anchor_uri}));
+      // An anchor that carries no name, which is how a recursive anchor of
+      // JSON Schema 2019-09 is recorded, has the base URI for its anchor URI,
+      // so every name of the resource it marks already holds a location of its
+      // own. The marker goes on the first of those names, which is the one
+      // that resolving a reference against the nearest base arrives at
+      if (!is_first &&
+          locations.contains(
+              {sourcemeta::core::SchemaReferenceType::Static, anchor_uri})) {
+        continue;
+      }
 
       store_anchor(locations, max_locations, type, entry, anchor_uri,
                    owned_base_view(locations, owned, default_base, base_string),
@@ -2504,12 +2522,7 @@ auto SchemaFrame::has_references_to(
         if (location.second.type == LocationType::Anchor &&
             location.first.first == SchemaReferenceType::Dynamic &&
             location.second.pointer == pointer) {
-          // A reference reads as dynamic only where it names an anchor,
-          // which is what its fragment holds, so there is always a name to
-          // hold the one of the location up against
-          assert(reference.second.fragment.has_value());
-          if (sourcemeta::core::URI{location.first.second}.fragment().value_or(
-                  "") == reference.second.fragment.value()) {
+          if (reference_seeks_anchor(reference.second, location.first.second)) {
             return true;
           }
         }
@@ -2538,12 +2551,7 @@ auto SchemaFrame::has_references_through(
         if (location.second.type == LocationType::Anchor &&
             location.first.first == SchemaReferenceType::Dynamic &&
             location.second.pointer.starts_with(pointer)) {
-          // A reference reads as dynamic only where it names an anchor,
-          // which is what its fragment holds, so there is always a name to
-          // hold the one of the location up against
-          assert(reference.second.fragment.has_value());
-          if (sourcemeta::core::URI{location.first.second}.fragment().value_or(
-                  "") == reference.second.fragment.value()) {
+          if (reference_seeks_anchor(reference.second, location.first.second)) {
             return true;
           }
         }
@@ -2573,12 +2581,7 @@ auto SchemaFrame::has_references_through(
         if (location.second.type == LocationType::Anchor &&
             location.first.first == SchemaReferenceType::Dynamic &&
             location.second.pointer.starts_with(pointer, tail)) {
-          // A reference reads as dynamic only where it names an anchor,
-          // which is what its fragment holds, so there is always a name to
-          // hold the one of the location up against
-          assert(reference.second.fragment.has_value());
-          if (sourcemeta::core::URI{location.first.second}.fragment().value_or(
-                  "") == reference.second.fragment.value()) {
+          if (reference_seeks_anchor(reference.second, location.first.second)) {
             return true;
           }
         }
