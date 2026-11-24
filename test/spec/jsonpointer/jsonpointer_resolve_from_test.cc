@@ -1,6 +1,9 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
+#include <functional>
+#include <string>
+
 TEST(mismatch_base_shorter) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer base{"foo", "bar", "baz"};
@@ -49,5 +52,35 @@ TEST(match_2) {
 TEST(base_that_diverges_from_the_pointer) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer base{"qux"};
+  EXPECT_EQ(pointer.resolve_from(base), pointer);
+}
+
+TEST(weak_mismatch_base_shorter) {
+  const std::string foo{"foo"};
+  const std::string bar{"bar"};
+  const std::string baz{"baz"};
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer base{std::cref(foo), std::cref(bar),
+                                           std::cref(baz)};
+  EXPECT_EQ(pointer.resolve_from(base), pointer);
+}
+
+TEST(weak_match) {
+  const std::string foo{"foo"};
+  const std::string bar{"bar"};
+  const std::string baz{"baz"};
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
+                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer base{std::cref(foo), std::cref(bar)};
+  EXPECT_EQ(pointer.resolve_from(base),
+            sourcemeta::core::WeakPointer{std::cref(baz)});
+}
+
+TEST(weak_base_that_diverges_from_the_pointer) {
+  const std::string foo{"foo"};
+  const std::string bar{"bar"};
+  const std::string qux{"qux"};
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer base{std::cref(qux)};
   EXPECT_EQ(pointer.resolve_from(base), pointer);
 }

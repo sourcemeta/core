@@ -276,3 +276,37 @@ TEST(weak_index_token_on_object) {
   EXPECT_TRUE(result);
   EXPECT_EQ(result->to_integer(), 1);
 }
+
+TEST(weak_property_token_on_array) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON");
+
+  const std::string property{"foo"};
+  const sourcemeta::core::WeakPointer::Token token{std::cref(property)};
+  EXPECT_FALSE(sourcemeta::core::try_get(document, token));
+}
+
+TEST(weak_index_token_on_array) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON");
+
+  const sourcemeta::core::WeakPointer::Token token{1};
+  const auto *result{sourcemeta::core::try_get(document, token)};
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 2);
+}
+
+TEST(weak_out_of_range_index_token_on_array) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON");
+
+  const sourcemeta::core::WeakPointer::Token token{2};
+  EXPECT_FALSE(sourcemeta::core::try_get(document, token));
+}
+
+TEST(weak_index_token_on_scalar) {
+  const sourcemeta::core::JSON document{5};
+
+  const sourcemeta::core::WeakPointer::Token token{0};
+  EXPECT_FALSE(sourcemeta::core::try_get(document, token));
+}

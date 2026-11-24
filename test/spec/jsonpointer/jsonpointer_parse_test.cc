@@ -65,6 +65,35 @@ TEST(slash_1) {
   EXPECT_EQ(pointer.at(0).to_index(), 1);
 }
 
+// Every digit opens a token of its own here, as the scan reads the first
+// character of a token on a path of its own from the ones after it
+TEST(slash_every_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/0/1/2/3/4/5/6/7/8/9"));
+  const sourcemeta::core::Pointer pointer =
+      sourcemeta::core::to_pointer("/0/1/2/3/4/5/6/7/8/9");
+  EXPECT_EQ(pointer.size(), 10);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 0);
+  EXPECT_TRUE(pointer.at(1).is_index());
+  EXPECT_EQ(pointer.at(1).to_index(), 1);
+  EXPECT_TRUE(pointer.at(2).is_index());
+  EXPECT_EQ(pointer.at(2).to_index(), 2);
+  EXPECT_TRUE(pointer.at(3).is_index());
+  EXPECT_EQ(pointer.at(3).to_index(), 3);
+  EXPECT_TRUE(pointer.at(4).is_index());
+  EXPECT_EQ(pointer.at(4).to_index(), 4);
+  EXPECT_TRUE(pointer.at(5).is_index());
+  EXPECT_EQ(pointer.at(5).to_index(), 5);
+  EXPECT_TRUE(pointer.at(6).is_index());
+  EXPECT_EQ(pointer.at(6).to_index(), 6);
+  EXPECT_TRUE(pointer.at(7).is_index());
+  EXPECT_EQ(pointer.at(7).to_index(), 7);
+  EXPECT_TRUE(pointer.at(8).is_index());
+  EXPECT_EQ(pointer.at(8).to_index(), 8);
+  EXPECT_TRUE(pointer.at(9).is_index());
+  EXPECT_EQ(pointer.at(9).to_index(), 9);
+}
+
 TEST(slash_1234) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1234"));
   const sourcemeta::core::Pointer pointer =
