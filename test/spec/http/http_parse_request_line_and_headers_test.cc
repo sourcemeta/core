@@ -22,6 +22,7 @@ TEST(
   EXPECT_EQ(result.headers.at(1).second, "one");
   EXPECT_EQ(result.headers.at(2).first, "x-value");
   EXPECT_EQ(result.headers.at(2).second, "two");
+  EXPECT_EQ(result.headers.at(3).first, "Empty");
   EXPECT_TRUE(result.headers.at(3).second.empty());
 }
 
@@ -32,6 +33,14 @@ TEST(request_line_and_headers_stops_before_body) {
       sourcemeta::core::http_parse_request_line_and_headers(INPUT)};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Complete);
+  EXPECT_EQ(result.consumed, INPUT.size() - 4);
+  EXPECT_EQ(result.method, "POST");
+  EXPECT_EQ(result.target, "/");
+  EXPECT_EQ(result.headers.size(), 2);
+  EXPECT_EQ(result.headers.at(0).first, "Host");
+  EXPECT_EQ(result.headers.at(0).second, "example.com");
+  EXPECT_EQ(result.headers.at(1).first, "Content-Length");
+  EXPECT_EQ(result.headers.at(1).second, "4");
   EXPECT_EQ(INPUT.substr(result.consumed), "data");
 }
 
@@ -40,6 +49,9 @@ TEST(request_line_and_headers_empty_input_is_incomplete) {
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Incomplete);
   EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 TEST(request_line_and_headers_split_terminator_is_incomplete) {
@@ -49,6 +61,8 @@ TEST(request_line_and_headers_split_terminator_is_incomplete) {
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Incomplete);
   EXPECT_EQ(result.consumed, 0);
   EXPECT_TRUE(result.headers.empty());
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
 }
 
 TEST(request_line_and_headers_rejects_other_versions) {
@@ -57,6 +71,9 @@ TEST(request_line_and_headers_rejects_other_versions) {
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
   EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 TEST(request_line_and_headers_rejects_missing_target) {
@@ -64,6 +81,10 @@ TEST(request_line_and_headers_rejects_missing_target) {
       "GET  HTTP/1.1\r\n\r\n")};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
+  EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 TEST(request_line_and_headers_rejects_bare_lf) {
@@ -71,6 +92,10 @@ TEST(request_line_and_headers_rejects_bare_lf) {
       "GET / HTTP/1.1\n\n")};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
+  EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 TEST(request_line_and_headers_rejects_whitespace_before_colon) {
@@ -80,6 +105,8 @@ TEST(request_line_and_headers_rejects_whitespace_before_colon) {
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
   EXPECT_EQ(result.consumed, 0);
   EXPECT_TRUE(result.headers.empty());
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
 }
 
 TEST(request_line_and_headers_rejects_field_value_control_byte) {
@@ -88,6 +115,9 @@ TEST(request_line_and_headers_rejects_field_value_control_byte) {
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
   EXPECT_TRUE(result.headers.empty());
+  EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
 }
 
 TEST(request_line_and_headers_rejects_obsolete_line_folding) {
@@ -95,6 +125,10 @@ TEST(request_line_and_headers_rejects_obsolete_line_folding) {
       "GET / HTTP/1.1\r\nHost: example.com\r\n continued\r\n\r\n")};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
+  EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 TEST(request_line_and_headers_partial_request_line_is_incomplete) {
@@ -103,6 +137,9 @@ TEST(request_line_and_headers_partial_request_line_is_incomplete) {
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Incomplete);
   EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 TEST(request_line_and_headers_partial_field_is_incomplete) {
@@ -121,6 +158,10 @@ TEST(request_line_and_headers_rejects_carriage_return_without_line_feed) {
       "GET / HTTP/1.1\rHost: example.com\r\n\r\n")};
   EXPECT_TRUE(result.status ==
               sourcemeta::core::HTTPRequestLineAndHeadersStatus::Malformed);
+  EXPECT_EQ(result.consumed, 0);
+  EXPECT_TRUE(result.method.empty());
+  EXPECT_TRUE(result.target.empty());
+  EXPECT_TRUE(result.headers.empty());
 }
 
 // Adapted from llhttp's "Simple request" fixture (MIT):
@@ -142,7 +183,8 @@ TEST(llhttp_simple_request) {
   EXPECT_EQ(result.headers.at(1).second, "Value2");
 }
 
-// Adapted from the same suite's "No headers and no body" fixture.
+// Adapted from llhttp's "No headers and no body" fixture (MIT):
+// https://github.com/nodejs/llhttp/blob/85c5d42cd563d5426a478d32248a45ee81f4b635/test/request/sample.md#no-headers-and-no-body
 TEST(llhttp_no_headers_and_no_body) {
   constexpr std::string_view INPUT{
       "GET /get_no_headers_no_body/world HTTP/1.1\r\n\r\n"};
