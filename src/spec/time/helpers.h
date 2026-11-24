@@ -28,10 +28,16 @@ inline auto broken_down_time_to_time_point(const std::tm &parts)
       std::chrono::year{parts.tm_year + 1900},
       std::chrono::month{static_cast<unsigned>(parts.tm_mon + 1)},
       std::chrono::day{static_cast<unsigned>(parts.tm_mday)}};
-  const auto since_epoch{std::chrono::sys_days{date}.time_since_epoch() +
-                         std::chrono::hours{parts.tm_hour} +
-                         std::chrono::minutes{parts.tm_min} +
-                         std::chrono::seconds{parts.tm_sec}};
+  // Every term is widened to seconds before any of them are added. A day count
+  // and an hour count share a representation as narrow as the narrower of the
+  // two, which is 32 bits wide on some implementations, and a far future
+  // instant overflows it at minute precision before the bounds below are
+  // tested, turning into a past instant that those bounds then admit
+  const auto since_epoch{
+      std::chrono::seconds{std::chrono::sys_days{date}.time_since_epoch()} +
+      std::chrono::seconds{std::chrono::hours{parts.tm_hour}} +
+      std::chrono::seconds{std::chrono::minutes{parts.tm_min}} +
+      std::chrono::seconds{parts.tm_sec}};
 
   using TimePoint = std::chrono::system_clock::time_point;
   // The bounds round inwards so the value cast back to the finer duration stays
@@ -124,13 +130,17 @@ inline auto is_case_sensitive_month_abbreviation(const std::string_view name,
 // Validate the calendar fields of a broken-down time, since the conversion to
 // an epoch time point would otherwise silently normalise out-of-range values
 //
+// Every bound below is reachable through a reader that scans digits, as such a
+// scan settles the syntax of a field and not its range, so a day of "00"
+// arrives here as a zero and a month of "00" as a negative. The exceptions are
+// the lower bounds on the time of day, which no reader can drive, along with
+// the ranges the day and month abbreviation checks carry
+//
 // TODO: Parse the HTTP date formats here rather than through std::get_time, so
-// that what a field may hold is decided by this module instead of by a
+// that what those fields may hold is decided by this module rather than by a
 // standard library whose behaviour on malformed input is implementation
-// defined. The lower bounds below, and the ranges the day and month
-// abbreviation checks carry, are only here because that function is the one
-// filling these fields for the asctime, IMF fixdate and RFC 850 readers, and
-// no input can drive them once the digits are scanned here
+// defined, which is what those three exceptions are guarding today for the
+// asctime, IMF fixdate and RFC 850 readers
 inline auto is_valid_broken_down_time(const std::tm &parts) -> bool {
   if (parts.tm_mon < 0 || parts.tm_mon > 11) {
     return false;

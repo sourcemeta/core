@@ -105,5 +105,5 @@ TEST(empty_label) {
 // joining type L as well as D, which U+A872 PHAGS-PA SUPERFIXED LETTER RA
 // does, with U+0628 ARABIC LETTER BEH carrying D after it
 TEST(zero_width_non_joiner_after_a_left_joining_character) {
-  EXPECT_TRUE(sourcemeta::core::idna_passes_contextj(U"ꡲ‌ب", 1));
+  EXPECT_TRUE(sourcemeta::core::idna_passes_contextj(U"\uA872\u200C\u0628", 1));
 }

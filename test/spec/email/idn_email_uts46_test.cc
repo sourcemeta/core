@@ -203,12 +203,18 @@ TEST(invalid_octet_after_the_closing_quote) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46("\"abc\"x@example.com"));
 }
 
-// RFC 5321 §4.5.3.1.3: a 64-byte Local-part plus "@" plus a 254-byte Domain
-// exceeds the 254 octet mailbox total even though each component is within its
-// own limit
+// RFC 5321 §4.5.3.1.3: the mailbox is at most 254 octets. The pair below sits
+// either side of that total with a Local-part at its own 64 octet limit and a
+// Domain within both its 253 octet limit and its 63 octet label limit, so the
+// total is the only rule that can tell them apart
+TEST(valid_mailbox_at_the_octet_total) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email_uts46(
+      std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
+      std::string(63, 'c') + "." + std::string(61, 'd')));
+}
+
 TEST(invalid_mailbox_past_the_octet_total) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email_uts46(
       std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
-      std::string(63, 'c') + "." + std::string(63, 'd') + "." +
-      std::string(62, 'e')));
+      std::string(63, 'c') + "." + std::string(62, 'd')));
 }
