@@ -194,11 +194,12 @@ inline auto time_point_to_broken_down(
 // Validate the calendar fields of a broken-down time, since the conversion to
 // an epoch time point would otherwise silently normalise out-of-range values
 //
-// Every bound below is driven by a reader, as a reader settles the syntax of a
-// field and not its range, so a month of "00" arrives here as a zero and a day
-// of "00" likewise. The fields a reader takes from a name carry their range
-// with them, and the lower bound of a field counted without a sign is the
-// width itself
+// A reader settles the syntax of a field and not its range, so every bound
+// below is one a reader can drive. The month and the day are counted from one,
+// so a field written "00" arrives here as a zero that has to be turned down,
+// while the time of day is counted from zero and has nothing below its first
+// admissible value to turn down. A month taken from a name arrives in range
+// already, which leaves the month bounds to the reader that takes it as digits
 inline auto is_valid_broken_down_time(const BrokenDownTime &parts) -> bool {
   if (parts.month < 1 || parts.month > 12) {
     return false;
