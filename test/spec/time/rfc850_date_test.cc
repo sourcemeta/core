@@ -287,6 +287,18 @@ TEST(reject_missing_space_before_time) {
           .has_value());
 }
 
+TEST(reject_corrupted_hour_minute_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08x49:37 GMT")
+          .has_value());
+}
+
+TEST(reject_corrupted_minute_second_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49x37 GMT")
+          .has_value());
+}
+
 TEST(reject_missing_space_before_zone) {
   EXPECT_FALSE(
       sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:37xGMT")
