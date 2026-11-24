@@ -665,9 +665,7 @@ auto reference_destinations(const References &references,
         continue;
       }
 
-      if (!reference.second.fragment.has_value() ||
-          sourcemeta::core::URI{location.first.second}.fragment().value_or(
-              "") == reference.second.fragment.value()) {
+      if (reference_seeks_anchor(reference.second, location.first.second)) {
         result.push_back(location.second.pointer);
       }
     }
@@ -919,13 +917,13 @@ auto store_anchors(Locations &locations, Owned &owned,
       const auto anchor_uri{anchor_uri_builder.recompose()};
 
       // An anchor that carries no name, which is how a recursive anchor of
-      // JSON Schema 2019-09 is recorded, has the base URI for its anchor URI,
-      // so every name of the resource it marks already holds a location of its
-      // own. The marker goes on the first of those names, which is the one
-      // that resolving a reference against the nearest base arrives at
-      if (!is_first &&
-          locations.contains(
-              {sourcemeta::core::SchemaReferenceType::Static, anchor_uri})) {
+      // JSON Schema 2019-09 is recorded, marks the resource it sits in rather
+      // than a place within it, as it puts no fragment on the base to tell the
+      // two apart. The mark goes on the first name of that resource, which is
+      // the one that resolving a reference against the nearest base arrives
+      // at. A named anchor names a place of its own under every base, so each
+      // of those is stored and a name already taken collides as it should
+      if (!is_first && name.empty()) {
         continue;
       }
 

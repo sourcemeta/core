@@ -2152,6 +2152,69 @@ TEST(recursive_anchor_of_a_resource_the_caller_names_too) {
                    .has_value());
 }
 
+// The frame reports what a reference reaches both through its accessors and
+// through its JSON representation, so the two have to agree on which places a
+// reference that names no anchor reaches
+TEST(to_json_agrees_with_the_accessors_on_a_recursive_reference) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/schema",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveAnchor": true,
+    "$defs": {
+      "a": { "$id": "one", "$recursiveAnchor": true },
+      "c": {
+        "$id": "https://example.com/three",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$dynamicAnchor": "shared"
+      }
+    },
+    "properties": { "value": { "$recursiveRef": "#" } }
+  })JSON");
+
+  const sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References, document,
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver};
+
+  const auto result{frame.to_json(sourcemeta::core::schema_resolver)};
+  const auto &reported{result.at("locations").at("static")};
+
+  const sourcemeta::core::Pointer root;
+  const sourcemeta::core::Pointer first{"$defs", "a"};
+  const sourcemeta::core::Pointer third{"$defs", "c"};
+
+  EXPECT_TRUE(reported.at("https://example.com/schema")
+                  .at("hasReferencesTo")
+                  .to_boolean());
+  EXPECT_EQ(reported.at("https://example.com/schema")
+                .at("hasReferencesTo")
+                .to_boolean(),
+            frame.has_references_to(sourcemeta::core::to_weak_pointer(root)));
+
+  EXPECT_TRUE(reported.at("https://example.com/one")
+                  .at("hasReferencesTo")
+                  .to_boolean());
+  EXPECT_EQ(
+      reported.at("https://example.com/one").at("hasReferencesTo").to_boolean(),
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(first)));
+
+  EXPECT_FALSE(reported.at("https://example.com/three")
+                   .at("hasReferencesTo")
+                   .to_boolean());
+  EXPECT_EQ(reported.at("https://example.com/three")
+                .at("hasReferencesTo")
+                .to_boolean(),
+            frame.has_references_to(sourcemeta::core::to_weak_pointer(third)));
+
+  EXPECT_FALSE(reported.at("https://example.com/three")
+                   .at("hasReferencesThrough")
+                   .to_boolean());
+  EXPECT_EQ(
+      reported.at("https://example.com/three")
+          .at("hasReferencesThrough")
+          .to_boolean(),
+      frame.has_references_through(sourcemeta::core::to_weak_pointer(third)));
+}
+
 TEST(accessors_traverse_pointer_with_type) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/schema",
