@@ -683,6 +683,27 @@ TEST(mutable_weak_index_token_on_object) {
   EXPECT_EQ(document.at("0").to_integer(), 5);
 }
 
+TEST(mutable_weak_index_token) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON");
+
+  const sourcemeta::core::WeakPointer::Token token{1};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, token)};
+  result = sourcemeta::core::JSON{5};
+  EXPECT_EQ(document.at(1).to_integer(), 5);
+}
+
+TEST(mutable_programmatic_index_token_on_object) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "0": 1
+  })JSON");
+
+  const sourcemeta::core::Pointer pointer{0};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, pointer)};
+  result = sourcemeta::core::JSON{5};
+  EXPECT_EQ(document.at("0").to_integer(), 5);
+}
+
 TEST(programmatic_index_token_on_object) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "0": 1

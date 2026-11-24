@@ -91,6 +91,21 @@ TEST(to_json_property) {
   EXPECT_EQ(result.to_string(), "foo");
 }
 
+TEST(to_json_weak_index) {
+  const sourcemeta::core::WeakPointer::Token token{5};
+  const sourcemeta::core::JSON result{token.to_json()};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 5);
+}
+
+TEST(to_json_weak_property) {
+  const std::string property{"foo"};
+  const sourcemeta::core::WeakPointer::Token token{std::cref(property)};
+  const sourcemeta::core::JSON result{token.to_json()};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "foo");
+}
+
 TEST(equality_short_property_tokens_equal) {
   const sourcemeta::core::Pointer::Token first{"foo"};
   const sourcemeta::core::Pointer::Token second{"foo"};
@@ -297,6 +312,16 @@ TEST(property_equals_weak_token_long_property_match) {
       property, sourcemeta::core::JSON::Object::hash(property)));
 }
 
+TEST(property_equals_weak_token_imperfect_hash_collision_rejected) {
+  const std::string property{std::string(31, 'a') + "11111110" + "z"};
+  const std::string value{std::string(31, 'a') + "22222220" + "z"};
+  const sourcemeta::core::WeakPointer::Token token{std::cref(property)};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(property),
+            sourcemeta::core::JSON::Object::hash(value));
+  EXPECT_FALSE(token.property_equals(
+      value, sourcemeta::core::JSON::Object::hash(value)));
+}
+
 TEST(at_property_with_hash) {
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "foo": 1,
@@ -317,6 +342,15 @@ TEST(property_sorts_before_an_index) {
   const sourcemeta::core::Pointer::Token property{"foo"};
   const sourcemeta::core::Pointer::Token index{
       static_cast<sourcemeta::core::Pointer::Token::Index>(0)};
+  EXPECT_TRUE(property < index);
+  EXPECT_FALSE(index < property);
+}
+
+TEST(weak_property_sorts_before_an_index) {
+  const std::string name{"foo"};
+  const sourcemeta::core::WeakPointer::Token property{std::cref(name)};
+  const sourcemeta::core::WeakPointer::Token index{
+      static_cast<sourcemeta::core::WeakPointer::Token::Index>(0)};
   EXPECT_TRUE(property < index);
   EXPECT_FALSE(index < property);
 }

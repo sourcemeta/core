@@ -199,6 +199,24 @@ TEST(push_back_pointer_move) {
   // TODO: we should assert that other has been moved
 }
 
+TEST(push_back_empty_rvalue_pointer_is_noop) {
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+  pointer.push_back(sourcemeta::core::WeakPointer{});
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+}
+
+TEST(push_back_single_token_rvalue_pointer) {
+  sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+  pointer.push_back(sourcemeta::core::WeakPointer{std::cref(BAR)});
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+}
+
 TEST(initial_with_one_token) {
   const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
   const sourcemeta::core::WeakPointer result{pointer.initial()};
@@ -303,6 +321,48 @@ TEST(try_get_complex_false) {
 
   const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 2,
                                               std::cref(BAZ)};
+
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_FALSE(result);
+}
+
+TEST(try_get_property_against_an_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2 ])JSON")};
+
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO)};
+
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_FALSE(result);
+}
+
+TEST(try_get_property_that_the_object_does_not_define) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": 1
+  })JSON")};
+
+  const sourcemeta::core::WeakPointer pointer{std::cref(QUX)};
+
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_FALSE(result);
+}
+
+TEST(try_get_index_against_a_scalar) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": 5
+  })JSON")};
+
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 1};
+
+  const auto *const result{sourcemeta::core::try_get(document, pointer)};
+  EXPECT_FALSE(result);
+}
+
+TEST(try_get_index_past_the_end_of_an_array) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": [ 1, 2 ]
+  })JSON")};
+
+  const sourcemeta::core::WeakPointer pointer{std::cref(FOO), 5};
 
   const auto *const result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_FALSE(result);
@@ -471,6 +531,17 @@ TEST(hash_two_token_consistency) {
   const sourcemeta::core::WeakPointer two_3{std::cref(FOO), std::cref(BAZ)};
   EXPECT_EQ(hasher(two_1), hasher(two_2));
   EXPECT_NE(hasher(two_1), hasher(two_3));
+}
+
+// The hash is taken from the first, the middle and the last token, each of
+// which contributes its own hash as a property and its value as an index
+TEST(hash_of_indexes_only) {
+  const sourcemeta::core::WeakPointer::Hasher hasher;
+  const sourcemeta::core::WeakPointer indexes_1{1, 2, 3};
+  const sourcemeta::core::WeakPointer indexes_2{1, 2, 3};
+  const sourcemeta::core::WeakPointer indexes_3{1, 2, 4};
+  EXPECT_EQ(hasher(indexes_1), hasher(indexes_2));
+  EXPECT_NE(hasher(indexes_1), hasher(indexes_3));
 }
 
 TEST(hash_three_token_consistency) {

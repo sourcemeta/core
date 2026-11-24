@@ -111,6 +111,47 @@ TEST(weak_nonexistent_property) {
   EXPECT_EQ(document, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
 }
 
+TEST(weak_nested_property) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      R"JSON({ "foo": { "bar": 1, "baz": 2 } })JSON");
+
+  const std::string foo = "foo";
+  const std::string bar = "bar";
+  EXPECT_TRUE(sourcemeta::core::remove(
+      document, sourcemeta::core::WeakPointer{std::cref(foo), std::cref(bar)}));
+  EXPECT_EQ(document,
+            sourcemeta::core::parse_json(R"JSON({ "foo": { "baz": 2 } })JSON"));
+}
+
+TEST(weak_nested_property_through_an_array_element) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      R"JSON({ "foo": [ { "bar": 1, "baz": 2 } ] })JSON");
+
+  const std::string foo = "foo";
+  const std::string bar = "bar";
+  EXPECT_TRUE(sourcemeta::core::remove(
+      document,
+      sourcemeta::core::WeakPointer{std::cref(foo), 0, std::cref(bar)}));
+  EXPECT_EQ(document, sourcemeta::core::parse_json(
+                          R"JSON({ "foo": [ { "baz": 2 } ] })JSON"));
+}
+
+// An index token still names an object member when the value it steps into is
+// an object, which a traversal that stops short of the last token reaches too
+// See https://www.rfc-editor.org/rfc/rfc6901#section-4
+TEST(weak_nested_property_through_an_index_named_object_member) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      R"JSON({ "foo": { "0": { "bar": 1, "baz": 2 } } })JSON");
+
+  const std::string foo = "foo";
+  const std::string bar = "bar";
+  EXPECT_TRUE(sourcemeta::core::remove(
+      document,
+      sourcemeta::core::WeakPointer{std::cref(foo), 0, std::cref(bar)}));
+  EXPECT_EQ(document, sourcemeta::core::parse_json(
+                          R"JSON({ "foo": { "0": { "baz": 2 } } })JSON"));
+}
+
 TEST(weak_cannot_remove_root_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json(R"JSON({ "foo": 1, "": 2 })JSON");
