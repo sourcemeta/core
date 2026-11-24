@@ -32,8 +32,10 @@ auto to_rfc850_date(const std::chrono::system_clock::time_point time)
   result.push_back('-');
   result.append(MONTH_NAMES[static_cast<std::size_t>(parts.month - 1)]);
   result.push_back('-');
-  // The format carries the year as its last two digits, which the remainder
-  // below holds for a year on either side of the epoch
+  // RFC 9110 §5.6.7 carries the year as its last two digits. The remainder can
+  // be negative for a year before year zero, which this format has no spelling
+  // for, so it is lifted into the range of the field rather than being left to
+  // carry a sign into it
   append_two_digits(
       result, static_cast<std::uint8_t>(((parts.year % 100) + 100) % 100));
   result.push_back(' ');
