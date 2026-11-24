@@ -1,4 +1,4 @@
-#include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
 #include "helpers.h"
@@ -43,10 +43,8 @@ auto from_asctime(const std::string_view value)
     return std::nullopt;
   }
   if ((value[8] != ' ' && !is_digit(value[8])) || !is_digit(value[9]) ||
-      !is_digit(value[11]) || !is_digit(value[12]) || !is_digit(value[14]) ||
-      !is_digit(value[15]) || !is_digit(value[17]) || !is_digit(value[18]) ||
-      !is_digit(value[20]) || !is_digit(value[21]) || !is_digit(value[22]) ||
-      !is_digit(value[23])) {
+      !is_digit(value.substr(11, 2)) || !is_digit(value.substr(14, 2)) ||
+      !is_digit(value.substr(17, 2)) || !is_digit(value.substr(20, 4))) {
     return std::nullopt;
   }
   if (!is_day_name(value.substr(0, 3))) {

@@ -1,4 +1,4 @@
-#include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
 #include "helpers.h"
@@ -43,10 +43,9 @@ auto from_imf_fixdate(const std::string_view value)
       value[22] != ':' || value[25] != ' ' || value.substr(26) != "GMT") {
     return std::nullopt;
   }
-  if (!is_digit(value[5]) || !is_digit(value[6]) || !is_digit(value[12]) ||
-      !is_digit(value[13]) || !is_digit(value[14]) || !is_digit(value[15]) ||
-      !is_digit(value[17]) || !is_digit(value[18]) || !is_digit(value[20]) ||
-      !is_digit(value[21]) || !is_digit(value[23]) || !is_digit(value[24])) {
+  if (!is_digit(value.substr(5, 2)) || !is_digit(value.substr(12, 4)) ||
+      !is_digit(value.substr(17, 2)) || !is_digit(value.substr(20, 2)) ||
+      !is_digit(value.substr(23, 2))) {
     return std::nullopt;
   }
   if (!is_day_name(value.substr(0, 3))) {

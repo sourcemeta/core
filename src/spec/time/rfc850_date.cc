@@ -1,4 +1,4 @@
-#include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
 #include "helpers.h"
@@ -61,10 +61,9 @@ auto from_rfc850_date(const std::string_view value)
       rest.substr(19) != " GMT") {
     return std::nullopt;
   }
-  if (!is_digit(rest[1]) || !is_digit(rest[2]) || !is_digit(rest[8]) ||
-      !is_digit(rest[9]) || !is_digit(rest[11]) || !is_digit(rest[12]) ||
-      !is_digit(rest[14]) || !is_digit(rest[15]) || !is_digit(rest[17]) ||
-      !is_digit(rest[18])) {
+  if (!is_digit(rest.substr(1, 2)) || !is_digit(rest.substr(8, 2)) ||
+      !is_digit(rest.substr(11, 2)) || !is_digit(rest.substr(14, 2)) ||
+      !is_digit(rest.substr(17, 2))) {
     return std::nullopt;
   }
   const auto month{month_from_name(rest.substr(4, 3))};

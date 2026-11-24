@@ -1,7 +1,7 @@
 #ifndef SOURCEMETA_CORE_TIME_HELPERS_H_
 #define SOURCEMETA_CORE_TIME_HELPERS_H_
 
-#include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
 #include <algorithm>   // std::ranges::find
@@ -12,7 +12,7 @@
 #include <cstdint>     // std::int32_t, std::uint8_t, std::uint16_t
 #include <iterator>    // std::ranges::distance
 #include <optional>    // std::optional, std::nullopt
-#include <string>      // std::string, std::to_string
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -97,14 +97,15 @@ inline auto append_two_digits(std::string &output, const std::uint8_t value)
 }
 
 // RFC 9110 §5.6.7 defines the calendar year as "year = 4DIGIT", a fixed width
-// that the ISO 8601 basic format shares, yet rendering a year below 1000
-// through the standard library drops its leading zeros on several platforms,
-// which the readers here then turn down. A year wider than the field is left
-// as it reads, since neither format can express one and neither writer can
-// report that it could not
+// that the ISO 8601 basic format shares, so a year below 1000 is written
+// against leading zeros rather than in the shortest spelling, which the readers
+// here would turn down. A year wider than the field is left as it reads, since
+// neither format can express one and neither writer can report that it could
+// not
 inline auto append_four_digit_year(std::string &output, const std::int32_t year)
     -> void {
-  const auto digits{std::to_string(year)};
+  std::array<char, DIGITS_CAPACITY<std::int32_t>> buffer;
+  const auto digits{digits_view(year, buffer)};
   if (digits.size() < 4) {
     output.append(4 - digits.size(), '0');
   }
@@ -174,9 +175,10 @@ inline auto time_point_to_broken_down(
   const auto seconds{
       std::chrono::floor<std::chrono::seconds>(time.time_since_epoch())};
   const auto days{std::chrono::floor<std::chrono::days>(seconds)};
-  const std::chrono::year_month_day date{std::chrono::sys_days{days}};
+  const std::chrono::sys_days day_point{days};
+  const std::chrono::year_month_day date{day_point};
   const std::chrono::hh_mm_ss clock{seconds - days};
-  const std::chrono::weekday weekday{std::chrono::sys_days{days}};
+  const std::chrono::weekday weekday{day_point};
 
   BrokenDownTime parts{};
   parts.year = static_cast<int>(date.year());

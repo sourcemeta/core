@@ -1,28 +1,12 @@
-#include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
 #include "helpers.h"
 
 #include <chrono>      // std::chrono::system_clock
-#include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
-
-namespace {
-
-auto all_digits(const std::string_view value, const std::size_t offset,
-                const std::size_t length) -> bool {
-  for (std::size_t index = offset; index < offset + length; ++index) {
-    if (!sourcemeta::core::is_digit(value[index])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-} // namespace
 
 namespace sourcemeta::core {
 
@@ -52,7 +36,7 @@ auto from_iso8601_basic(const std::string_view value) noexcept
   if (value[8] != 'T' || value[15] != 'Z') {
     return std::nullopt;
   }
-  if (!all_digits(value, 0, 8) || !all_digits(value, 9, 6)) {
+  if (!is_digit(value.substr(0, 8)) || !is_digit(value.substr(9, 6))) {
     return std::nullopt;
   }
 
