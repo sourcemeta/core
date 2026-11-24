@@ -316,6 +316,44 @@ TEST(invalid_truncated_utf8_in_quoted) {
   EXPECT_FALSE(sourcemeta::core::is_email("\"\xce\"@example.com"));
 }
 
+// RFC 5321 §4.1.2: Quoted-string = DQUOTE *QcontentSMTP DQUOTE, so a quote
+// that nothing closes carries no mailbox
+TEST(invalid_unterminated_quoted_local_part) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"abc"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"abc"));
+}
+
+// RFC 5321 §4.1.2: quoted-pairSMTP = %d92 %d32-126, so the escape needs the
+// octet it escapes
+TEST(invalid_trailing_backslash_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"abc\\"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"abc\\"));
+}
+
+TEST(invalid_control_octet_after_a_backslash_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"a\\\x01\"@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\\\x01\"@example.com"));
+}
+
+TEST(invalid_delete_octet_after_a_backslash_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"a\\\x7f\"@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\\\x7f\"@example.com"));
+}
+
+TEST(invalid_bare_control_octet_in_quoted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"a\x01"
+                                              "b\"@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\x01"
+                                          "b\"@example.com"));
+}
+
+// RFC 5321 §4.1.2: Mailbox = Local-part "@" Domain, so the octet after the
+// Local-part is the separator and nothing else
+TEST(invalid_octet_after_the_closing_quote) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"abc\"x@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"abc\"x@example.com"));
+}
+
 // RFC 6531 §3.3: domain label cannot start with a hyphen
 TEST(invalid_domain_leading_hyphen) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a@-example.com"));

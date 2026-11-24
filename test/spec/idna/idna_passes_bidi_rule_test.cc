@@ -149,3 +149,23 @@ TEST(single_hebrew_letter) {
 TEST(single_arabic_letter) {
   EXPECT_TRUE(sourcemeta::core::idna_passes_bidi_rule(U"\u0627"));
 }
+
+// RFC 5893 §2 condition 2: an RTL label admits ET, and U+0024 DOLLAR SIGN
+// carries that bidi class
+TEST(condition_2_rtl_with_european_terminator) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_bidi_rule(U"א$א"));
+}
+
+// RFC 5893 §2 condition 5: an LTR label admits ES, ET and BN, carried here by
+// U+002B PLUS SIGN, U+0024 DOLLAR SIGN and U+200C ZERO WIDTH NON-JOINER
+TEST(condition_5_ltr_with_european_separator) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_bidi_rule(U"a+b"));
+}
+
+TEST(condition_5_ltr_with_european_terminator) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_bidi_rule(U"a$b"));
+}
+
+TEST(condition_5_ltr_with_boundary_neutral) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_bidi_rule(U"a‌b"));
+}

@@ -224,6 +224,36 @@ TEST(digit_led_four_character_variant_with_letters) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("de-1a2b"));
 }
 
+// RFC 5646 Section 2.2.5: variant = 5*8alphanum / (DIGIT 3alphanum), so a
+// ninth character carries the subtag past every shape a variant may take
+TEST(variant_of_nine_characters_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("de-abcdefghi"));
+}
+
+// RFC 5646 Section 2.2.5: the characters after the leading digit of a
+// four-character variant are alphanumeric
+TEST(digit_led_four_character_variant_with_a_symbol_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("de-1a_b"));
+}
+
+// RFC 5646 Section 2.2.6: singleton = DIGIT / a-w / y-z, so a subtag of one
+// character that is not alphanumeric opens neither an extension nor the
+// private use
+TEST(single_character_symbol_subtag_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("de-_-abc"));
+}
+
+// RFC 5646 Section 2.2.6: extension = singleton 1*("-" (2*8alphanum))
+TEST(extension_subtag_with_a_symbol_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("de-a-ab_c"));
+}
+
+// RFC 5646 Section 2.2.7: privateuse = "x" 1*("-" (1*8alphanum)), so a ninth
+// character ends the private use and leaves the tag with a remainder
+TEST(private_use_subtag_of_nine_characters_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("x-abc-abcdefghi"));
+}
+
 // RFC 5646 Section 2.2.5: a four-character subtag must begin with a digit
 TEST(four_character_non_digit_led_rejected) {
   // A four-character subtag is only a variant when it begins with a digit

@@ -123,6 +123,14 @@ inline auto is_case_sensitive_month_abbreviation(const std::string_view name,
 
 // Validate the calendar fields of a broken-down time, since the conversion to
 // an epoch time point would otherwise silently normalise out-of-range values
+//
+// TODO: Parse the HTTP date formats here rather than through std::get_time, so
+// that what a field may hold is decided by this module instead of by a
+// standard library whose behaviour on malformed input is implementation
+// defined. The lower bounds below, and the ranges the day and month
+// abbreviation checks carry, are only here because that function is the one
+// filling these fields for the asctime, IMF fixdate and RFC 850 readers, and
+// no input can drive them once the digits are scanned here
 inline auto is_valid_broken_down_time(const std::tm &parts) -> bool {
   if (parts.tm_mon < 0 || parts.tm_mon > 11) {
     return false;

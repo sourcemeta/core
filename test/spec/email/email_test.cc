@@ -851,6 +851,17 @@ TEST(valid_ipv6_literal_loopback) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[IPv6:::1]"));
 }
 
+// RFC 5234 §2.3: the literal string is case-insensitive, so each letter of the
+// tag answers to either case on its own
+TEST(valid_ipv6_literal_tag_in_mixed_case) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[Ipv6:::1]"));
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[iPV6:::1]"));
+}
+
+TEST(invalid_ipv6_literal_tag_with_a_wrong_letter) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[Iqv6:::1]"));
+}
+
 // RFC 4291 §2.2: "::" compresses an all-zeros address
 TEST(valid_ipv6_literal_all_zeros) {
   EXPECT_TRUE(sourcemeta::core::is_email("a@[IPv6:::]"));

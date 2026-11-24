@@ -227,6 +227,18 @@ TEST(format_year_below_1000_pads_to_four_digits) {
   }
 }
 
+// A year the system clock cannot hold yields no value rather than an instant
+// that wrapped, which a nanosecond libstdc++ clock reaches at a four digit
+// year and a microsecond clock does not, so the instant is only asserted where
+// the year is representable
+TEST(parse_year_at_the_upper_end_of_the_clock_range) {
+  const auto point{sourcemeta::core::from_iso8601_basic("99991231T235959Z")};
+  if (point.has_value()) {
+    EXPECT_EQ(sourcemeta::core::to_iso8601_basic(point.value()),
+              "99991231T235959Z");
+  }
+}
+
 // ISO 8601-1 Section 5.4.2.1 writes the time of day in digits, which the
 // designators around it do not excuse
 TEST(parse_rejects_a_non_digit_in_the_time_of_day) {
