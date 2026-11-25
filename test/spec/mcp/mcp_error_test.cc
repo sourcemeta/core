@@ -632,7 +632,12 @@ TEST(make_error_unsupported_protocol_version_rejects_an_unmodelled_supported) {
           sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
           "Unsupported protocol version",
           sourcemeta::core::parse_json(
-              R"JSON({ "requested": "x", "supported": [ "1999-01-01" ] })JSON")),
+              R"JSON({
+    "requested": "x",
+    "supported": [
+      "1999-01-01"
+    ]
+  })JSON")),
       "Unknown server-supported MCP version");
 }
 
@@ -1172,4 +1177,15 @@ TEST(a_json_non_finite_value_is_not_an_mcp_error) {
   } catch (const sourcemeta::core::JSONNonFiniteError &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
+}
+
+TEST(make_error_unsupported_protocol_version_rejects_missing_supported) {
+  const sourcemeta::core::JSON identifier{1};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_error(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, &identifier,
+          sourcemeta::core::MCP_CODE_UNSUPPORTED_PROTOCOL_VERSION,
+          "Unsupported protocol version",
+          sourcemeta::core::parse_json(R"JSON({ "requested": "x" })JSON")),
+      "Invalid protocol version error data");
 }
