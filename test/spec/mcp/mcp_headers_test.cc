@@ -99,7 +99,10 @@ TEST(request_meta_validation_valid_with_client_info) {
       "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": { "name": "ExampleClient", "version": "1.0.0" }
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": "1.0.0"
+        }
       }
     }
   })JSON")};
@@ -524,7 +527,10 @@ TEST(request_meta_validation_client_info_version_not_string) {
       "_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": { "name": "ExampleClient", "version": false }
+        "io.modelcontextprotocol/clientInfo": {
+          "name": "ExampleClient",
+          "version": false
+        }
       }
     }
   })JSON")};

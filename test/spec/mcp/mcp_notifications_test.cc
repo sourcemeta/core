@@ -556,7 +556,9 @@ TEST(request_subscription_id_integral_decimal) {
 
 TEST(request_subscription_id_rejects_fractional_decimal) {
   const auto metadata{sourcemeta::core::parse_json(R"JSON({
-    "_meta": { "io.modelcontextprotocol/subscriptionId": 42.00000000000000000001 }
+    "_meta": {
+      "io.modelcontextprotocol/subscriptionId": 42.00000000000000000001
+    }
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_request_subscription_id(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28, metadata),
@@ -2537,7 +2539,9 @@ TEST(validate_continuation_rejects_a_root_with_a_non_string_name) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "roots": [ { "uri": "file:///a", "name": 1 } ] } }
+    "inputResponses": {
+      "s": { "roots": [ { "uri": "file:///a", "name": 1 } ] }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "roots/list" } })JSON")};
@@ -2552,7 +2556,9 @@ TEST(validate_continuation_accepts_a_named_root) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "roots": [ { "uri": "file:///a", "name": "a" } ] } }
+    "inputResponses": {
+      "s": { "roots": [ { "uri": "file:///a", "name": "a" } ] }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "roots/list" } })JSON")};
@@ -2684,7 +2690,12 @@ TEST(validate_continuation_accepts_every_elicitation_answer_shape) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "action": "accept", "content": { "a": "x", "b": 1, "c": true, "d": [ "y" ] } } }
+    "inputResponses": {
+      "s": {
+        "action": "accept",
+        "content": { "a": "x", "b": 1, "c": true, "d": [ "y" ] }
+      }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({
@@ -2709,7 +2720,9 @@ TEST(validate_continuation_rejects_a_sampling_response_without_a_role) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "model": "m", "content": { "type": "text", "text": "x" } } }
+    "inputResponses": {
+      "s": { "model": "m", "content": { "type": "text", "text": "x" } }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
@@ -2724,7 +2737,13 @@ TEST(validate_continuation_rejects_a_sampling_response_with_a_non_string_role) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "role": 1, "model": "m", "content": { "type": "text", "text": "x" } } }
+    "inputResponses": {
+      "s": {
+        "role": 1,
+        "model": "m",
+        "content": { "type": "text", "text": "x" }
+      }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
@@ -2739,7 +2758,13 @@ TEST(validate_continuation_rejects_a_sampling_response_with_an_unknown_role) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "role": "system", "model": "m", "content": { "type": "text", "text": "x" } } }
+    "inputResponses": {
+      "s": {
+        "role": "system",
+        "model": "m",
+        "content": { "type": "text", "text": "x" }
+      }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
@@ -2754,7 +2779,13 @@ TEST(validate_continuation_accepts_a_sampling_response_from_the_user) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "role": "user", "model": "m", "content": { "type": "text", "text": "x" } } }
+    "inputResponses": {
+      "s": {
+        "role": "user",
+        "model": "m",
+        "content": { "type": "text", "text": "x" }
+      }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
@@ -2784,7 +2815,9 @@ TEST(validate_continuation_rejects_a_sampling_response_without_a_model) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "role": "assistant", "content": { "type": "text", "text": "x" } } }
+    "inputResponses": {
+      "s": { "role": "assistant", "content": { "type": "text", "text": "x" } }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
@@ -2799,7 +2832,14 @@ TEST(validate_continuation_rejects_a_non_string_stop_reason) {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {}
     },
-    "inputResponses": { "s": { "role": "assistant", "model": "m", "stopReason": 1, "content": { "type": "text", "text": "x" } } }
+    "inputResponses": {
+      "s": {
+        "role": "assistant",
+        "model": "m",
+        "stopReason": 1,
+        "content": { "type": "text", "text": "x" }
+      }
+    }
   })JSON")};
   const auto prior{sourcemeta::core::parse_json(
       R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};

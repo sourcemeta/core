@@ -1808,7 +1808,10 @@ TEST(make_empty_result_with_server_information) {
     "result": {
       "resultType": "complete",
       "_meta": {
-        "io.modelcontextprotocol/serverInfo": { "name": "srv", "version": "1.0.0" }
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "srv",
+          "version": "1.0.0"
+        }
       }
     }
   })JSON"));
@@ -6800,7 +6803,9 @@ TEST(request_parameters_accept_an_extension_key_without_a_name) {
   const auto parameters{sourcemeta::core::parse_json(R"JSON({
     "_meta": {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-      "io.modelcontextprotocol/clientCapabilities": { "extensions": { "org.example/": {} } }
+      "io.modelcontextprotocol/clientCapabilities": {
+        "extensions": { "org.example/": {} }
+      }
     }
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_validate_request_parameters(parameters).first,
@@ -7237,14 +7242,12 @@ TEST(resources_list_result_accepts_the_documented_icon_sizes) {
   EXPECT_EQ(sourcemeta::core::mcp_make_resources_list_result(
                 sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
                 sourcemeta::core::parse_json(R"JSON([
-                  {
-                    "name": "r",
-                    "uri": "file:///r",
-                    "icons": [
-                      { "src": "file:///i", "sizes": [ "48x48", "96x96", "any" ] }
-                    ]
-                  }
-                ])JSON"),
+    {
+      "name": "r",
+      "uri": "file:///r",
+      "icons": [ { "src": "file:///i", "sizes": [ "48x48", "96x96", "any" ] } ]
+    }
+  ])JSON"),
                 std::nullopt, {}),
             sourcemeta::core::parse_json(R"JSON({
     "resultType": "complete",
