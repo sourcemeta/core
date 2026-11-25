@@ -1192,17 +1192,18 @@ TEST(to_double_rejects_a_character_outside_the_alphabet) {
 }
 
 // Scaling a significand is a single rounded operation that obeys the
-// environment, while the general conversion is specified to round to nearest
-// regardless, so the shortcut stands in for it only while the two agree. A
-// number that needs scaling is still read correctly under another mode, by the
-// general conversion rather than the shortcut
+// environment, so the shortcut stands in for the general conversion only while
+// the environment asks for the rounding that conversion gives. A number that
+// needs scaling is still read to nearest under another mode, by the general
+// conversion rather than the shortcut, and the value it names is one the
+// scaling would have rounded the other way
 TEST(to_double_scaled_value_under_a_directed_rounding_mode) {
   const auto previous{std::fegetround()};
   std::fesetround(FE_DOWNWARD);
-  const auto result{sourcemeta::core::to_double("1.5e2")};
+  const auto result{sourcemeta::core::to_double("1.1e-1")};
   std::fesetround(previous);
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), 150.0);
+  EXPECT_EQ(result.value(), 0.11);
 }
 
 // A fraction names digits, so a character below the digit range ends it

@@ -917,9 +917,13 @@ constexpr std::int32_t WORKING_PRECISION = 16;
 // How many positions the working precision drops from a coefficient of the
 // given width, which is what rounding to it adds to the exponent
 auto precision_excess(const std::uint64_t digits) -> std::int32_t {
-  // Only a quotient is weighed here, and the guard positions a division works
-  // through leave one wider than the precision it is held to
-  assert(digits > static_cast<std::uint64_t>(WORKING_PRECISION));
+  // A quotient handed back its trailing zeros stands narrower than the guard
+  // positions alone would leave it, and narrower than the precision at that,
+  // in which case the precision drops nothing from it
+  if (digits <= static_cast<std::uint64_t>(WORKING_PRECISION)) {
+    return 0;
+  }
+
   return static_cast<std::int32_t>(
       digits - static_cast<std::uint64_t>(WORKING_PRECISION));
 }
@@ -1009,11 +1013,13 @@ auto round_to_precision(std::int64_t &coefficient,
     return;
   }
 
-  // Widening the dividend by the guard positions leaves the quotient at least
-  // one position wider than the precision it is then held to, whichever of the
-  // two operands is the longer
+  // A quotient handed back its trailing zeros can stand narrower than the
+  // precision, and there is nothing to drop from one that does
   auto digits = digit_count(static_cast<std::uint64_t>(coefficient));
-  assert(static_cast<std::int32_t>(digits) > WORKING_PRECISION);
+  if (static_cast<std::int32_t>(digits) <= WORKING_PRECISION) {
+    return;
+  }
+
   auto excess = static_cast<std::int32_t>(digits) - WORKING_PRECISION;
   std::int64_t divisor = 1;
   for (std::int32_t index = 0; index < excess; index++) {

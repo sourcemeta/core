@@ -9,27 +9,6 @@
 #include <thread>      // std::thread
 #include <vector>      // std::vector
 
-namespace {
-
-// Five to the one thousand and seventy fifth power, scaled to stand below the
-// least significant bit of the smallest subnormal a double reaches. It is the
-// shortest coefficient able to pay out a scale that far down
-constexpr std::string_view POWER_OF_FIVE_PAST_THE_DOUBLE_RANGE{
-    "247032822920623272088284396434110686182529901307162382212792841250"
-    "337753635104375932649918180817996189898282347722858865463328355177"
-    "969898199387398005390939063150356595155702263922908583924491051844"
-    "359318028499365361525003193704576782492193656236698636584807570015"
-    "857692699037063119282795585513329278343384093519780155312465972635"
-    "795746227664652728272200563740064854999770965994704540208281662262"
-    "378573934507363390079677619305775067401763246736009689513405355374"
-    "585166611342237666786041621596804619144672918403005300575308490487"
-    "653917113865916462395249126236538818796362393732804238910186723484"
-    "976682350898633885879256283027559956575244555072551893136908362547"
-    "791869486679949683240497058210285131854513962138377228261454376934"
-    "12532098591327667236328125e-1075"};
-
-} // namespace
-
 TEST(add_small_integers) {
   const sourcemeta::core::Decimal left{2};
   const sourcemeta::core::Decimal right{3};
@@ -7826,8 +7805,65 @@ TEST(a_power_of_two_just_past_the_float_range_is_not_a_float) {
 
 // Paying out a power of five puts the scale underneath the value, and a scale
 // below the least significant bit of the smallest subnormal names a value no
-// double reaches
+// double reaches. Five to the one thousand and seventy fifth power is the
+// shortest coefficient able to pay out a scale that far down
 TEST(a_scale_below_the_smallest_double_subnormal) {
-  const sourcemeta::core::Decimal value{POWER_OF_FIVE_PAST_THE_DOUBLE_RANGE};
+  const sourcemeta::core::Decimal value{
+      "247032822920623272088284396434110686182529901307162382212792841250"
+      "337753635104375932649918180817996189898282347722858865463328355177"
+      "969898199387398005390939063150356595155702263922908583924491051844"
+      "359318028499365361525003193704576782492193656236698636584807570015"
+      "857692699037063119282795585513329278343384093519780155312465972635"
+      "795746227664652728272200563740064854999770965994704540208281662262"
+      "378573934507363390079677619305775067401763246736009689513405355374"
+      "585166611342237666786041621596804619144672918403005300575308490487"
+      "653917113865916462395249126236538818796362393732804238910186723484"
+      "976682350898633885879256283027559956575244555072551893136908362547"
+      "791869486679949683240497058210285131854513962138377228261454376934"
+      "12532098591327667236328125e-1075"};
   EXPECT_FALSE(value.is_double());
+}
+
+// A factor the divisor asks for is paid by the dividend wherever the dividend
+// carries it, and a position of the expansion only where it does not, so a
+// dividend that pays in full leaves an expansion of no length at all
+TEST(
+    dividing_an_even_dividend_by_two_takes_no_position_at_the_lowest_exponent) {
+  const sourcemeta::core::Decimal dividend{"24691357802469135782e-2147483648"};
+  const sourcemeta::core::Decimal expected{"12345678901234567891e-2147483648"};
+  const auto result{dividend / sourcemeta::core::Decimal{2}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+// Two of the three factors of eight are paid by the dividend, so one position
+// is taken and the one the exponent has room for is enough
+TEST(dividing_by_eight_takes_only_the_position_the_dividend_cannot_pay) {
+  const sourcemeta::core::Decimal dividend{"20e-2147483647"};
+  const sourcemeta::core::Decimal expected{"25e-2147483648"};
+  const auto result{dividend / sourcemeta::core::Decimal{8}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+// A dividend that cannot pay the factor needs a position the exponent has no
+// room for, and rounding cannot bring that one back
+TEST(dividing_an_odd_dividend_by_two_past_the_lowest_exponent_overflows) {
+  const sourcemeta::core::Decimal dividend{"1e-2147483648"};
+  try {
+    [[maybe_unused]] const auto result{dividend / sourcemeta::core::Decimal{2}};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// A zero pays every factor asked of it, so it keeps the quantum it stands at
+// whatever it is divided by
+TEST(dividing_a_zero_at_the_lowest_exponent_by_two_keeps_its_quantum) {
+  const sourcemeta::core::Decimal dividend{"0e-2147483648"};
+  const sourcemeta::core::Decimal expected{"0e-2147483648"};
+  const auto result{dividend / sourcemeta::core::Decimal{2}};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.same_quantum(expected));
 }

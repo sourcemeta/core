@@ -3,7 +3,7 @@
 #include <sourcemeta/core/numeric_util.h>
 
 #include <array>        // std::array
-#include <cfenv>        // std::fegetround, FE_TONEAREST
+#include <cfenv>        // std::fegetround, std::fesetround, FE_TONEAREST
 #include <charconv>     // std::from_chars
 #include <cmath>        // std::ldexp, HUGE_VAL
 #include <cstdint>      // std::uint64_t, std::int32_t
@@ -274,7 +274,21 @@ auto to_double(const std::string_view input) noexcept -> std::optional<double> {
 
   errno = 0;
   char *end{nullptr};
+  // The C library rounds the way the environment asks of it, while the reading
+  // this stands in for on other platforms is to nearest whatever it asks, so
+  // the environment is held to nearest over the call for the two to answer
+  // alike. Reading the mode before writing it keeps the ordinary case clear of
+  // the write altogether
+  const auto rounding{std::fegetround()};
+  if (rounding != FE_TONEAREST) {
+    std::fesetround(FE_TONEAREST);
+  }
+
   const auto value{strtod_l(start, &end, C_LOCALE)};
+  if (rounding != FE_TONEAREST) {
+    std::fesetround(rounding);
+  }
+
   if (end != start + input.size()) {
     return std::nullopt;
   }

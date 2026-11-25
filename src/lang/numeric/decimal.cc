@@ -2507,6 +2507,24 @@ auto terminating_fraction_digits(const BigCoefficient &dividend,
     fives++;
   }
 
+  // A factor the divisor asks for is paid out of the dividend wherever the
+  // dividend carries it, and costs a position of the expansion only where it
+  // does not. Taking the factors out of a copy of the dividend is what tells
+  // the two apart, and the count of them bounds the walk, so a dividend of
+  // nothing cannot keep it going
+  if (twos > 0 || fives > 0) {
+    auto reduced = dividend.clone();
+    while (twos > 0 && reduced.is_divisible_by_base_factor(2)) {
+      reduced.divide_by_base_factor(2);
+      twos--;
+    }
+
+    while (fives > 0 && reduced.is_divisible_by_base_factor(5)) {
+      reduced.divide_by_base_factor(5);
+      fives--;
+    }
+  }
+
   const auto digits = twos > fives ? twos : fives;
   if (remaining.is_one()) {
     return digits;
