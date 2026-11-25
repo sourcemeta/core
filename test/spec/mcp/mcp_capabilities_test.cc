@@ -774,3 +774,248 @@ TEST(serialize_server_capabilities_rejects_string_experimental) {
           sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
       "Invalid capability map");
 }
+
+// A sampling capability may carry one sub-capability without the other, which
+// is what tells the version test apart from the presence test
+TEST(parse_client_capabilities_sampling_context_without_tools_2025_11_25) {
+  const auto capabilities{sourcemeta::core::mcp_parse_client_capabilities(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::parse_json(
+          R"JSON({ "sampling": { "context": {} } })JSON"))};
+  EXPECT_TRUE(capabilities.sampling);
+  EXPECT_TRUE(capabilities.sampling_context);
+  EXPECT_FALSE(capabilities.sampling_tools);
+}
+
+TEST(parse_client_capabilities_sampling_tools_without_context_2025_11_25) {
+  const auto capabilities{sourcemeta::core::mcp_parse_client_capabilities(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::parse_json(
+          R"JSON({ "sampling": { "tools": {} } })JSON"))};
+  EXPECT_TRUE(capabilities.sampling);
+  EXPECT_FALSE(capabilities.sampling_context);
+  EXPECT_TRUE(capabilities.sampling_tools);
+}
+
+TEST(parse_client_capabilities_elicitation_url_without_form_2025_11_25) {
+  const auto capabilities{sourcemeta::core::mcp_parse_client_capabilities(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::parse_json(
+          R"JSON({ "elicitation": { "url": {} } })JSON"))};
+  EXPECT_TRUE(capabilities.elicitation);
+  EXPECT_FALSE(capabilities.elicitation_form);
+  EXPECT_TRUE(capabilities.elicitation_url);
+}
+
+TEST(parse_client_capabilities_elicitation_form_without_url_2025_11_25) {
+  const auto capabilities{sourcemeta::core::mcp_parse_client_capabilities(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      sourcemeta::core::parse_json(
+          R"JSON({ "elicitation": { "form": {} } })JSON"))};
+  EXPECT_TRUE(capabilities.elicitation);
+  EXPECT_TRUE(capabilities.elicitation_form);
+  EXPECT_FALSE(capabilities.elicitation_url);
+}
+
+// A snapshot is opaque, so it may carry something other than an object under a
+// capability name. The emitted settings replace it rather than reading it
+TEST(serialize_client_capabilities_replaces_a_non_object_roots_snapshot) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.source =
+      sourcemeta::core::parse_json(R"JSON({ "roots": 42 })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "roots": {} })JSON"));
+}
+
+TEST(serialize_client_capabilities_roots_absent_from_the_snapshot) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  capabilities.source =
+      sourcemeta::core::parse_json(R"JSON({ "unknown": {} })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "unknown": {}, "roots": {} })JSON"));
+}
+
+TEST(serialize_server_capabilities_replaces_a_non_object_tools_snapshot) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.tools = true;
+  capabilities.source =
+      sourcemeta::core::parse_json(R"JSON({ "tools": 42 })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "tools": {} })JSON"));
+}
+
+TEST(serialize_server_capabilities_replaces_a_non_object_logging_snapshot) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.logging = true;
+  capabilities.source =
+      sourcemeta::core::parse_json(R"JSON({ "logging": 42 })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "logging": {} })JSON"));
+}
+
+TEST(serialize_server_capabilities_replaces_a_non_object_completions_snapshot) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.completions = true;
+  capabilities.source =
+      sourcemeta::core::parse_json(R"JSON({ "completions": 42 })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "completions": {} })JSON"));
+}
+
+// A subscription is a capability of its own, so asking for it brings the
+// resources capability along even where the feature flag is clear
+TEST(serialize_server_capabilities_subscribe_without_the_feature) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.resources_subscribe = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "resources": { "subscribe": true } })JSON"));
+}
+
+TEST(serialize_server_capabilities_preserves_explicit_false_subscribe) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.resources = true;
+  capabilities.source = sourcemeta::core::parse_json(
+      R"JSON({ "resources": { "subscribe": false } })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "resources": { "subscribe": false } })JSON"));
+}
+
+TEST(serialize_server_capabilities_drops_a_stale_true_subscribe) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.resources = true;
+  capabilities.source = sourcemeta::core::parse_json(
+      R"JSON({ "resources": { "subscribe": true } })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "resources": {} })JSON"));
+}
+
+TEST(serialize_server_capabilities_drops_a_stale_true_list_changed) {
+  sourcemeta::core::MCPServerCapabilities capabilities;
+  capabilities.prompts = true;
+  capabilities.source = sourcemeta::core::parse_json(
+      R"JSON({ "prompts": { "listChanged": true } })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_server_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "prompts": {} })JSON"));
+}
+
+// A list-changed notification is a capability of its own, so asking for it
+// brings the capability it belongs to along on a revision that carries it
+TEST(serialize_client_capabilities_roots_list_changed_without_the_feature) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots_list_changed = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "roots": { "listChanged": true } })JSON"));
+}
+
+TEST(serialize_client_capabilities_roots_without_a_snapshot_2025_11_25) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(R"JSON({ "roots": {} })JSON"));
+}
+
+TEST(serialize_client_capabilities_sampling_context_without_the_feature) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling_context = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "sampling": { "context": {} } })JSON"));
+}
+
+TEST(serialize_client_capabilities_sampling_tools_without_the_feature) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling_tools = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "sampling": { "tools": {} } })JSON"));
+}
+
+TEST(serialize_client_capabilities_keeps_a_context_already_in_the_snapshot) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.sampling = true;
+  capabilities.sampling_context = true;
+  capabilities.source = sourcemeta::core::parse_json(
+      R"JSON({ "sampling": { "context": { "depth": 2 } } })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "sampling": { "context": { "depth": 2 } } })JSON"));
+}
+
+TEST(serialize_client_capabilities_elicitation_form_without_the_feature) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation_form = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "elicitation": { "form": {} } })JSON"));
+}
+
+TEST(serialize_client_capabilities_elicitation_url_without_the_feature) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation_url = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "elicitation": { "url": {} } })JSON"));
+}
+
+TEST(serialize_client_capabilities_keeps_a_url_already_in_the_snapshot) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.elicitation = true;
+  capabilities.elicitation_url = true;
+  capabilities.source = sourcemeta::core::parse_json(
+      R"JSON({ "elicitation": { "url": { "scheme": "https" } } })JSON");
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, capabilities),
+      sourcemeta::core::parse_json(
+          R"JSON({ "elicitation": { "url": { "scheme": "https" } } })JSON"));
+}
+
+// Roots lost its list-changed notification in 2026-07-28, so asking for that
+// notification alone asks for nothing the revision carries
+TEST(
+    serialize_client_capabilities_list_changed_alone_is_dropped_on_2026_07_28) {
+  sourcemeta::core::MCPClientCapabilities capabilities;
+  capabilities.roots_list_changed = true;
+  EXPECT_EQ(
+      sourcemeta::core::mcp_serialize_client_capabilities(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, capabilities),
+      sourcemeta::core::parse_json(R"JSON({})JSON"));
+}

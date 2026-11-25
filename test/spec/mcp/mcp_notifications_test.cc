@@ -2256,3 +2256,572 @@ TEST(validate_continuation_matching_state_does_not_bypass_response_validation) {
       sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
       "opaque-token"));
 }
+
+// The level names the threshold the entry is weighed against, so an entry that
+// names none, or names one that is not a string, carries no level at all
+TEST(make_notification_message_rejects_a_missing_level) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, true,
+          "notifications/message",
+          sourcemeta::core::parse_json(R"JSON({ "data": "hello" })JSON"),
+          std::nullopt),
+      "Invalid logging notification");
+}
+
+TEST(make_notification_message_rejects_a_non_string_level) {
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_notification(
+                         sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+                         true, "notifications/message",
+                         sourcemeta::core::parse_json(
+                             R"JSON({ "level": 1, "data": "hello" })JSON"),
+                         std::nullopt),
+                     "Invalid logging notification");
+}
+
+// A per-request opt-in belongs to the revision the request was made under, so
+// a context carried over from another revision does not stand in for one
+TEST(make_notification_message_rejects_a_context_from_another_revision) {
+  const auto capabilities{sourcemeta::core::JSON::make_object()};
+  const auto meta{sourcemeta::core::JSON::make_object()};
+  const sourcemeta::core::MCPRequestMeta context{
+      .protocol_version = sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      .client_capabilities = capabilities,
+      .client_info = std::nullopt,
+      .log_level = "info",
+      .meta_object = meta};
+  EXPECT_MCP_REJECTS(sourcemeta::core::mcp_make_notification(
+                         sourcemeta::core::MCPProtocolVersion::V_2026_07_28,
+                         true, "notifications/message",
+                         sourcemeta::core::parse_json(
+                             R"JSON({ "level": "info", "data": "hello" })JSON"),
+                         std::nullopt, nullptr, &context),
+                     "Logging requires an explicit per-request opt-in");
+}
+
+TEST(make_notification_progress_rejects_a_context_from_another_revision) {
+  const auto capabilities{sourcemeta::core::JSON::make_object()};
+  const auto meta{sourcemeta::core::JSON::make_object()};
+  const sourcemeta::core::JSON token{7};
+  const sourcemeta::core::MCPRequestMeta context{
+      .protocol_version = sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
+      .client_capabilities = capabilities,
+      .client_info = std::nullopt,
+      .log_level = std::nullopt,
+      .meta_object = meta,
+      .progress_token = &token};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, true,
+          "notifications/progress",
+          sourcemeta::core::parse_json(
+              R"JSON({ "progressToken": 7, "progress": 1 })JSON"),
+          std::nullopt, nullptr, &context),
+      "Progress must echo the current request's token");
+}
+
+// A progress notification that names no token echoes nothing, so it cannot
+// stand for the token the request opted in with
+TEST(make_notification_progress_rejects_an_absent_token_on_2026_07_28) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {},
+      "progressToken": 7
+    }
+  })JSON")};
+  const auto context{
+      sourcemeta::core::mcp_validate_request_parameters(parameters)};
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, true,
+          "notifications/progress",
+          sourcemeta::core::parse_json(R"JSON({ "progress": 1 })JSON"),
+          std::nullopt, nullptr, &context.second.value()),
+      "Progress must echo the current request's token");
+}
+
+TEST(make_notification_progress_rejects_an_absent_token_on_2025_11_25) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, true,
+          "notifications/progress",
+          sourcemeta::core::parse_json(R"JSON({ "progress": 1 })JSON"),
+          std::nullopt),
+      "Invalid progress notification");
+}
+
+// An elicitation completion names the elicitation it finishes, so an
+// identifier that is not a string names none
+TEST(make_notification_elicitation_complete_rejects_a_non_string_id) {
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2025_11_25, true,
+          "notifications/elicitation/complete",
+          sourcemeta::core::parse_json(R"JSON({ "elicitationId": 1 })JSON"),
+          std::nullopt),
+      "Elicitation completion requires an ID");
+}
+
+// A resource update is acknowledged by naming the resource, so an
+// acknowledgement that requested no subscription at all acknowledges none
+TEST(make_notification_rejects_an_update_with_no_subscriptions_requested) {
+  const sourcemeta::core::MCPSubscriptionFilter acknowledged;
+  EXPECT_MCP_REJECTS(
+      sourcemeta::core::mcp_make_notification(
+          sourcemeta::core::MCPProtocolVersion::V_2026_07_28, true,
+          "notifications/resources/updated",
+          sourcemeta::core::parse_json(R"JSON({ "uri": "file:///a" })JSON"),
+          sourcemeta::core::JSON{5}, &acknowledged),
+      "Notification was not acknowledged");
+}
+
+// RFC 9110 aside, the progress specification bounds neither value: "The
+// progress and the total values MAY be floating point". A number too wide for
+// a binary64 is still a number the notification may carry
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/utilities/progress
+TEST(make_notification_progress_accepts_a_number_wider_than_binary64) {
+  auto parameters{sourcemeta::core::JSON::make_object()};
+  parameters.assign("progressToken", sourcemeta::core::JSON{0});
+  parameters.assign("progress", sourcemeta::core::parse_json("1e400"));
+  parameters.assign("total", sourcemeta::core::parse_json("1e400"));
+  const auto notification{sourcemeta::core::mcp_make_notification(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25, true,
+      "notifications/progress", std::move(parameters), std::nullopt)};
+  EXPECT_EQ(notification.at("method"),
+            sourcemeta::core::JSON{"notifications/progress"});
+  EXPECT_EQ(notification.at("params").at("progress"),
+            sourcemeta::core::parse_json("1e400"));
+  EXPECT_EQ(notification.at("params").at("total"),
+            sourcemeta::core::parse_json("1e400"));
+}
+
+// Caller-supplied metadata may already be there, in which case the
+// subscription is named within it rather than alongside a second one
+TEST(make_notification_names_the_subscription_inside_existing_metadata) {
+  sourcemeta::core::MCPSubscriptionFilter acknowledged;
+  acknowledged.tools_list_changed = true;
+  const auto notification{sourcemeta::core::mcp_make_notification(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, true,
+      "notifications/tools/list_changed",
+      sourcemeta::core::parse_json(R"JSON({ "_meta": { "a": 1 } })JSON"),
+      sourcemeta::core::JSON{5}, &acknowledged)};
+  EXPECT_EQ(notification.at("params").at("_meta"), sourcemeta::core::parse_json(
+                                                       R"JSON({
+    "a": 1,
+    "io.modelcontextprotocol/subscriptionId": 5
+  })JSON"));
+}
+
+// The prior requests are read as a map of identifiers, so anything else names
+// no request to continue
+TEST(validate_continuation_rejects_prior_requests_that_are_not_an_object) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "form": { "action": "decline" } }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters,
+      sourcemeta::core::JSON{true}, std::nullopt));
+}
+
+TEST(validate_continuation_rejects_parameters_without_request_metadata) {
+  const auto parameters{sourcemeta::core::parse_json(
+      R"JSON({ "inputResponses": { "form": { "action": "decline" } } })JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_input_responses_that_are_not_an_object) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": true
+  })JSON")};
+  const auto prior{sourcemeta::core::JSON::make_object()};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// A prior request names the operation its answer belongs to, so one that names
+// none, or names it with something other than a string, cannot be answered
+TEST(validate_continuation_rejects_a_prior_request_without_a_method) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "form": { "action": "decline" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({ "form": {} })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_prior_request_with_a_non_string_method) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "form": { "action": "decline" } }
+  })JSON")};
+  const auto prior{
+      sourcemeta::core::parse_json(R"JSON({ "form": { "method": 1 } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// Every input response is an object carrying the answer to one request
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/utilities/multi-round-tool-results
+TEST(validate_continuation_rejects_a_response_that_is_not_an_object) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": true }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// A root names a directory by a file URI and may carry a display name
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#root
+TEST(validate_continuation_rejects_a_root_without_a_uri) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "roots": [ {} ] } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_root_with_a_non_string_uri) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "roots": [ { "uri": 1 } ] } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_root_with_a_non_string_name) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "roots": [ { "uri": "file:///a", "name": 1 } ] } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "roots/list" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_accepts_a_named_root) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "roots": [ { "uri": "file:///a", "name": "a" } ] } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "roots/list" } })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// An elicitation answer names one of three actions
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitresult
+TEST(validate_continuation_rejects_an_elicitation_without_an_action) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": {} }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "elicitation/create" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_an_elicitation_with_a_non_string_action) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": 1 } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "elicitation/create" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_accepts_a_cancelled_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": "cancel" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "elicitation/create" } })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// Content answers a form, so a request that asked for anything else
+// is not answered with one
+TEST(validate_continuation_rejects_content_answering_a_url_elicitation) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": "accept", "content": {} } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({
+    "s": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "url"
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_elicitation_content_that_is_not_an_object) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": "accept", "content": true } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({
+    "s": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form"
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// A form answer is a flat map of primitives and string lists
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#elicitrequestformparams
+TEST(validate_continuation_rejects_an_elicitation_answer_of_an_object) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": "accept", "content": { "a": {} } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({
+    "s": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form"
+      }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_accepts_every_elicitation_answer_shape) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": "accept", "content": { "a": "x", "b": 1, "c": true, "d": [ "y" ] } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({
+    "s": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form"
+      }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// A sampling answer names the role that produced it, the model that
+// did, and carries the content it produced
+// https://modelcontextprotocol.io/specification/2026-07-28/schema#createmessageresult
+TEST(validate_continuation_rejects_a_sampling_response_without_a_role) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "model": "m", "content": { "type": "text", "text": "x" } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_sampling_response_with_a_non_string_role) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "role": 1, "model": "m", "content": { "type": "text", "text": "x" } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_sampling_response_with_an_unknown_role) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "role": "system", "model": "m", "content": { "type": "text", "text": "x" } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_accepts_a_sampling_response_from_the_user) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "role": "user", "model": "m", "content": { "type": "text", "text": "x" } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_TRUE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_sampling_response_without_content) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "role": "assistant", "model": "m" } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_sampling_response_without_a_model) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "role": "assistant", "content": { "type": "text", "text": "x" } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+TEST(validate_continuation_rejects_a_non_string_stop_reason) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "role": "assistant", "model": "m", "stopReason": 1, "content": { "type": "text", "text": "x" } } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(
+      R"JSON({ "s": { "method": "sampling/createMessage" } })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
+
+// The mode a request asked in decides whether content answers it, so a mode
+// that is not even a string names no form
+TEST(validate_continuation_rejects_content_for_a_non_string_mode) {
+  const auto parameters{sourcemeta::core::parse_json(R"JSON({
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    },
+    "inputResponses": { "s": { "action": "accept", "content": {} } }
+  })JSON")};
+  const auto prior{sourcemeta::core::parse_json(R"JSON({
+    "s": { "method": "elicitation/create", "params": { "mode": 1 } }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::mcp_validate_continuation(
+      sourcemeta::core::MCPProtocolVersion::V_2026_07_28, parameters, prior,
+      std::nullopt));
+}
