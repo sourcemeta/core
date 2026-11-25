@@ -274,11 +274,10 @@ auto to_double(const std::string_view input) noexcept -> std::optional<double> {
 
   errno = 0;
   char *end{nullptr};
-  // The C library rounds the way the environment asks of it, while the reading
-  // this stands in for on other platforms is to nearest whatever it asks, so
-  // the environment is held to nearest over the call for the two to answer
-  // alike. Reading the mode before writing it keeps the ordinary case clear of
-  // the write altogether
+  // The C library reads a number the way the environment asks it to round,
+  // while every other platform reads to nearest whatever the environment asks
+  // for, so the environment is held to nearest across the call for the two to
+  // answer alike. It is written only when it is not already there
   const auto rounding{std::fegetround()};
   if (rounding != FE_TONEAREST) {
     std::fesetround(FE_TONEAREST);

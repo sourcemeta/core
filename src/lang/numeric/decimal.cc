@@ -2485,11 +2485,12 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
 
 // A quotient is written out in full exactly when its expansion terminates,
 // which it does when the divisor, once the factors it shares with the base are
-// taken out of it, divides the dividend. The positions it then takes are the
-// longer of the two runs of those factors, since a dividend widened by that
-// many reaches a remainder of nothing. What is left over otherwise divides the
-// base nowhere, so no number of positions ever clears it and the expansion
-// runs on without end
+// taken out of it, divides the dividend. Each of those factors is paid out of
+// the dividend wherever the dividend carries it, and the positions the
+// expansion then takes are the longer of the two runs left unpaid, since a
+// dividend widened by that many reaches a remainder of nothing. What is left
+// over otherwise divides the base nowhere, so no number of positions ever
+// clears it and the expansion runs on without end
 auto terminating_fraction_digits(const BigCoefficient &dividend,
                                  const BigCoefficient &divisor)
     -> std::optional<std::uint32_t> {
@@ -2507,11 +2508,9 @@ auto terminating_fraction_digits(const BigCoefficient &dividend,
     fives++;
   }
 
-  // A factor the divisor asks for is paid out of the dividend wherever the
-  // dividend carries it, and costs a position of the expansion only where it
-  // does not. Taking the factors out of a copy of the dividend is what tells
-  // the two apart, and the count of them bounds the walk, so a dividend of
-  // nothing cannot keep it going
+  // Taking the factors out of a copy of the dividend is what tells a paid
+  // factor from an unpaid one, and the count of them bounds each walk, so a
+  // dividend of nothing cannot keep one going
   if (twos > 0 || fives > 0) {
     auto reduced = dividend.clone();
     while (twos > 0 && reduced.is_divisible_by_base_factor(2)) {
