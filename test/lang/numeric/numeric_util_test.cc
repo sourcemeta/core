@@ -729,3 +729,46 @@ TEST(divide_ceil_decimal_by_one) {
   EXPECT_EQ(sourcemeta::core::divide_ceil(dividend, divisor).to_string(),
             "123456789012345678901234567890");
 }
+
+// A value that is not a number is no byte, and neither is a negative one
+TEST(is_byte_decimal_not_a_number) {
+  EXPECT_FALSE(sourcemeta::core::is_byte(sourcemeta::core::Decimal::nan()));
+}
+
+TEST(is_byte_decimal_infinite) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_byte(sourcemeta::core::Decimal{"Infinity"}));
+}
+
+TEST(is_byte_decimal_negative) {
+  EXPECT_FALSE(sourcemeta::core::is_byte(sourcemeta::core::Decimal{-1}));
+}
+
+// The closed range excludes a value on either side of it
+TEST(is_within_unsigned_below_the_lower_bound) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_within(2, std::uint64_t{5}, std::uint64_t{10}));
+}
+
+// Where no power in the range exceeds the value, the search answers with the
+// end of the range it was given
+TEST(closest_smallest_exponent_exhausts_the_range) {
+  EXPECT_EQ(sourcemeta::core::closest_smallest_exponent(1000000, 10, 1, 3), 3);
+}
+
+// A power that exceeds the value before the range opens is passed over, so the
+// answer is never below the start
+TEST(closest_smallest_exponent_passes_over_an_early_exceeding_power) {
+  EXPECT_EQ(sourcemeta::core::closest_smallest_exponent(5, 10, 3, 5), 3);
+}
+
+// An infinity equals only the same infinity, whichever side it falls on
+TEST(real_equal_double_value_not_equal_to_infinity) {
+  const double infinity{std::numeric_limits<double>::infinity()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(1.0, infinity));
+}
+
+// A value whose magnitude outruns the narrower format is not one of its values
+TEST(is_representable_as_float_rejects_a_large_negative_double) {
+  EXPECT_FALSE(sourcemeta::core::is_representable_as<float>(-1e300));
+}

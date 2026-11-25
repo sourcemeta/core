@@ -1,7 +1,8 @@
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/test.h>
 
-#include <cmath>       // std::signbit
+#include <cfenv> // std::fegetround, std::fesetround, FE_DOWNWARD, FE_TONEAREST
+#include <cmath> // std::signbit
 #include <cstdint>     // std::int64_t, std::uint64_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -1117,6 +1118,14 @@ TEST(to_double_exact_past_the_significand) {
   EXPECT_FALSE(result.has_value());
 }
 
+// A spelling longer than the exact reading accounts for is refused on its
+// length alone, however plainly the value it names is one a double holds
+TEST(to_double_exact_past_the_longest_spelling) {
+  const std::string input{"0.500000000000000000000000"};
+  const auto result{sourcemeta::core::to_double_exact(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST(to_double_exact_power_of_two_past_the_significand) {
   const std::string input{"1152921504606846976"};
   const auto result{sourcemeta::core::to_double_exact(input)};
@@ -1158,4 +1167,78 @@ TEST(to_double_exact_leading_plus) {
   const std::string input{"+1.5"};
   const auto result{sourcemeta::core::to_double_exact(input)};
   EXPECT_FALSE(result.has_value());
+}
+
+// The accepted alphabet carries both spellings of the exponent marker
+TEST(to_double_uppercase_exponent_marker) {
+  const auto result{sourcemeta::core::to_double("1E5")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 100000.0);
+}
+
+// An exponent marker names at least one digit, and the alphabet the reader
+// accepts upfront admits characters that are not digits on either side of the
+// digit range
+TEST(to_double_rejects_an_exponent_followed_by_a_point) {
+  EXPECT_FALSE(sourcemeta::core::to_double("1e.").has_value());
+}
+
+TEST(to_double_rejects_an_exponent_followed_by_another_marker) {
+  EXPECT_FALSE(sourcemeta::core::to_double("1ee").has_value());
+}
+
+TEST(to_double_rejects_a_character_outside_the_alphabet) {
+  EXPECT_FALSE(sourcemeta::core::to_double("0x1f").has_value());
+}
+
+// Scaling a significand is a single rounded operation that obeys the
+// environment, while the general conversion is specified to round to nearest
+// regardless, so the shortcut stands in for it only while the two agree. A
+// number that needs scaling is still read correctly under another mode, by the
+// general conversion rather than the shortcut
+TEST(to_double_scaled_value_under_a_directed_rounding_mode) {
+  const auto previous{std::fegetround()};
+  std::fesetround(FE_DOWNWARD);
+  const auto result{sourcemeta::core::to_double("1.5e2")};
+  std::fesetround(previous);
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 150.0);
+}
+
+// A fraction names digits, so a character below the digit range ends it
+TEST(to_double_exact_rejects_a_fraction_followed_by_a_sign) {
+  EXPECT_FALSE(sourcemeta::core::to_double_exact("1.-").has_value());
+}
+
+// An integer reader takes the whole of its input and nothing less
+TEST(to_int64_t_rejects_a_value_it_cannot_read) {
+  EXPECT_FALSE(sourcemeta::core::to_int64_t("abc").has_value());
+}
+
+TEST(to_int64_t_rejects_trailing_characters) {
+  EXPECT_FALSE(sourcemeta::core::to_int64_t("12.5").has_value());
+}
+
+TEST(to_uint32_t_with_a_radix_rejects_trailing_characters) {
+  EXPECT_FALSE(sourcemeta::core::to_uint32_t("12z", 16).has_value());
+}
+
+// A value beyond the exact range leaves the shortcut and reaches the alphabet
+// test, which carries the uppercase exponent marker, and then a conversion
+// that has no double to answer with
+TEST(to_double_rejects_an_uppercase_exponent_beyond_the_range) {
+  EXPECT_FALSE(sourcemeta::core::to_double("1E400").has_value());
+}
+
+// A fraction names digits, so a character above the digit range ends it
+TEST(to_double_exact_rejects_a_fraction_followed_by_a_letter) {
+  EXPECT_FALSE(sourcemeta::core::to_double_exact("1.x").has_value());
+}
+
+// A run longer than the narrow route could ever hold is handed to the general
+// conversion, which reads the whole of it
+TEST(to_int64_t_reads_a_padded_value_too_long_for_the_narrow_route) {
+  const auto result{sourcemeta::core::to_int64_t("-00000000000000000042")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), -42);
 }

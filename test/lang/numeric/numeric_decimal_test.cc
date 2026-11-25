@@ -5,8 +5,35 @@
 #include <cstdint> // std::int32_t, std::int64_t, std::uint32_t, std::uint64_t
 #include <limits>  // std::numeric_limits
 #include <string>  // std::string
-#include <thread>  // std::thread
-#include <vector>  // std::vector
+#include <string_view> // std::string_view
+#include <thread>      // std::thread
+#include <vector>      // std::vector
+
+namespace {
+
+// Four limbs of eighteen digits sit inside the value itself, so a coefficient
+// past seventy two digits is the first one held on the heap. The digits are
+// built rather than spelled out, so that the width is the one stated here
+auto wide_digits() -> std::string { return "1" + std::string(79, '0') + "7"; }
+
+// Five to the one thousand and seventy fifth power, scaled to stand below the
+// least significant bit of the smallest subnormal a double reaches. It is the
+// shortest coefficient able to pay out a scale that far down
+constexpr std::string_view POWER_OF_FIVE_PAST_THE_DOUBLE_RANGE{
+    "247032822920623272088284396434110686182529901307162382212792841250"
+    "337753635104375932649918180817996189898282347722858865463328355177"
+    "969898199387398005390939063150356595155702263922908583924491051844"
+    "359318028499365361525003193704576782492193656236698636584807570015"
+    "857692699037063119282795585513329278343384093519780155312465972635"
+    "795746227664652728272200563740064854999770965994704540208281662262"
+    "378573934507363390079677619305775067401763246736009689513405355374"
+    "585166611342237666786041621596804619144672918403005300575308490487"
+    "653917113865916462395249126236538818796362393732804238910186723484"
+    "976682350898633885879256283027559956575244555072551893136908362547"
+    "791869486679949683240497058210285131854513962138377228261454376934"
+    "12532098591327667236328125e-1075"};
+
+} // namespace
 
 TEST(add_small_integers) {
   const sourcemeta::core::Decimal left{2};
@@ -140,7 +167,7 @@ TEST(multiply_decimals) {
 TEST(multiply_large_numbers) {
   const sourcemeta::core::Decimal left{"123456789"};
   const sourcemeta::core::Decimal right{"987654321"};
-  const sourcemeta::core::Decimal result{"1.219326311126353E+17"};
+  const sourcemeta::core::Decimal result{"121932631112635269"};
   EXPECT_EQ(left * right, result);
 }
 
@@ -353,7 +380,8 @@ TEST(very_large_integer) {
 TEST(large_multiplication) {
   const sourcemeta::core::Decimal left{"999999999999999999"};
   const sourcemeta::core::Decimal right{"999999999999999999"};
-  const sourcemeta::core::Decimal expected{"1.000000000000000E+36"};
+  const sourcemeta::core::Decimal expected{
+      "999999999999999998000000000000000001"};
   EXPECT_EQ(left * right, expected);
 }
 
@@ -1189,9 +1217,11 @@ TEST(divide_near_minimum_exponent_keeps_representable_quotient) {
   EXPECT_EQ(result, sourcemeta::core::Decimal{"3333333333333333e-2147483648"});
 }
 
-TEST(multiply_rounding_past_maximum_exponent_overflows_cleanly) {
-  const sourcemeta::core::Decimal left{"99999999999999999e2147483630"};
-  const sourcemeta::core::Decimal right{"1e17"};
+// The exponent of a product is the sum of the two exponents, so a sum past
+// what the exponent holds is what a product has to turn away
+TEST(multiply_past_the_widest_exponent_overflows_cleanly) {
+  const sourcemeta::core::Decimal left{"1e2147483647"};
+  const sourcemeta::core::Decimal right{"1e1"};
   try {
     const auto result{left * right};
     FAIL();
@@ -1200,16 +1230,29 @@ TEST(multiply_rounding_past_maximum_exponent_overflows_cleanly) {
   }
 }
 
-TEST(multiply_rounding_overflow_leaves_the_operand_alone) {
-  const sourcemeta::core::Decimal original{"99999999999999999e2147483630"};
+// The exponent is weighed before the operand gives up what it held, so an
+// operand turned away is the one it was
+TEST(multiply_exponent_overflow_leaves_the_operand_alone) {
+  const sourcemeta::core::Decimal original{"1e2147483647"};
   sourcemeta::core::Decimal left{original};
   try {
-    left *= sourcemeta::core::Decimal{"1e17"};
+    left *= sourcemeta::core::Decimal{"1e1"};
     FAIL();
   } catch (const sourcemeta::core::NumericOverflowError &) {
     EXPECT_EQ(left, original);
     EXPECT_TRUE(left.same_quantum(original));
     EXPECT_EQ(left.to_string(), original.to_string());
+  }
+}
+
+// A wide coefficient takes the same route, so the sum is weighed there too
+TEST(multiply_past_the_widest_exponent_overflows_with_a_wide_coefficient) {
+  const sourcemeta::core::Decimal left{wide_digits() + "e2147483647"};
+  try {
+    const auto result{left * sourcemeta::core::Decimal{"1e1"}};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
   }
 }
 
@@ -1416,29 +1459,31 @@ TEST(add_two_limbs_below_the_base_carries_correctly) {
   EXPECT_EQ(left + right, sourcemeta::core::Decimal{"19000000000000000000"});
 }
 
-TEST(divide_above_midpoint_rounds_up) {
+TEST(divide_by_a_power_of_ten_is_exact) {
   const sourcemeta::core::Decimal dividend{"1000000000000000501"};
   const sourcemeta::core::Decimal divisor{"1000000000000000000"};
-  EXPECT_EQ(dividend / divisor, sourcemeta::core::Decimal{"1.000000000000001"});
+  EXPECT_EQ(dividend / divisor,
+            sourcemeta::core::Decimal{"1.000000000000000501"});
 }
 
-TEST(divide_below_midpoint_rounds_down) {
+TEST(divide_by_a_power_of_ten_keeps_the_trailing_digits) {
   const sourcemeta::core::Decimal dividend{"1234567890123455499"};
   const sourcemeta::core::Decimal divisor{"1000000000000000000"};
-  EXPECT_EQ(dividend / divisor, sourcemeta::core::Decimal{"1.234567890123455"});
+  EXPECT_EQ(dividend / divisor,
+            sourcemeta::core::Decimal{"1.234567890123455499"});
 }
 
-TEST(divide_negative_above_midpoint_rounds_away_from_zero) {
+TEST(divide_negative_by_a_power_of_ten_is_exact) {
   const sourcemeta::core::Decimal dividend{"-1000000000000000501"};
   const sourcemeta::core::Decimal divisor{"1000000000000000000"};
   EXPECT_EQ(dividend / divisor,
-            sourcemeta::core::Decimal{"-1.000000000000001"});
+            sourcemeta::core::Decimal{"-1.000000000000000501"});
 }
 
-TEST(compound_divide_above_midpoint_rounds_up) {
+TEST(compound_divide_by_a_power_of_ten_is_exact) {
   sourcemeta::core::Decimal dividend{"1000000000000000501"};
   dividend /= sourcemeta::core::Decimal{"1000000000000000000"};
-  EXPECT_EQ(dividend, sourcemeta::core::Decimal{"1.000000000000001"});
+  EXPECT_EQ(dividend, sourcemeta::core::Decimal{"1.000000000000000501"});
 }
 
 TEST(divide_inexact_does_not_strip_zeros) {
@@ -1491,16 +1536,16 @@ TEST(divide_residue_breaks_the_tie_on_a_wider_divisor) {
   EXPECT_EQ((dividend / divisor).to_string(), "0.05882352941176471");
 }
 
-TEST(divide_rounds_half_even_on_tie_with_even_retained_digit) {
+TEST(halving_an_odd_coefficient_keeps_the_half) {
   const sourcemeta::core::Decimal dividend{2469135780246913LL};
   const sourcemeta::core::Decimal divisor{2};
-  EXPECT_EQ((dividend / divisor).to_string(), "1234567890123456");
+  EXPECT_EQ((dividend / divisor).to_string(), "1234567890123456.5");
 }
 
-TEST(divide_rounds_half_even_on_tie_with_odd_retained_digit) {
+TEST(halving_an_odd_coefficient_past_the_working_precision_keeps_the_half) {
   const sourcemeta::core::Decimal dividend{2469135780246915LL};
   const sourcemeta::core::Decimal divisor{2};
-  EXPECT_EQ((dividend / divisor).to_string(), "1234567890123458");
+  EXPECT_EQ((dividend / divisor).to_string(), "1234567890123457.5");
 }
 
 TEST(divide_zero_by_many_digit_divisor) {
@@ -5163,7 +5208,8 @@ TEST(positive_exponent_is_integral) {
 TEST(multiply_bigs_with_carry) {
   const sourcemeta::core::Decimal left{"99999999999999999999"};
   const sourcemeta::core::Decimal right{"99999999999999999999"};
-  EXPECT_EQ((left * right).to_string(), "10.00000000000000e+39");
+  EXPECT_EQ((left * right).to_string(),
+            "9999999999999999999800000000000000000001");
 }
 
 TEST(to_integral_of_big_fraction) {
@@ -5371,6 +5417,28 @@ TEST(divide_integer_trial_word_excess_add_back) {
   const sourcemeta::core::Decimal divisor{
       "500000000000000000000000000000000000000000000000000001"};
   EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "999999999999999998");
+}
+
+// Adding the divisor back has to carry out of the top word to cancel the
+// borrow, which does not mean every word below it carries as well
+TEST(divide_integer_trial_word_excess_add_back_without_a_carry) {
+  const sourcemeta::core::Decimal dividend{
+      "499999999999999999500000000000000000000000000000000000"
+      "999999999999999994"};
+  const sourcemeta::core::Decimal divisor{
+      "500000000000000000000000000000000000000000000000000001"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "999999999999999998");
+}
+
+// A dividend one short of the divisor times the base leaves the leading word
+// of the one standing against the leading word of the other, so the trial
+// quotient word opens at the base itself and is walked back from there until
+// the correction test runs out of room
+TEST(divide_integer_trial_word_opening_at_the_base) {
+  const sourcemeta::core::Decimal dividend{
+      "1000000000000000004999999999999999999"};
+  const sourcemeta::core::Decimal divisor{"1000000000000000005"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "999999999999999999");
 }
 
 TEST(modulo_trial_word_excess_add_back) {
@@ -6618,16 +6686,16 @@ TEST(dividing_minus_one_by_seven_rounds_half_even) {
   EXPECT_EQ((dividend / divisor).to_string(), "-0.1428571428571429");
 }
 
-TEST(dividing_above_the_midpoint_with_a_guard_digit_of_five_rounds_up) {
+TEST(dividing_by_twice_a_power_of_ten_is_exact) {
   const sourcemeta::core::Decimal dividend{"100000000000000011"};
   const sourcemeta::core::Decimal divisor{"200000000000000000"};
-  EXPECT_EQ((dividend / divisor).to_string(), "0.5000000000000001");
+  EXPECT_EQ((dividend / divisor).to_string(), "0.500000000000000055");
 }
 
-TEST(dividing_below_the_midpoint_with_a_guard_digit_of_five_rounds_down) {
+TEST(dividing_below_one_by_twice_a_power_of_ten_is_exact) {
   const sourcemeta::core::Decimal dividend{"99999999999999989"};
   const sourcemeta::core::Decimal divisor{"200000000000000000"};
-  EXPECT_EQ((dividend / divisor).to_string(), "0.4999999999999999");
+  EXPECT_EQ((dividend / divisor).to_string(), "0.499999999999999945");
 }
 
 TEST(divisible_by_across_the_whole_exponent_range) {
@@ -6854,19 +6922,19 @@ TEST(strict_from_double_negative_zero_keeps_its_sign) {
   EXPECT_TRUE(value.is_signed());
 }
 
-TEST(divide_inexact_keeps_a_rounded_trailing_zero_quantum) {
+TEST(divide_by_a_power_of_ten_keeps_the_eighteenth_digit) {
   const sourcemeta::core::Decimal numerator{"100000000000000001"};
   const sourcemeta::core::Decimal denominator{"100000000000000000"};
-  const sourcemeta::core::Decimal expected{"1.000000000000000"};
+  const sourcemeta::core::Decimal expected{"1.00000000000000001"};
   const auto result{numerator / denominator};
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.same_quantum(expected));
 }
 
-TEST(divide_inexact_keeps_a_rounded_trailing_zero_quantum_negative) {
+TEST(divide_negative_by_a_power_of_ten_keeps_the_eighteenth_digit) {
   const sourcemeta::core::Decimal numerator{"-100000000000000001"};
   const sourcemeta::core::Decimal denominator{"100000000000000000"};
-  const sourcemeta::core::Decimal expected{"-1.000000000000000"};
+  const sourcemeta::core::Decimal expected{"-1.00000000000000001"};
   const auto result{numerator / denominator};
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(result.same_quantum(expected));
@@ -6925,49 +6993,25 @@ TEST(divide_below_the_narrowest_exponent_overflows) {
 // And a product whose rounded exponent lands exactly on the widest one fits,
 // so allowing for a carry that this rounding never makes would turn away a
 // result the storage holds.
+// A product whose two exponents sum to exactly the widest one is held, since
+// rounding is no longer there to carry that sum any further
 TEST(multiply_landing_exactly_on_the_widest_exponent_is_held) {
-  const sourcemeta::core::Decimal left{"10000000000000000e2147483646"};
-  const auto result{left * sourcemeta::core::Decimal{1}};
-  EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
+  const sourcemeta::core::Decimal left{"99999999999999999e2147483630"};
+  const auto result{left * sourcemeta::core::Decimal{"1e17"}};
+  const sourcemeta::core::Decimal expected{"99999999999999999e2147483647"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
 }
 
-// A run of nines carries into a further position, which the digit count cannot
-// predict, so the exponent lands one beyond what was weighed and wrapped on
-// being narrowed. The value came back with the opposite sign of exponent.
-TEST(multiply_carrying_past_the_widest_exponent_overflows) {
-  const sourcemeta::core::Decimal left{"99999999999999999e2147483646"};
-  const sourcemeta::core::Decimal right{1};
-  try {
-    const auto result{left * right};
-    FAIL();
-  } catch (const sourcemeta::core::NumericOverflowError &error) {
-    EXPECT_STREQ(error.what(), "Numeric overflow");
-  }
-}
-
-// And the same coefficient one position lower still fits, so weighing the
-// carry must not turn away a result the storage holds.
-TEST(multiply_carrying_within_the_widest_exponent_is_held) {
+// A coefficient of seventeen digits keeps every one of them, where rounding to
+// a working precision would have let the last go and raised the exponent to
+// stand in for it
+TEST(multiply_by_one_keeps_every_digit_of_the_coefficient) {
   const sourcemeta::core::Decimal left{"99999999999999999e2147483645"};
   const auto result{left * sourcemeta::core::Decimal{1}};
-  EXPECT_EQ(result.to_string(), "10.00000000000000e+2147483661");
-}
-
-// The carry is what reveals the need to refuse, so the result is rounded where
-// it stands and only reaches the operand once it is known to fit. Committing
-// it first left the operand holding a coefficient from a result that was then
-// turned away.
-TEST(multiply_carrying_past_the_widest_exponent_leaves_the_operand_alone) {
-  const sourcemeta::core::Decimal original{"99999999999999999e2147483646"};
-  sourcemeta::core::Decimal left{original};
-  try {
-    left *= sourcemeta::core::Decimal{1};
-    FAIL();
-  } catch (const sourcemeta::core::NumericOverflowError &) {
-    EXPECT_EQ(left, original);
-    EXPECT_TRUE(left.same_quantum(original));
-    EXPECT_EQ(left.to_string(), original.to_string());
-  }
+  const sourcemeta::core::Decimal expected{"99999999999999999e2147483645"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
 }
 
 // A result too small to be written in full is reported as out of range by the
@@ -7109,6 +7153,62 @@ TEST(infinity_spelled_out_in_mixed_case) {
   EXPECT_TRUE(value.is_infinite());
 }
 
+// Each letter is accepted in either case, so which of the two spellings of it
+// decides the reading is the one the rest of the word is written in
+TEST(upper_case_infinity_with_a_wrong_fourth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"INFXNITY"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(upper_case_infinity_with_a_wrong_fifth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"INFIXITY"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(upper_case_infinity_with_a_wrong_sixth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"INFINXTY"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(upper_case_infinity_with_a_wrong_seventh_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"INFINIXY"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(upper_case_infinity_with_a_wrong_eighth_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"INFINITX"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(upper_case_signalling_not_a_number_with_a_wrong_third_letter) {
+  try {
+    const sourcemeta::core::Decimal value{"SNXN"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
 // A coefficient carried in the wide storage still reads back as a single zero
 // digit once the two sides of a subtraction cancel each other out
 TEST(subtracting_equal_wide_coefficients_reads_back_as_zero) {
@@ -7171,4 +7271,567 @@ TEST(less_than_across_an_exponent_gap_too_wide_to_scale) {
   const sourcemeta::core::Decimal right{std::string{"1"}};
   EXPECT_FALSE(left < right);
   EXPECT_TRUE(right < left);
+}
+
+// A coefficient wider than a hundred and twenty eight bits is held on the heap,
+// so the paths below drive the wide representation rather than the inline one
+TEST(big_move_assignment_over_another_big) {
+  sourcemeta::core::Decimal left{
+      "12345678901234567890123456789012345678901234567890"};
+  sourcemeta::core::Decimal right{
+      "98765432109876543210987654321098765432109876543210"};
+  left = std::move(right);
+  EXPECT_EQ(left.to_string(),
+            "98765432109876543210987654321098765432109876543210");
+}
+
+TEST(big_subtraction_to_zero) {
+  const sourcemeta::core::Decimal value{
+      "12345678901234567890123456789012345678901234567890"};
+  const auto result{value - value};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_EQ(result.to_string(), "0");
+}
+
+TEST(big_subtraction_to_zero_keeps_its_quantum) {
+  const sourcemeta::core::Decimal value{
+      "1234567890123456789012345678901234567890.1234567890"};
+  const auto result{value - value};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_TRUE(result.same_quantum(sourcemeta::core::Decimal{"0.0000000000"}));
+}
+
+TEST(big_divided_by_big) {
+  const sourcemeta::core::Decimal dividend{
+      "98765432109876543210987654321098765432109876543210"};
+  const sourcemeta::core::Decimal divisor{
+      "12345678901234567890123456789012345678901234567890"};
+  const auto result{dividend.divide_integer(divisor)};
+  EXPECT_EQ(result.to_string(), "8");
+}
+
+TEST(big_divided_by_a_small_value) {
+  const sourcemeta::core::Decimal dividend{
+      "12345678901234567890123456789012345678901234567890"};
+  const sourcemeta::core::Decimal divisor{7};
+  const auto result{dividend.divide_integer(divisor)};
+  EXPECT_EQ(result.to_string(),
+            "1763668414462081127160493827001763668414462081127");
+}
+
+TEST(big_modulo_a_small_value) {
+  const sourcemeta::core::Decimal dividend{
+      "12345678901234567890123456789012345678901234567890"};
+  const sourcemeta::core::Decimal divisor{7};
+  EXPECT_EQ((dividend % divisor).to_string(), "1");
+}
+
+TEST(big_addition_carries_across_every_word) {
+  const sourcemeta::core::Decimal left{
+      "99999999999999999999999999999999999999999999999999"};
+  const sourcemeta::core::Decimal right{1};
+  EXPECT_EQ((left + right).to_string(),
+            "100000000000000000000000000000000000000000000000000");
+}
+
+TEST(big_multiplication_of_two_wide_values) {
+  const sourcemeta::core::Decimal left{
+      "12345678901234567890123456789012345678901234567890"};
+  // The product of two fifty digit values spans ninety nine digits, every one
+  // of which it keeps
+  EXPECT_EQ(left * left,
+            sourcemeta::core::Decimal{
+                "15241578753238836750495351562566681945008382873375704923"
+                "6500533455762536198787501905199875019052100"});
+}
+
+TEST(big_negative_is_signed) {
+  const sourcemeta::core::Decimal value{
+      "-12345678901234567890123456789012345678901234567890"};
+  EXPECT_TRUE(value.is_signed());
+  EXPECT_EQ(value.to_string(),
+            "-12345678901234567890123456789012345678901234567890");
+}
+
+TEST(big_compared_against_a_wider_one) {
+  const sourcemeta::core::Decimal narrow{
+      "12345678901234567890123456789012345678901234567890"};
+  const sourcemeta::core::Decimal wide{
+      "123456789012345678901234567890123456789012345678901234567890"};
+  EXPECT_TRUE(narrow < wide);
+  EXPECT_TRUE(wide > narrow);
+}
+
+TEST(big_value_with_a_negative_exponent_as_a_double) {
+  const sourcemeta::core::Decimal value{
+      "1234567890123456789012345678901234567890.5"};
+  EXPECT_TRUE(value.to_double() > 1.2345e39);
+  EXPECT_TRUE(value.to_double() < 1.2346e39);
+}
+
+TEST(big_value_strips_its_trailing_zeros) {
+  const sourcemeta::core::Decimal value{
+      "123456789012345678901234567890123456789000000000000"};
+  const auto stripped{value.reduce()};
+  EXPECT_EQ(stripped, value);
+  EXPECT_TRUE(stripped.same_quantum(sourcemeta::core::Decimal{
+      "1.23456789012345678901234567890123456789E+50"}));
+}
+
+TEST(heap_coefficient_addition_across_exponents) {
+  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal small{"1E-5"};
+  EXPECT_EQ(wide + small, small + wide);
+  EXPECT_TRUE(wide + small > wide);
+}
+
+TEST(heap_coefficient_subtraction_across_exponents) {
+  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal small{"1E-5"};
+  EXPECT_TRUE(wide - small < wide);
+  EXPECT_TRUE(small - wide < small);
+}
+
+// A square of a fifty digit value spans ninety nine digits, every one of
+// which the product keeps
+TEST(wide_product_keeps_every_digit) {
+  const sourcemeta::core::Decimal value{
+      "10000000000000000000000000000000000000000000000001"};
+  EXPECT_EQ(value * value,
+            sourcemeta::core::Decimal{
+                "100000000000000000000000000000000000000000000000020000000000"
+                "000000000000000000000000000000000000001"});
+}
+
+// A wide coefficient multiplied by a narrow one reads the narrow one as a
+// single limb with nothing above it
+TEST(heap_coefficient_times_a_narrow_value) {
+  const sourcemeta::core::Decimal wide{wide_digits()};
+  EXPECT_EQ(wide * sourcemeta::core::Decimal{7},
+            sourcemeta::core::Decimal{
+                "700000000000000000000000000000000000000000000000000000000000"
+                "000000000000000000049"});
+}
+
+TEST(heap_coefficient_times_a_negative_value) {
+  const sourcemeta::core::Decimal wide{wide_digits()};
+  EXPECT_EQ(wide * sourcemeta::core::Decimal{-1},
+            sourcemeta::core::Decimal{"-" + wide_digits()});
+  EXPECT_TRUE((wide * sourcemeta::core::Decimal{-1}).is_signed());
+}
+
+// A division that does not come out even carries a residue past the digits it
+// keeps, which is what the half-even tie rule is weighed against
+TEST(heap_coefficient_divided_leaving_a_residue) {
+  const sourcemeta::core::Decimal wide{wide_digits()};
+  const auto result{wide / sourcemeta::core::Decimal{3}};
+  EXPECT_TRUE(result > sourcemeta::core::Decimal{"3.3E79"});
+  EXPECT_TRUE(result < sourcemeta::core::Decimal{"3.4E79"});
+}
+
+// A product of two finite values is itself finite, spanning at most the digits
+// of the two together, so there is nothing about one that needs rounding away.
+// Only division keeps a bound, since its expansion need not terminate
+TEST(multiplication_keeps_every_digit_like_the_additive_operations) {
+  const sourcemeta::core::Decimal value{"12345678901234567890"};
+  EXPECT_EQ(value + sourcemeta::core::Decimal{0}, value);
+  EXPECT_EQ(value - sourcemeta::core::Decimal{0}, value);
+  EXPECT_EQ(value.divide_integer(sourcemeta::core::Decimal{1}), value);
+  EXPECT_EQ(value * sourcemeta::core::Decimal{1}, value);
+  EXPECT_TRUE((value * sourcemeta::core::Decimal{1}).same_quantum(value));
+}
+
+// A divisor whose only factors are the ones it shares with the base divides
+// out in a finite run of positions, however many of them that takes
+TEST(dividing_by_a_power_of_two_is_exact_past_the_working_precision) {
+  const sourcemeta::core::Decimal one{1};
+  EXPECT_EQ((one / sourcemeta::core::Decimal{8}).to_string(), "0.125");
+  EXPECT_EQ((one / sourcemeta::core::Decimal{1024}).to_string(),
+            "0.0009765625");
+  EXPECT_EQ((one / sourcemeta::core::Decimal{1048576}).to_string(),
+            "953.67431640625e-9");
+}
+
+// Thirty two positions is twice what the working precision would have kept
+TEST(dividing_by_a_wide_power_of_two_keeps_every_position) {
+  const sourcemeta::core::Decimal one{1};
+  const sourcemeta::core::Decimal divisor{"4294967296"};
+  EXPECT_EQ((one / divisor).to_string(), "232.83064365386962890625e-12");
+}
+
+// A factor the base does not carry leaves an expansion that never closes, so
+// it is the one case held to the working precision
+TEST(dividing_by_three_is_held_to_the_working_precision) {
+  EXPECT_EQ(
+      (sourcemeta::core::Decimal{1} / sourcemeta::core::Decimal{3}).to_string(),
+      "0.3333333333333333");
+  EXPECT_EQ(
+      (sourcemeta::core::Decimal{2} / sourcemeta::core::Decimal{3}).to_string(),
+      "0.6666666666666667");
+}
+
+// That factor dividing the dividend closes the expansion after all
+TEST(dividing_by_three_is_exact_when_three_divides_the_dividend) {
+  EXPECT_EQ(
+      (sourcemeta::core::Decimal{9} / sourcemeta::core::Decimal{3}).to_string(),
+      "3");
+  const sourcemeta::core::Decimal dividend{"123456789012345678901234567890"};
+  EXPECT_EQ((dividend / sourcemeta::core::Decimal{3}).to_string(),
+            "41152263004115226300411522630");
+}
+
+// Seven divides the base nowhere, and its expansion repeats without closing
+TEST(dividing_by_seven_is_held_to_the_working_precision) {
+  EXPECT_EQ(
+      (sourcemeta::core::Decimal{1} / sourcemeta::core::Decimal{7}).to_string(),
+      "0.1428571428571429");
+}
+
+// A quotient of two wide values is written out in full when it closes
+TEST(dividing_wide_values_is_exact_when_the_expansion_closes) {
+  const sourcemeta::core::Decimal dividend{wide_digits()};
+  EXPECT_EQ(dividend / sourcemeta::core::Decimal{1},
+            sourcemeta::core::Decimal{wide_digits()});
+  const auto half{dividend / sourcemeta::core::Decimal{2}};
+  EXPECT_EQ(half * sourcemeta::core::Decimal{2},
+            sourcemeta::core::Decimal{wide_digits()});
+}
+
+// An exponent ends at the first character that is not a digit, which a
+// character below them is just as much as one above them
+TEST(exponent_with_a_character_below_the_digits) {
+  try {
+    const sourcemeta::core::Decimal value{"1e+!"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+// A significand wider than the one a binary format carries is not a value of
+// that format, whatever scale it stands at
+TEST(an_odd_coefficient_wider_than_the_double_significand) {
+  const sourcemeta::core::Decimal value{"9007199254740993"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(an_odd_coefficient_wider_than_the_float_significand) {
+  const sourcemeta::core::Decimal value{"16777217"};
+  EXPECT_FALSE(value.is_float());
+}
+
+// Taking the power of ten out of the coefficient leaves a significand that is
+// weighed on its own, so a coefficient only the scaling makes too wide is
+// refused after it rather than before
+TEST(an_odd_coefficient_scaled_past_the_double_significand) {
+  const sourcemeta::core::Decimal value{"9007199254740993e1"};
+  EXPECT_FALSE(value.is_double());
+}
+
+// A coefficient too short to pay out the power of five underneath it is
+// refused before any division runs
+TEST(a_wide_coefficient_too_short_for_the_power_of_five_beneath_it) {
+  const sourcemeta::core::Decimal value{"12345678901234567890e-100"};
+  EXPECT_FALSE(value.is_double());
+}
+
+// The positions between the two exponents are taken out of the dividend one
+// chunk at a time, and a dividend that parts with every one of them is left
+// standing against the divisor alone
+TEST(divisible_by_a_divisor_whose_exponent_stands_just_above) {
+  const sourcemeta::core::Decimal dividend{"1000000000000000000000"};
+  const sourcemeta::core::Decimal divisor{"2e20"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+// No coefficient the storage holds reaches that far, so a divisor standing
+// more than two chunks above the dividend divides nothing
+TEST(divisible_by_a_divisor_whose_exponent_stands_far_above) {
+  const sourcemeta::core::Decimal dividend{"1"};
+  const sourcemeta::core::Decimal divisor{"3e40"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+// A wide divisor is taken apart by long division instead, which only a
+// dividend that reaches it can answer
+TEST(divisible_by_a_wide_divisor_standing_above_the_dividend) {
+  const sourcemeta::core::Decimal dividend{"5"};
+  const sourcemeta::core::Decimal divisor{"10000000000000000000"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+// A value without bound stands at no magnitude a finite one reaches, from
+// either side of the comparison
+TEST(an_infinity_is_not_equal_to_a_finite_value) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::infinity() ==
+               sourcemeta::core::Decimal{1});
+  EXPECT_FALSE(sourcemeta::core::Decimal{1} ==
+               sourcemeta::core::Decimal::infinity());
+  EXPECT_FALSE(sourcemeta::core::Decimal::negative_infinity() ==
+               sourcemeta::core::Decimal{1});
+  EXPECT_FALSE(sourcemeta::core::Decimal{1} ==
+               sourcemeta::core::Decimal::negative_infinity());
+}
+
+TEST(two_values_of_opposite_sign_are_not_equal) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{1} == sourcemeta::core::Decimal{-1});
+  EXPECT_FALSE(sourcemeta::core::Decimal{-1} == sourcemeta::core::Decimal{1});
+}
+
+// Two values are the same number when they stand at the same quantum as well
+// as carry the same coefficient, which a trailing zero neither of them spells
+// is what separates
+TEST(the_same_coefficient_at_a_different_exponent_is_a_different_value) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1"} ==
+               sourcemeta::core::Decimal{"1e1"});
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1e1"} ==
+               sourcemeta::core::Decimal{"1"});
+}
+
+// A magnitude of eighteen digits is the widest the compact storage holds, so
+// the lowest integer past it is carried in the wide one with its sign
+TEST(a_negative_integer_just_past_the_compact_storage) {
+  const sourcemeta::core::Decimal value{std::int64_t{-1000000000000000000}};
+  EXPECT_EQ(value.to_string(), "-1000000000000000000");
+  EXPECT_EQ(value.to_int64(), std::int64_t{-1000000000000000000});
+}
+
+// A wide coefficient whose lowest limb is empty is still a coefficient, which
+// is what separates it from the zero the same reading would otherwise take it
+// for
+TEST(to_string_of_a_wide_coefficient_whose_lowest_limb_is_empty) {
+  const sourcemeta::core::Decimal value{"1000000000000000000e5"};
+  EXPECT_EQ(value.to_string(), "100.0000000000000000e+21");
+}
+
+TEST(to_int64_of_a_value_whose_exponent_stands_above_zero) {
+  const sourcemeta::core::Decimal value{"5e3"};
+  EXPECT_EQ(value.to_int64(), 5000);
+}
+
+TEST(neither_a_not_a_number_nor_an_infinity_is_integral) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::nan().is_integral());
+  EXPECT_FALSE(sourcemeta::core::Decimal{"sNaN"}.is_integral());
+  EXPECT_FALSE(sourcemeta::core::Decimal::infinity().is_integral());
+  EXPECT_FALSE(sourcemeta::core::Decimal::negative_infinity().is_integral());
+}
+
+// Every position of a wide coefficient sits below the point, so there is
+// nothing left of it to carry, and the sign it came with is all that remains
+TEST(to_integral_of_a_wide_value_standing_entirely_below_the_point) {
+  const sourcemeta::core::Decimal value{"-1000000000000000000e-25"};
+  const auto result{value.to_integral()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+// A half with nothing behind it is settled by the parity of what is kept, and
+// nothing kept is as even as a zero
+TEST(to_integral_of_a_wide_half_rounds_to_an_even_nothing) {
+  const sourcemeta::core::Decimal value{"5000000000000000000e-19"};
+  EXPECT_EQ(value.to_integral().to_string(), "0");
+}
+
+TEST(to_integral_of_a_wide_half_with_a_digit_behind_it_rounds_away) {
+  const sourcemeta::core::Decimal value{"5000000000000000001e-19"};
+  EXPECT_EQ(value.to_integral().to_string(), "1");
+}
+
+// A value without bound underneath a finite one leaves nothing of it, and the
+// sign of that nothing is the one a product or a quotient carries
+TEST(dividing_by_a_negative_infinity_leaves_a_signed_nothing) {
+  const auto result{sourcemeta::core::Decimal{1} /
+                    sourcemeta::core::Decimal::negative_infinity()};
+  EXPECT_TRUE(result.is_zero());
+  EXPECT_EQ(result.to_string(), "-0");
+}
+
+TEST(scale_by_an_infinity_is_an_invalid_operation) {
+  try {
+    const auto result{sourcemeta::core::Decimal{1}.scale_by(
+        sourcemeta::core::Decimal::infinity())};
+    FAIL();
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
+  }
+}
+
+// The total ordering of the specification stands two wide values against each
+// other by the magnitude each of them reaches before it looks at any digit
+TEST(compare_total_of_wide_values_at_different_magnitudes) {
+  const sourcemeta::core::Decimal left{"10000000000000000000"};
+  const sourcemeta::core::Decimal right{"1000000000000000000000000"};
+  EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{-1});
+  EXPECT_EQ(right.compare_total(left), sourcemeta::core::Decimal{1});
+}
+
+// A quotient of nothing keeps the sign the two operands give it, which the
+// specification asks of a division however little is left of the result
+TEST(divide_integer_of_wide_values_whose_quotient_is_nothing) {
+  const sourcemeta::core::Decimal dividend{"10000000000000000000"};
+  const sourcemeta::core::Decimal divisor{"100000000000000000000"};
+  EXPECT_EQ(dividend.divide_integer(divisor).to_string(), "0");
+  EXPECT_EQ(dividend.divide_integer(-divisor).to_string(), "-0");
+}
+
+// A product sits at the sum of the two exponents, and a sum below the lowest
+// the storage spells is refused before any coefficient is multiplied out
+TEST(multiply_past_the_lowest_exponent_overflows_cleanly) {
+  sourcemeta::core::Decimal left{"1e-2147483640"};
+  const sourcemeta::core::Decimal right{"1e-100"};
+  try {
+    left *= right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// A quotient sits at the difference of the two exponents, which rounding then
+// raises further, so what the working precision drops is what carries the
+// result past the widest exponent the storage spells
+TEST(dividing_past_the_widest_exponent_overflows_cleanly) {
+  sourcemeta::core::Decimal left{"1e2147483647"};
+  const sourcemeta::core::Decimal right{"3e-2147483640"};
+  try {
+    left /= right;
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// An expansion that never closes is held to the working precision wherever the
+// quotient is carried, and a quotient of a couple of limbs is dropped to one
+// without ever reaching the heap
+TEST(dividing_by_three_holds_a_quotient_of_two_limbs_to_the_precision) {
+  EXPECT_EQ(
+      (sourcemeta::core::Decimal{"100000000"} / sourcemeta::core::Decimal{3})
+          .to_string(),
+      "33333333.33333333");
+}
+
+// Rounding a coefficient of every nine carries into a further position, which
+// shortens the result by one digit and raises its exponent to match
+TEST(dividing_to_a_coefficient_of_every_nine_carries_past_the_precision) {
+  EXPECT_EQ((sourcemeta::core::Decimal{"299999999999999986"} /
+             sourcemeta::core::Decimal{3})
+                .to_string(),
+            "100.0000000000000e+15");
+}
+
+// An exponent past the range is read to its end rather than kept, and what
+// ends that reading is any character outside the digits, from either side of
+// them
+TEST(exponent_past_the_range_followed_by_a_character_below_the_digits) {
+  try {
+    const sourcemeta::core::Decimal value{"1e4000000001!"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+// A negative exponent pays out the power of five underneath the value, and
+// what is left can still be wider than the significand the format carries,
+// which the scaling of a positive exponent would have refused on its own
+TEST(a_half_past_the_double_significand_is_not_a_double) {
+  const sourcemeta::core::Decimal value{"45035996273704965e-1"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(a_half_past_the_float_significand_is_not_a_float) {
+  const sourcemeta::core::Decimal value{"83886085e-1"};
+  EXPECT_FALSE(value.is_float());
+}
+
+// The coefficient width predicts the lower of the two places rounding leaves
+// the exponent at, so a quotient the carry lifts one further is one the
+// prediction lets through and only the rounded result itself can refuse
+TEST(dividing_carries_a_rounded_quotient_past_the_widest_exponent) {
+  const sourcemeta::core::Decimal dividend{"299999999999999986e2147483646"};
+  const sourcemeta::core::Decimal divisor{3};
+  try {
+    [[maybe_unused]] const auto result{dividend / divisor};
+    FAIL();
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
+  }
+}
+
+// Whole limbs of the scale come off by being skipped rather than divided away,
+// so a scale that measures out in limbs exactly leaves no division to do
+TEST(to_int64_of_a_wide_value_whose_scale_measures_out_in_limbs) {
+  const sourcemeta::core::Decimal value{"1000000000000000000000000e-18"};
+  EXPECT_EQ(value.to_int64(), 1000000);
+}
+
+// A coefficient the wide storage holds reaches past the signed range once an
+// exponent lifts it, while the unsigned range still has room for it
+TEST(to_uint64_of_a_wide_value_whose_exponent_stands_above_zero) {
+  const sourcemeta::core::Decimal value{"1000000000000000000e1"};
+  EXPECT_EQ(value.to_uint64(), std::uint64_t{10000000000000000000ULL});
+}
+
+// A tie is settled by the parity of what is kept only where the division left
+// nothing behind, and an expansion that closes with no room to be written out
+// is the one place a quotient reaches that
+TEST(dividing_rounds_half_even_down_at_the_lowest_exponent) {
+  const sourcemeta::core::Decimal dividend{"65537e-2147483633"};
+  const sourcemeta::core::Decimal divisor{65536};
+  const sourcemeta::core::Decimal expected{"1000015258789062e-2147483648"};
+  const auto result{dividend / divisor};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.same_quantum(expected));
+}
+
+// What the long division holds back is not spelled by any of the dropped
+// positions, so a half that looks exact among them is settled by the remainder
+// rather than by parity
+TEST(dividing_rounds_on_the_remainder_the_long_division_held_back) {
+  EXPECT_EQ((sourcemeta::core::Decimal{5276} / sourcemeta::core::Decimal{501})
+                .to_string(),
+            "10.53093812375250");
+}
+
+// Lining a wide coefficient up against a zero asks the zero for its width the
+// same way, and a zero stands one digit wide
+TEST(a_wide_value_stands_against_a_zero) {
+  const sourcemeta::core::Decimal wide{"10000000000000000000"};
+  const sourcemeta::core::Decimal zero{0};
+  EXPECT_FALSE(wide == zero);
+  EXPECT_FALSE(zero == wide);
+  EXPECT_TRUE(zero < wide);
+  EXPECT_FALSE(wide < zero);
+}
+
+// A coefficient the wide storage holds is brought down to a significand by
+// parting with its powers of two, and the exponent above it then hands it a
+// power of five that the significand has room for
+TEST(a_wide_power_of_two_scaled_by_a_positive_exponent_is_a_float) {
+  const sourcemeta::core::Decimal value{"1152921504606846976e1"};
+  EXPECT_TRUE(value.is_float());
+}
+
+// A power of five the significand has no room for is refused before the
+// significand is weighed at all
+TEST(a_wide_power_of_two_scaled_past_the_float_significand) {
+  const sourcemeta::core::Decimal value{"1152921504606846976e11"};
+  EXPECT_FALSE(value.is_float());
+}
+
+// The leading bit of the significand is what the top of the range is measured
+// against, and a power of two one step above that top clears every other test
+TEST(a_power_of_two_just_past_the_float_range_is_not_a_float) {
+  const sourcemeta::core::Decimal value{
+      "340282366920938463463374607431768211456"};
+  EXPECT_FALSE(value.is_float());
+}
+
+// Paying out a power of five puts the scale underneath the value, and a scale
+// below the least significant bit of the smallest subnormal names a value no
+// double reaches
+TEST(a_scale_below_the_smallest_double_subnormal) {
+  const sourcemeta::core::Decimal value{POWER_OF_FIVE_PAST_THE_DOUBLE_RANGE};
+  EXPECT_FALSE(value.is_double());
 }

@@ -264,12 +264,11 @@ auto to_double(const std::string_view input) noexcept -> std::optional<double> {
     buffer[input.size()] = '\0';
     start = buffer.data();
   } else {
-    try {
-      overflow.assign(input);
-    } catch (...) {
-      return std::nullopt;
-    }
-
+    // Copying a reading too long for the buffer is the one allocation this
+    // function makes. Nothing else here throws, so the copy giving way is
+    // memory running out rather than anything about the input, and it is not a
+    // reading this function can report an absence for
+    overflow.assign(input);
     start = overflow.c_str();
   }
 
