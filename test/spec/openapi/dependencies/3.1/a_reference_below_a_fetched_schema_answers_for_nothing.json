@@ -49,6 +49,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://www.sourcemeta.com/d2.json"
+    "identifier": "https://www.sourcemeta.com/d2.json",
+    "location": "/allOf/0/$ref",
+    "fragment": null
   }
 }

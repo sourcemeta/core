@@ -28,6 +28,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "test-1"
+    "identifier": "test-1",
+    "location": "/components/schemas/Pet/$ref",
+    "fragment": null
   }
 }

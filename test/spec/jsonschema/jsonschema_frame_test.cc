@@ -2508,6 +2508,8 @@ TEST(accessors_vocabularies_of_a_dialect_the_handed_resolver_does_not_know) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -2530,6 +2532,8 @@ TEST(accessors_metaschema_unresolvable) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 

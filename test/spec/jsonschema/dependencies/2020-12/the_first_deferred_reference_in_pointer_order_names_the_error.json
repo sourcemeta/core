@@ -39,6 +39,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://www.sourcemeta.com/gate"
+    "identifier": "https://www.sourcemeta.com/gate",
+    "location": "/allOf/0/$ref",
+    "fragment": null
   }
 }

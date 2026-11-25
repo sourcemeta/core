@@ -22,6 +22,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://www.sourcemeta.com/missing"
+    "identifier": "https://www.sourcemeta.com/missing",
+    "location": "/properties/one/$ref",
+    "fragment": null
   }
 }

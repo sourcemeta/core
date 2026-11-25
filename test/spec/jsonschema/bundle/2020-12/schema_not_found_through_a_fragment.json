@@ -1,0 +1,29 @@
+{
+  "schema": {
+    "$id": "https://example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "pet": {
+        "$ref": "https://www.sourcemeta.com/xxx#/components/schemas/Pet"
+      }
+    }
+  },
+  "result": {},
+  "errors": {
+    "nonOfficialMetaschemas": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://www.sourcemeta.com/xxx",
+      "location": "/properties/pet/$ref",
+      "fragment": "/components/schemas/Pet"
+    },
+    "references": {
+      "type": "SchemaResolutionError",
+      "message": "Could not resolve the reference to an external schema",
+      "identifier": "https://www.sourcemeta.com/xxx",
+      "location": "/properties/pet/$ref",
+      "fragment": "/components/schemas/Pet"
+    }
+  },
+  "inserted": {}
+}

@@ -25,6 +25,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Relative meta-schema URIs are not valid according to the JSON Schema specification",
-    "identifier": "some/dialect"
+    "identifier": "some/dialect",
+    "location": "",
+    "fragment": null
   }
 }

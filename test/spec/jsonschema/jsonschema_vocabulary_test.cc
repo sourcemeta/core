@@ -149,6 +149,8 @@ TEST(unresolvable_dialect) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -164,6 +166,8 @@ TEST(override_unresolvable) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -703,6 +707,8 @@ TEST(embedded_custom_metaschema_wrong_container) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   } catch (...) {
     FAIL();
   }
@@ -1197,6 +1203,8 @@ TEST(base_dialect_unresolved_where_the_chain_leaves_the_known) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta-1");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -1516,6 +1524,8 @@ TEST(an_embedded_metaschema_relative_within_a_document_naming_no_uri) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   } catch (...) {
     FAIL();
   }
@@ -1540,6 +1550,8 @@ TEST(embedded_metaschema_chain_terminating_at_draft2_hyper) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   } catch (...) {
     FAIL();
   }
@@ -1561,6 +1573,8 @@ TEST(embedded_metaschema_chain_terminating_at_draft1_hyper) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   } catch (...) {
     FAIL();
   }
@@ -1582,6 +1596,8 @@ TEST(embedded_metaschema_chain_terminating_at_draft0_hyper) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://example.com/meta");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   } catch (...) {
     FAIL();
   }
@@ -1936,6 +1952,8 @@ TEST(embedded_metaschema_chain_naming_something_that_is_no_uri) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -1982,6 +2000,8 @@ TEST(embedded_metaschema_under_a_container_the_dialect_leaves_as_payload) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -2008,6 +2028,8 @@ TEST(embedded_metaschema_beside_a_base_identifier_that_is_no_string) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 
@@ -2058,5 +2080,7 @@ TEST(embedded_metaschema_declaring_a_uri_that_settles_as_none) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(),
                  "Could not resolve the metaschema of the schema");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }

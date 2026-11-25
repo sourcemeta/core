@@ -83,6 +83,8 @@ TEST(a_resolution_error_of_the_callers_own_is_unchanged) {
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_STREQ(error.what(), "The caller could not reach this one");
     EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/custom-dialect");
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
 

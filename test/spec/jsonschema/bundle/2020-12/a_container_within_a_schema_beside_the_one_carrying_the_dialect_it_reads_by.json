@@ -43,12 +43,16 @@
     "nonOfficialMetaschemas": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the metaschema of the schema",
-      "identifier": "https://example.com/narrow"
+      "identifier": "https://example.com/narrow",
+      "location": "",
+      "fragment": null
     },
     "references": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the metaschema of the schema",
-      "identifier": "https://example.com/narrow"
+      "identifier": "https://example.com/narrow",
+      "location": "",
+      "fragment": null
     }
   }
 }

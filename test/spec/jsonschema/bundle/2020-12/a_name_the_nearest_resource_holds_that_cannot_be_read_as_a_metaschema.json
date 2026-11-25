@@ -35,12 +35,16 @@
     "nonOfficialMetaschemas": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the metaschema of the schema",
-      "identifier": "https://example.com/meta"
+      "identifier": "https://example.com/meta",
+      "location": "",
+      "fragment": null
     },
     "references": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the metaschema of the schema",
-      "identifier": "https://example.com/meta"
+      "identifier": "https://example.com/meta",
+      "location": "",
+      "fragment": null
     }
   },
   "inserted": {}

@@ -88,5 +88,7 @@ TEST(a_reference_the_caller_never_accounts_for_ends_analysis) {
     FAIL();
   } catch (const sourcemeta::core::SchemaResolutionError &error) {
     EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/elsewhere");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/items/$ref");
+    EXPECT_FALSE(error.fragment().has_value());
   }
 }
