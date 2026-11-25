@@ -11,11 +11,6 @@
 
 namespace {
 
-// Four limbs of eighteen digits sit inside the value itself, so a coefficient
-// past seventy two digits is the first one held on the heap. The digits are
-// built rather than spelled out, so that the width is the one stated here
-auto wide_digits() -> std::string { return "1" + std::string(79, '0') + "7"; }
-
 // Five to the one thousand and seventy fifth power, scaled to stand below the
 // least significant bit of the smallest subnormal a double reaches. It is the
 // shortest coefficient able to pay out a scale that far down
@@ -1247,7 +1242,8 @@ TEST(multiply_exponent_overflow_leaves_the_operand_alone) {
 
 // A wide coefficient takes the same route, so the sum is weighed there too
 TEST(multiply_past_the_widest_exponent_overflows_with_a_wide_coefficient) {
-  const sourcemeta::core::Decimal left{wide_digits() + "e2147483647"};
+  const sourcemeta::core::Decimal left{"1" + std::string(79, '0') + "7" +
+                                       "e2147483647"};
   try {
     const auto result{left * sourcemeta::core::Decimal{"1e1"}};
     FAIL();
@@ -7379,14 +7375,14 @@ TEST(big_value_strips_its_trailing_zeros) {
 }
 
 TEST(heap_coefficient_addition_across_exponents) {
-  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal wide{"1" + std::string(79, '0') + "7"};
   const sourcemeta::core::Decimal small{"1E-5"};
   EXPECT_EQ(wide + small, small + wide);
   EXPECT_TRUE(wide + small > wide);
 }
 
 TEST(heap_coefficient_subtraction_across_exponents) {
-  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal wide{"1" + std::string(79, '0') + "7"};
   const sourcemeta::core::Decimal small{"1E-5"};
   EXPECT_TRUE(wide - small < wide);
   EXPECT_TRUE(small - wide < small);
@@ -7406,7 +7402,7 @@ TEST(wide_product_keeps_every_digit) {
 // A wide coefficient multiplied by a narrow one reads the narrow one as a
 // single limb with nothing above it
 TEST(heap_coefficient_times_a_narrow_value) {
-  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal wide{"1" + std::string(79, '0') + "7"};
   EXPECT_EQ(wide * sourcemeta::core::Decimal{7},
             sourcemeta::core::Decimal{
                 "700000000000000000000000000000000000000000000000000000000000"
@@ -7414,16 +7410,16 @@ TEST(heap_coefficient_times_a_narrow_value) {
 }
 
 TEST(heap_coefficient_times_a_negative_value) {
-  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal wide{"1" + std::string(79, '0') + "7"};
   EXPECT_EQ(wide * sourcemeta::core::Decimal{-1},
-            sourcemeta::core::Decimal{"-" + wide_digits()});
+            sourcemeta::core::Decimal{"-1" + std::string(79, '0') + "7"});
   EXPECT_TRUE((wide * sourcemeta::core::Decimal{-1}).is_signed());
 }
 
 // A division that does not come out even carries a residue past the digits it
 // keeps, which is what the half-even tie rule is weighed against
 TEST(heap_coefficient_divided_leaving_a_residue) {
-  const sourcemeta::core::Decimal wide{wide_digits()};
+  const sourcemeta::core::Decimal wide{"1" + std::string(79, '0') + "7"};
   const auto result{wide / sourcemeta::core::Decimal{3}};
   EXPECT_TRUE(result > sourcemeta::core::Decimal{"3.3E79"});
   EXPECT_TRUE(result < sourcemeta::core::Decimal{"3.4E79"});
@@ -7489,12 +7485,12 @@ TEST(dividing_by_seven_is_held_to_the_working_precision) {
 
 // A quotient of two wide values is written out in full when it closes
 TEST(dividing_wide_values_is_exact_when_the_expansion_closes) {
-  const sourcemeta::core::Decimal dividend{wide_digits()};
+  const sourcemeta::core::Decimal dividend{"1" + std::string(79, '0') + "7"};
   EXPECT_EQ(dividend / sourcemeta::core::Decimal{1},
-            sourcemeta::core::Decimal{wide_digits()});
+            sourcemeta::core::Decimal{"1" + std::string(79, '0') + "7"});
   const auto half{dividend / sourcemeta::core::Decimal{2}};
   EXPECT_EQ(half * sourcemeta::core::Decimal{2},
-            sourcemeta::core::Decimal{wide_digits()});
+            sourcemeta::core::Decimal{"1" + std::string(79, '0') + "7"});
 }
 
 // An exponent ends at the first character that is not a digit, which a
