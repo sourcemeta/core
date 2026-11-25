@@ -12804,8 +12804,12 @@ TEST(tool_success_rejects_non_object_structured_content_on_2025_11_25) {
 }
 
 // The handshake answers with the newest revision it supports that still uses
-// a handshake, whatever order the list names them in
-TEST(make_initialize_result_picks_the_newest_handshake_revision) {
+// The handshake answers with the newest revision the server serves that still
+// uses a handshake, whichever order the list names them in. The request names
+// a revision the list does not carry, so the answer is the server's own pick
+// rather than an echo of what was asked for
+// https://modelcontextprotocol.io/specification/2026-07-28/basic/lifecycle#version-negotiation
+TEST(make_initialize_result_picks_the_newest_revision_listed_newest_first) {
   constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
       {"2025-11-25", "2025-03-26"}};
   const auto request{sourcemeta::core::parse_json(R"JSON({
@@ -12813,7 +12817,33 @@ TEST(make_initialize_result_picks_the_newest_handshake_revision) {
     "id": 1,
     "method": "initialize",
     "params": {
-      "protocolVersion": "2025-11-25",
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": { "name": "c", "version": "1" }
+    }
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{.name = "srv",
+                                                   .version = "1.0.0",
+                                                   .title = {},
+                                                   .description = {},
+                                                   .website_url = {}};
+  EXPECT_EQ(sourcemeta::core::mcp_make_initialize_response(
+                request, capabilities, server, SUPPORTED)
+                .at("result")
+                .at("protocolVersion"),
+            sourcemeta::core::JSON{"2025-11-25"});
+}
+
+TEST(make_initialize_result_picks_the_newest_revision_listed_oldest_first) {
+  constexpr std::array<sourcemeta::core::JSON::StringView, 2> SUPPORTED{
+      {"2025-03-26", "2025-11-25"}};
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
       "capabilities": {},
       "clientInfo": { "name": "c", "version": "1" }
     }

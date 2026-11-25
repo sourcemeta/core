@@ -324,9 +324,9 @@ auto mcp_validate_continuation(const MCPProtocolVersion version,
   const auto *responses{parameters.try_at(
       "inputResponses", sourcemeta::core::MCP_HASH_INPUT_RESPONSES)};
   // A continuation carries state, responses, or both, and each is held to its
-  // own shape. The three are separate decisions because the first two ask
-  // whether the state is there and the next asks the opposite, which no pair
-  // of inputs could tell apart inside one decision
+  // own shape. Asking of each whether it is absent and then whether it is
+  // present puts a condition beside its own negation, which no pair of inputs
+  // can tell apart, so the three stand as decisions of their own
   if ((state == nullptr) && (responses == nullptr)) {
     return false;
   }
