@@ -78,31 +78,6 @@ static auto has_skip_condition(const std::vector<std::string> &conditions)
       [&](const auto name) { return has_condition(conditions, name); });
 }
 
-static auto count_significant_digits(const std::string &value) -> std::size_t {
-  const auto stripped{strip_quotes(value)};
-  const auto lower{to_lower(stripped)};
-  if (lower.find("nan") != std::string::npos ||
-      lower.find("inf") != std::string::npos) {
-    return 0;
-  }
-
-  std::size_t count{0};
-  bool found_nonzero{false};
-  bool in_exponent{false};
-  for (const auto character : stripped) {
-    if (character == 'e' || character == 'E') {
-      in_exponent = true;
-    } else if (!in_exponent &&
-               (std::isdigit(static_cast<unsigned char>(character)) != 0)) {
-      if (character != '0' || found_nonzero) {
-        found_nonzero = true;
-        count++;
-      }
-    }
-  }
-  return count;
-}
-
 static auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
   const auto value{strip_quotes(raw)};
   const auto lower{to_lower(value)};
@@ -679,13 +654,6 @@ static auto should_skip_test(const DecTestCase &test_case,
       operation == "copynegate" || operation == "copysign" ||
       operation == "samequantum") {
     return false;
-  }
-
-  // TODO: Our Decimal context is fixed at 16-digit precision. Tests
-  // expecting results with more significant digits would produce
-  // different (truncated) results in our context.
-  if (count_significant_digits(test_case.expected) > 16) {
-    return true;
   }
 
   // The corpus truncates a NaN payload longer than the context precision,
