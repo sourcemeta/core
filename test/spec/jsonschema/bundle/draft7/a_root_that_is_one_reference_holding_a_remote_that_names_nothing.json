@@ -19,12 +19,16 @@
     "nonOfficialMetaschemas": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the reference to an external schema",
-      "identifier": "https://example.com/missing"
+      "identifier": "https://example.com/missing",
+      "location": "/items/0/$ref",
+      "fragment": null
     },
     "references": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the reference to an external schema",
-      "identifier": "https://example.com/missing"
+      "identifier": "https://example.com/missing",
+      "location": "/items/0/$ref",
+      "fragment": null
     }
   },
   "inserted": {}

@@ -30,6 +30,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://example.com/schemas/missing"
+    "identifier": "https://example.com/schemas/missing",
+    "location": "/paths/~1pets/get/responses/200/content/application~1json/schema/$ref",
+    "fragment": null
   }
 }

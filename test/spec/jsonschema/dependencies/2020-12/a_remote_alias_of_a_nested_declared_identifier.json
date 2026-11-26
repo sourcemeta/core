@@ -43,6 +43,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://www.sourcemeta.com/dir/deep/inner.json"
+    "identifier": "https://www.sourcemeta.com/dir/deep/inner.json",
+    "location": "/properties/two/$ref",
+    "fragment": null
   }
 }

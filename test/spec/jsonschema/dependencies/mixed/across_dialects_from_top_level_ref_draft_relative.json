@@ -20,6 +20,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "test-4"
+    "identifier": "test-4",
+    "location": "/$ref",
+    "fragment": null
   }
 }

@@ -914,6 +914,11 @@ auto run_fail_test(const sourcemeta::core::JSON &test) -> void {
     EXPECT_TRUE(test.at("error").defines("identifier"));
     EXPECT_EQ(error.identifier(),
               test.at("error").at("identifier").to_string());
+
+    // Framing reaches for a meta-schema by the name a document declares, so
+    // no reference of the description is what leads here
+    EXPECT_TRUE(error.location().empty());
+    EXPECT_FALSE(error.fragment().has_value());
   } catch (const sourcemeta::core::SchemaKeywordError &error) {
     refused = true;
     check_schema_refusal(test, error.what());

@@ -3,6 +3,7 @@
 #include <sourcemeta/core/jsonschema.h>
 
 #include <exception>   // std::exception
+#include <optional>    // std::nullopt
 #include <string>      // std::string
 #include <type_traits> // std::is_base_of_v
 
@@ -40,6 +41,38 @@ TEST(resolution_error_throw) {
   }
   EXPECT_EQ(std::string{exception.what()}, "My error");
   EXPECT_EQ(exception.identifier(), "https://sourcemeta.com/test");
+  EXPECT_TRUE(exception.location().empty());
+  EXPECT_FALSE(exception.fragment().has_value());
+}
+
+TEST(resolution_error_throw_with_a_reference) {
+  try {
+    throw sourcemeta::core::SchemaResolutionError(
+        "My error", "https://sourcemeta.com/test",
+        sourcemeta::core::Pointer{"properties", "foo", "$ref"},
+        "/components/schemas/Pet");
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(), "My error");
+    EXPECT_EQ(error.identifier(), "https://sourcemeta.com/test");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              "/properties/foo/$ref");
+    EXPECT_TRUE(error.fragment().has_value());
+    EXPECT_EQ(error.fragment().value(), "/components/schemas/Pet");
+  }
+}
+
+TEST(resolution_error_throw_with_a_reference_without_a_fragment) {
+  try {
+    throw sourcemeta::core::SchemaResolutionError(
+        "My error", "https://sourcemeta.com/test",
+        sourcemeta::core::Pointer{"properties", "foo", "$ref"}, std::nullopt);
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_STREQ(error.what(), "My error");
+    EXPECT_EQ(error.identifier(), "https://sourcemeta.com/test");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+              "/properties/foo/$ref");
+    EXPECT_FALSE(error.fragment().has_value());
+  }
 }
 
 TEST(reference_error_throw) {

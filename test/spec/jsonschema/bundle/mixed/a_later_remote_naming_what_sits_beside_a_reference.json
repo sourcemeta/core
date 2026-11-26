@@ -42,12 +42,16 @@
     "nonOfficialMetaschemas": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the reference to an external schema",
-      "identifier": "https://example.com/shared"
+      "identifier": "https://example.com/shared",
+      "location": "/properties/x/$ref",
+      "fragment": null
     },
     "references": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the reference to an external schema",
-      "identifier": "https://example.com/shared"
+      "identifier": "https://example.com/shared",
+      "location": "/properties/x/$ref",
+      "fragment": null
     }
   }
 }

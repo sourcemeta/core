@@ -38,8 +38,8 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
     "SchemaKeywordError",     "OpenAPIError"};
 
 const std::vector<std::string> KNOWN_ERROR_KEYS{
-    "type",     "message", "identifier", "limit", "base",
-    "location", "keyword", "dialect",    "value"};
+    "type",     "message",  "identifier", "limit",   "base",
+    "location", "fragment", "keyword",    "dialect", "value"};
 // NOLINTEND(cert-err58-cpp,bugprone-throwing-static-initialization)
 
 using Asked = std::vector<sourcemeta::core::JSON::String>;
@@ -192,11 +192,30 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
   EXPECT_EQ(error.defines("base"), carries_base);
   EXPECT_EQ(error.defines("location"),
             carries_base || type == "SchemaReferenceError" ||
+                type == "SchemaResolutionError" ||
                 type == "SchemaDialectImpossibleError");
+  EXPECT_EQ(error.defines("fragment"), type == "SchemaResolutionError");
   EXPECT_EQ(error.defines("keyword"), type == "SchemaDialectImpossibleError" ||
                                           type == "SchemaKeywordError");
   EXPECT_EQ(error.defines("dialect"), type == "SchemaDialectImpossibleError");
   EXPECT_EQ(error.defines("value"), type == "SchemaKeywordError");
+}
+
+// Where a reference led to a refusal, the error names where that reference
+// sits and the part of it the identifier does not spell. Nothing leads there
+// where a document's dialect is what did not resolve, which a fixture says by
+// naming the root and nothing after it
+auto expect_resolution_reference(
+    const sourcemeta::core::SchemaResolutionError &error,
+    const sourcemeta::core::JSON &expected) -> void {
+  EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+            expected.at("location").to_string());
+  if (expected.at("fragment").is_null()) {
+    EXPECT_FALSE(error.fragment().has_value());
+  } else {
+    EXPECT_TRUE(error.fragment().has_value());
+    EXPECT_EQ(error.fragment().value(), expected.at("fragment").to_string());
+  }
 }
 
 auto check_error(const sourcemeta::core::JSON &test,
@@ -240,6 +259,7 @@ auto check_error(const sourcemeta::core::JSON &test,
     } catch (const sourcemeta::core::SchemaResolutionError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+      expect_resolution_reference(error, expected);
     }
   } else if (type == "SchemaReferenceError") {
     try {

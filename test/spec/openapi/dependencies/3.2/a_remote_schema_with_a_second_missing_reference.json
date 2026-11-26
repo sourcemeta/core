@@ -99,6 +99,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://www.sourcemeta.com/missing.json"
+    "identifier": "https://www.sourcemeta.com/missing.json",
+    "location": "/properties/b/$ref",
+    "fragment": null
   }
 }

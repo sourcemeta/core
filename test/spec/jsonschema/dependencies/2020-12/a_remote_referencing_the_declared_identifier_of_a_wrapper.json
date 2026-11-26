@@ -38,6 +38,8 @@
   "error": {
     "type": "SchemaResolutionError",
     "message": "Could not resolve the reference to an external schema",
-    "identifier": "https://www.sourcemeta.com/wrapper"
+    "identifier": "https://www.sourcemeta.com/wrapper",
+    "location": "/$ref",
+    "fragment": null
   }
 }

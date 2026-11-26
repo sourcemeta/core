@@ -38,8 +38,8 @@ const std::vector<std::string> KNOWN_ERROR_TYPES{
     "SchemaReferenceError", "SchemaUnknownBaseDialectError",
     "SchemaFrameLimitError"};
 
-const std::vector<std::string> KNOWN_ERROR_KEYS{"type", "message", "identifier",
-                                                "location", "limit"};
+const std::vector<std::string> KNOWN_ERROR_KEYS{
+    "type", "message", "identifier", "location", "fragment", "limit"};
 
 // Every key an entry of what analysis reported declares. The last of them says
 // whether analysis resolved the document the entry names, which is the one
@@ -265,8 +265,27 @@ auto check_shape(const sourcemeta::core::JSON &test) -> void {
             type == "SchemaResolutionError" ||
                 type == "SchemaRelativeMetaschemaResolutionError" ||
                 type == "SchemaReferenceError");
-  EXPECT_EQ(error.defines("location"), type == "SchemaReferenceError");
+  EXPECT_EQ(error.defines("location"),
+            type == "SchemaReferenceError" || type == "SchemaResolutionError");
+  EXPECT_EQ(error.defines("fragment"), type == "SchemaResolutionError");
   EXPECT_EQ(error.defines("limit"), type == "SchemaFrameLimitError");
+}
+
+// Where a reference led to a refusal, the error names where that reference
+// sits and the part of it the identifier does not spell. Nothing leads there
+// where a document's dialect is what did not resolve, which a fixture says by
+// naming the root and nothing after it
+auto expect_resolution_reference(
+    const sourcemeta::core::SchemaResolutionError &error,
+    const sourcemeta::core::JSON &expected) -> void {
+  EXPECT_EQ(sourcemeta::core::to_string(error.location()),
+            expected.at("location").to_string());
+  if (expected.at("fragment").is_null()) {
+    EXPECT_FALSE(error.fragment().has_value());
+  } else {
+    EXPECT_TRUE(error.fragment().has_value());
+    EXPECT_EQ(error.fragment().value(), expected.at("fragment").to_string());
+  }
 }
 
 auto check_error(const sourcemeta::core::JSON &schema,
@@ -287,6 +306,8 @@ auto check_error(const sourcemeta::core::JSON &schema,
                  &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+      EXPECT_TRUE(error.location().empty());
+      EXPECT_FALSE(error.fragment().has_value());
     }
   } else if (type == "SchemaResolutionError") {
     try {
@@ -300,6 +321,7 @@ auto check_error(const sourcemeta::core::JSON &schema,
     } catch (const sourcemeta::core::SchemaResolutionError &error) {
       EXPECT_STREQ(error.what(), message.c_str());
       EXPECT_EQ(error.identifier(), expected.at("identifier").to_string());
+      expect_resolution_reference(error, expected);
     }
   } else if (type == "SchemaReferenceError") {
     try {

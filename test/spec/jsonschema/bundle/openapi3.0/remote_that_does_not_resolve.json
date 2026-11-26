@@ -13,12 +13,16 @@
     "nonOfficialMetaschemas": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the reference to an external schema",
-      "identifier": "https://www.sourcemeta.com/pet"
+      "identifier": "https://www.sourcemeta.com/pet",
+      "location": "/properties/pet/$ref",
+      "fragment": null
     },
     "references": {
       "type": "SchemaResolutionError",
       "message": "Could not resolve the reference to an external schema",
-      "identifier": "https://www.sourcemeta.com/pet"
+      "identifier": "https://www.sourcemeta.com/pet",
+      "location": "/properties/pet/$ref",
+      "fragment": null
     }
   },
   "result": {},
