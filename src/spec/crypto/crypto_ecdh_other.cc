@@ -45,11 +45,8 @@ auto ecdh_derive(const PrivateKey &private_key, const PublicKey &public_key)
       bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(public_internal->coordinate_x)};
   const auto peer_y{
       bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(public_internal->coordinate_y)};
-  // Invalid-curve defense: the peer coordinates must be below the field prime
-  // and satisfy the curve equation
-  if (bignum_compare(peer_x, parameters.prime) >= 0 ||
-      bignum_compare(peer_y, parameters.prime) >= 0 ||
-      !point_on_curve(peer_x, peer_y, parameters)) {
+  // Invalid-curve defense: the peer coordinates must be a point of the curve
+  if (!point_on_curve(peer_x, peer_y, parameters)) {
     return std::nullopt;
   }
 

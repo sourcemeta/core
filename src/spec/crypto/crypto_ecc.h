@@ -794,10 +794,17 @@ inline auto point_affine_x_constant_time(const JacobianPoint &point,
   return result;
 }
 
-// Whether the affine point satisfies y^2 = x^3 + a*x + b (mod p)
+// Whether the coordinates are a point of the curve, each below the field prime
+// and the two satisfying y^2 = x^3 + a*x + b (mod p). The range test is what
+// holds each coordinate to the one encoding a field element has, which the
+// equation on its own would not
 inline auto point_on_curve(const CurveBignum &x, const CurveBignum &y,
                            const EllipticCurveParameters &curve) -> bool {
   const auto &prime{curve.prime};
+  if (bignum_compare(x, prime) >= 0 || bignum_compare(y, prime) >= 0) {
+    return false;
+  }
+
   const auto left{field_square(y, curve)};
   const auto x_cubed{field_mod_multiply(field_square(x, curve), x, curve)};
   const auto right{bignum_mod_add(
