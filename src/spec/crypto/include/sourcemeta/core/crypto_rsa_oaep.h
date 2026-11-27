@@ -6,7 +6,6 @@
 #endif
 
 #include <sourcemeta/core/crypto_random.h>
-
 #include <sourcemeta/core/crypto_sign.h>
 #include <sourcemeta/core/crypto_verify.h>
 
