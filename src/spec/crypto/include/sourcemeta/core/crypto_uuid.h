@@ -19,13 +19,12 @@ namespace sourcemeta::core {
 /// #include <sourcemeta/core/crypto.h>
 /// #include <iostream>
 ///
-/// std::cout << sourcemeta::core::uuidv4(
-///                  sourcemeta::core::system_random_generator)
-///           << "\n";
+/// std::cout << sourcemeta::core::uuidv4() << "\n";
 /// ```
 ///
 /// See https://www.rfc-editor.org/rfc/rfc9562#name-uuid-version-4
-SOURCEMETA_CORE_CRYPTO_EXPORT auto uuidv4(const RandomGenerator &generator)
+SOURCEMETA_CORE_CRYPTO_EXPORT auto
+uuidv4(const RandomGenerator &generator = system_random_generator)
     -> std::string;
 
 /// @ingroup crypto

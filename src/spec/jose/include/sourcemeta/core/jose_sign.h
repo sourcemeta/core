@@ -5,7 +5,7 @@
 #include <sourcemeta/core/jose_export.h>
 #endif
 
-#include <sourcemeta/core/crypto_random.h>
+#include <sourcemeta/core/crypto.h>
 
 #include <sourcemeta/core/jose_algorithm.h>
 #include <sourcemeta/core/jose_jwk_private.h>

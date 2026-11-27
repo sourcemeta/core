@@ -2,9 +2,35 @@
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/test.h>
 
+#include <algorithm> // std::ranges::fill
+#include <cstdint>   // std::uint8_t
+#include <span>      // std::span
+
+namespace {
+auto zeroed_generator(const std::span<std::uint8_t> buffer) -> void {
+  std::ranges::fill(buffer, std::uint8_t{0x00});
+}
+
+auto saturated_generator(const std::span<std::uint8_t> buffer) -> void {
+  std::ranges::fill(buffer, std::uint8_t{0xff});
+}
+} // namespace
+
+// Drawing from a generator that answers the same way every time is what fixes
+// the whole identifier, so the version and variant the format reserves can be
+// read off it (RFC 9562 Section 5.4)
+TEST(every_bit_clear) {
+  EXPECT_EQ(sourcemeta::core::uuidv4(zeroed_generator),
+            "00000000-0000-4000-8000-000000000000");
+}
+
+TEST(every_bit_set) {
+  EXPECT_EQ(sourcemeta::core::uuidv4(saturated_generator),
+            "ffffffff-ffff-4fff-bfff-ffffffffffff");
+}
+
 TEST(regex) {
-  const auto uuid{
-      sourcemeta::core::uuidv4(sourcemeta::core::system_random_generator)};
+  const auto uuid{sourcemeta::core::uuidv4()};
   EXPECT_TRUE(sourcemeta::core::matches_if_valid(
       "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
       uuid));
@@ -13,8 +39,7 @@ TEST(regex) {
 
 TEST(version_and_variant) {
   for (auto count = 0; count < 100; ++count) {
-    const auto uuid{
-        sourcemeta::core::uuidv4(sourcemeta::core::system_random_generator)};
+    const auto uuid{sourcemeta::core::uuidv4()};
     EXPECT_EQ(uuid[14], '4');
     EXPECT_TRUE(uuid[19] == '8' || uuid[19] == '9' || uuid[19] == 'a' ||
                 uuid[19] == 'b');
@@ -23,12 +48,9 @@ TEST(version_and_variant) {
 }
 
 TEST(idempotent) {
-  const auto uuid_1{
-      sourcemeta::core::uuidv4(sourcemeta::core::system_random_generator)};
-  const auto uuid_2{
-      sourcemeta::core::uuidv4(sourcemeta::core::system_random_generator)};
-  const auto uuid_3{
-      sourcemeta::core::uuidv4(sourcemeta::core::system_random_generator)};
+  const auto uuid_1{sourcemeta::core::uuidv4()};
+  const auto uuid_2{sourcemeta::core::uuidv4()};
+  const auto uuid_3{sourcemeta::core::uuidv4()};
   EXPECT_NE(uuid_1, uuid_2);
   EXPECT_NE(uuid_2, uuid_3);
   EXPECT_NE(uuid_3, uuid_1);
