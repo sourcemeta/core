@@ -211,9 +211,6 @@ else()
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
     crypto_pkcs8.h crypto_other.h crypto_rsa_other.h)
 
-  target_compile_definitions(sourcemeta_core_crypto
-    PUBLIC SOURCEMETA_CORE_CRYPTO_BACKEND_REFERENCE)
-
   if(WIN32)
     # Even here the entropy comes from the system, as no portable source is
     # guaranteed to be a cryptographic one
