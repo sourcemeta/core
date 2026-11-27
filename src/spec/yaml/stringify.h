@@ -20,6 +20,21 @@
 #include <utility>       // std::pair
 #include <vector>        // std::vector
 
+// Clang keeps an arm for the value that never arrives and counts it as one
+// that nothing took, so the last enumerator of each switch below is written as
+// the default there, while the compilers reading a case label are the ones
+// holding those switches to naming them all. The directives stay out of the
+// functions because one standing after a return or a break inside them reads
+// as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_YAML_WROTE_A_FOLDED_SCALAR default:
+#define SOURCEMETA_CORE_YAML_WRITES_A_SEQUENCE default:
+#else
+#define SOURCEMETA_CORE_YAML_WROTE_A_FOLDED_SCALAR                             \
+  case YAMLRoundTrip::ScalarStyle::Folded:
+#define SOURCEMETA_CORE_YAML_WRITES_A_SEQUENCE case JSON::Type::Array:
+#endif
+
 namespace sourcemeta::core::yaml {
 
 using OutputStream = std::basic_ostream<JSON::Char, JSON::CharTraits>;
@@ -553,15 +568,7 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
         // as what one stands for cannot be written back on the one line a key
         // takes, so these never name a key that was read
         case YAMLRoundTrip::ScalarStyle::Literal:
-          // Clang keeps an arm for the value that never arrives and counts
-          // it as one that nothing took, so the last enumerator is written as
-          // the default there, while the compilers reading a case label are
-          // the ones holding this switch to naming them all
-#if defined(__clang__)
-        default:
-#else
-        case YAMLRoundTrip::ScalarStyle::Folded:
-#endif
+          SOURCEMETA_CORE_YAML_WROTE_A_FOLDED_SCALAR
           break;
       }
     }
@@ -665,15 +672,7 @@ inline auto write_inline_value(OutputStream &stream, const JSON &value,
         write_flow_mapping(stream, value, roundtrip, anchors, pointer);
       }
       break;
-      // Clang keeps an arm for the value that never arrives and counts it as
-      // one that nothing took, so the last enumerator is written as the
-      // default there, while the compilers reading a case label are the ones
-      // holding this switch to naming them all
-#if defined(__clang__)
-    default:
-#else
-    case JSON::Type::Array:
-#endif
+      SOURCEMETA_CORE_YAML_WRITES_A_SEQUENCE
       if (value.empty()) {
         stream.write("[]", 2);
         break;

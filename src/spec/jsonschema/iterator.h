@@ -15,6 +15,24 @@
 #include <utility>     // std::move
 #include <vector>      // std::vector
 
+// A switch naming every enumerator still holds an arm for the value outside
+// the enumeration that never arrives, which Clang counts as one that nothing
+// took. Writing the last arm as the default there takes that arm away, while
+// the compilers reading a case label keep being the ones that catch a keyword
+// type added later. The directives stay out of the functions because one
+// inside a body reads as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_JSONSCHEMA_DESCENDS_NOWHERE default
+#else
+#define SOURCEMETA_CORE_JSONSCHEMA_DESCENDS_NOWHERE                            \
+  case sourcemeta::core::SchemaKeywordType::Assertion:                         \
+  case sourcemeta::core::SchemaKeywordType::Annotation:                        \
+  case sourcemeta::core::SchemaKeywordType::Reference:                         \
+  case sourcemeta::core::SchemaKeywordType::Other:                             \
+  case sourcemeta::core::SchemaKeywordType::Comment:                           \
+  case sourcemeta::core::SchemaKeywordType::Unknown
+#endif
+
 namespace sourcemeta::core {
 
 /// A subschema as reported by SchemaIterator
@@ -410,12 +428,7 @@ walk_keyword(const sourcemeta::core::SchemaKeywordType type,
       }
 
       break;
-    case sourcemeta::core::SchemaKeywordType::Assertion:
-    case sourcemeta::core::SchemaKeywordType::Annotation:
-    case sourcemeta::core::SchemaKeywordType::Reference:
-    case sourcemeta::core::SchemaKeywordType::Other:
-    case sourcemeta::core::SchemaKeywordType::Comment:
-    case sourcemeta::core::SchemaKeywordType::Unknown:
+    SOURCEMETA_CORE_JSONSCHEMA_DESCENDS_NOWHERE:
       break;
   }
 }
@@ -612,5 +625,7 @@ inline auto SchemaIterator::end() const -> const_iterator {
 }
 
 } // namespace sourcemeta::core
+
+#undef SOURCEMETA_CORE_JSONSCHEMA_DESCENDS_NOWHERE
 
 #endif
