@@ -458,7 +458,7 @@ auto make_ec_private_key(const EllipticCurve curve,
                                .edwards_curve = {}}};
 }
 
-auto generate_ec_private_key(const EllipticCurve curve)
+auto generate_ec_private_key(const EllipticCurve curve, const RandomGenerator &)
     -> std::optional<PrivateKey> {
   BCRYPT_ALG_HANDLE algorithm{nullptr};
   if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(
@@ -523,7 +523,7 @@ auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
 }
 
 auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
-                     const std::string_view message)
+                     const std::string_view message, const RandomGenerator &)
     -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
@@ -538,7 +538,8 @@ auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
 }
 
 auto ecdsa_sign(const PrivateKey &key, const SignatureHashFunction hash,
-                const std::string_view message) -> std::optional<std::string> {
+                const std::string_view message, const RandomGenerator &)
+    -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr ||
       internal->kind != PrivateKey::Type::EllipticCurve) {

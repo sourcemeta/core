@@ -5,6 +5,8 @@
 #include <sourcemeta/core/jose_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_random.h>
+
 #include <sourcemeta/core/jose_algorithm.h>
 #include <sourcemeta/core/jose_jwk_private.h>
 
@@ -36,7 +38,8 @@ namespace sourcemeta::core {
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
 auto jws_sign(const JWSAlgorithm algorithm,
-              const std::string_view signing_input, const JWKPrivate &key)
+              const std::string_view signing_input, const JWKPrivate &key,
+              const RandomGenerator &generator = system_random_generator)
     -> std::optional<std::string>;
 
 /// @ingroup jose

@@ -2,7 +2,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
   PRIVATE_HEADERS sha256.h hmac_sha256.h hmac_sha384.h hmac_sha512.h sha384.h
     sha512.h sha1.h
     fnv128.h
-    uuid.h crc32.h base64.h secure.h verify.h sign.h aes_gcm.h aes_cbc_hmac.h
+    uuid.h crc32.h base64.h secure.h verify.h sign.h random.h aes_gcm.h
+    aes_cbc_hmac.h
     aes_kw.h rsa_oaep.h ecdh.h hkdf.h error.h
   SOURCES crypto_sha256.cc crypto_hmac_sha256.cc crypto_hmac_sha384.cc
     crypto_hmac_sha512.cc
@@ -11,7 +12,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_uuid.cc crypto_fnv128.cc crypto_crc32.cc crypto_base64.cc
     crypto_random.cc crypto_sign_rsa.cc crypto_aes_gcm.cc crypto_aes_cbc_hmac.cc
     crypto_aes_kw.cc crypto_ecdh.cc crypto_hkdf.cc
-    crypto_sha2_64.h crypto_sha256_other.h crypto_random.h crypto_helpers.h
+    crypto_sha2_64.h crypto_sha256_other.h crypto_fill_random.h
+    crypto_helpers.h
     crypto_der.h crypto_aes.h crypto_kdf.h crypto_hkdf_loop.h)
 
 target_link_libraries(sourcemeta_core_crypto
@@ -196,6 +198,14 @@ else()
     crypto_aes_block.h crypto_ghash.h crypto_aes_kw_loop.h crypto_sha1_other.h
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
     crypto_pkcs8.h crypto_other.h crypto_rsa_other.h)
+
+  # This build has no system provider of its own, so the generator a caller
+  # hands in is the one every draw is taken from, including the draws a key
+  # generation makes. Where a provider does generate keys itself it draws its
+  # own bytes and cannot be pointed somewhere else, which is what the fallback
+  # naming on those parameters is about
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_DRAWS_FROM_FALLBACK)
 
   if(WIN32)
     # Even here the entropy comes from the system, as no portable source is

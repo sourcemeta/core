@@ -30,7 +30,8 @@ static constexpr std::string::size_type TAG_SIZE{16};
 
 TEST(aes_256_gcm_round_trips) {
   const std::string_view plaintext{"a secret session cookie payload"};
-  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, plaintext)};
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+      KEY, plaintext, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(sealed.has_value());
   const auto opened{sourcemeta::core::aes_256_gcm_unseal(KEY, sealed.value())};
   EXPECT_TRUE(opened.has_value());
@@ -38,7 +39,8 @@ TEST(aes_256_gcm_round_trips) {
 }
 
 TEST(aes_256_gcm_round_trips_empty_plaintext) {
-  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, "")};
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+      KEY, "", sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(sealed.has_value());
   const auto opened{sourcemeta::core::aes_256_gcm_unseal(KEY, sealed.value())};
   EXPECT_TRUE(opened.has_value());
@@ -47,7 +49,8 @@ TEST(aes_256_gcm_round_trips_empty_plaintext) {
 
 TEST(aes_256_gcm_round_trips_across_block_boundaries) {
   const std::string plaintext(100, 'z');
-  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, plaintext)};
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+      KEY, plaintext, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(sealed.has_value());
   const auto opened{sourcemeta::core::aes_256_gcm_unseal(KEY, sealed.value())};
   EXPECT_TRUE(opened.has_value());
@@ -56,29 +59,37 @@ TEST(aes_256_gcm_round_trips_across_block_boundaries) {
 
 TEST(aes_256_gcm_uses_a_fresh_nonce_per_seal) {
   // The random nonce makes two seals of the same plaintext differ
-  const auto first{sourcemeta::core::aes_256_gcm_seal(KEY, "identical")};
-  const auto second{sourcemeta::core::aes_256_gcm_seal(KEY, "identical")};
+  const auto first{sourcemeta::core::aes_256_gcm_seal(
+      KEY, "identical", sourcemeta::core::system_random_generator)};
+  const auto second{sourcemeta::core::aes_256_gcm_seal(
+      KEY, "identical", sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   EXPECT_TRUE(second.has_value());
   EXPECT_NE(first.value(), second.value());
 }
 
 TEST(aes_256_gcm_unseal_rejects_a_tampered_tag) {
-  auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, "hello").value()};
+  auto sealed{sourcemeta::core::aes_256_gcm_seal(
+                  KEY, "hello", sourcemeta::core::system_random_generator)
+                  .value()};
   sealed.back() = static_cast<char>(sealed.back() ^ 0x01);
   EXPECT_FALSE(sourcemeta::core::aes_256_gcm_unseal(KEY, sealed).has_value());
 }
 
 TEST(aes_256_gcm_unseal_rejects_a_tampered_ciphertext) {
-  auto sealed{
-      sourcemeta::core::aes_256_gcm_seal(KEY, "a longer payload here").value()};
+  auto sealed{sourcemeta::core::aes_256_gcm_seal(
+                  KEY, "a longer payload here",
+                  sourcemeta::core::system_random_generator)
+                  .value()};
   // The first ciphertext byte follows the twelve byte nonce
   sealed[12] = static_cast<char>(sealed[12] ^ 0x01);
   EXPECT_FALSE(sourcemeta::core::aes_256_gcm_unseal(KEY, sealed).has_value());
 }
 
 TEST(aes_256_gcm_unseal_rejects_a_different_key) {
-  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, "hello").value()};
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+                        KEY, "hello", sourcemeta::core::system_random_generator)
+                        .value()};
   const auto other{sourcemeta::core::hex_to_bytes(
       "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")};
   EXPECT_FALSE(
@@ -86,14 +97,18 @@ TEST(aes_256_gcm_unseal_rejects_a_different_key) {
 }
 
 TEST(aes_256_gcm_unseal_rejects_a_wrong_size_key) {
-  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, "hello").value()};
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+                        KEY, "hello", sourcemeta::core::system_random_generator)
+                        .value()};
   EXPECT_FALSE(
       sourcemeta::core::aes_256_gcm_unseal(std::string(31, '\x00'), sealed)
           .has_value());
 }
 
 TEST(aes_256_gcm_seal_rejects_a_wrong_size_key) {
-  EXPECT_FALSE(sourcemeta::core::aes_256_gcm_seal(std::string(31, '\x00'), "x")
+  EXPECT_FALSE(sourcemeta::core::aes_256_gcm_seal(
+                   std::string(31, '\x00'), "x",
+                   sourcemeta::core::system_random_generator)
                    .has_value());
 }
 
@@ -275,7 +290,8 @@ TEST(aes_gcm_decrypt_rejects_a_wrong_size_iv) {
 // need a known answer vector at a length no published set reaches
 TEST(aes_256_gcm_round_trips_past_a_counter_byte_carry) {
   const std::string plaintext(4160, 'x');
-  const auto sealed{sourcemeta::core::aes_256_gcm_seal(KEY, plaintext)};
+  const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+      KEY, plaintext, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(sealed.has_value());
   const auto opened{sourcemeta::core::aes_256_gcm_unseal(KEY, sealed.value())};
   EXPECT_TRUE(opened.has_value());

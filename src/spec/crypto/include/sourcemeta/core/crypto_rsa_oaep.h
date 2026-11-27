@@ -5,6 +5,8 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_random.h>
+
 #include <sourcemeta/core/crypto_sign.h>
 #include <sourcemeta/core/crypto_verify.h>
 
@@ -36,12 +38,18 @@ enum class RSAOAEPHash : std::uint8_t {
 /// #include <cassert>
 ///
 /// const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-///     public_key, sourcemeta::core::RSAOAEPHash::SHA256, key)};
+///     public_key, sourcemeta::core::RSAOAEPHash::SHA256, key,
+///     sourcemeta::core::system_random_generator)};
 /// assert(wrapped.has_value());
 /// ```
-auto SOURCEMETA_CORE_CRYPTO_EXPORT rsa_oaep_encrypt(
-    const PublicKey &key, const RSAOAEPHash hash,
-    const std::string_view plaintext) -> std::optional<std::string>;
+/// The generator is drawn from only where this build has no system provider
+/// that draws its own bytes for this, as a provider cannot be pointed
+/// somewhere else to draw from.
+auto SOURCEMETA_CORE_CRYPTO_EXPORT
+rsa_oaep_encrypt(const PublicKey &key, const RSAOAEPHash hash,
+                 const std::string_view plaintext,
+                 const RandomGenerator &random_generator_fallback)
+    -> std::optional<std::string>;
 
 /// @ingroup crypto
 /// Decrypt a message produced by rsa_oaep_encrypt under the matching RSA

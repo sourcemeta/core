@@ -17,7 +17,7 @@ namespace sourcemeta::core {
 // https://www.w3.org/TR/trace-context/#trace-id
 inline auto http_draw_identifier(const std::span<std::uint8_t> bytes) -> void {
   for (auto attempt{0}; attempt < 8; ++attempt) {
-    random_bytes(bytes);
+    random_bytes(bytes, system_random_generator);
     if (!std::ranges::all_of(
             bytes, [](const std::uint8_t byte) { return byte == 0; })) {
       return;

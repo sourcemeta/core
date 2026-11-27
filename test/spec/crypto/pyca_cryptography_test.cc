@@ -198,8 +198,8 @@ auto sign_and_verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
     return false;
   }
 
-  const auto signature{
-      sourcemeta::core::ecdsa_sign(key.value(), hash, message)};
+  const auto signature{sourcemeta::core::ecdsa_sign(
+      key.value(), hash, message, sourcemeta::core::system_random_generator)};
   const auto public_key{
       sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
   return signature.has_value() && public_key.has_value() &&

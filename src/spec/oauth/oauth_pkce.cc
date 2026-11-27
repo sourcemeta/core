@@ -38,7 +38,8 @@ auto to_oauth_pkce_method(const std::string_view value) noexcept
   return std::nullopt;
 }
 
-auto oauth_pkce_verifier() -> std::array<char, 43> {
+auto oauth_pkce_verifier(const RandomGenerator &generator)
+    -> std::array<char, 43> {
   // The verifier is the base64url of 32 random octets, so both the entropy and
   // the encoded form are secret. The scope guard wipes the entropy on every
   // exit, including an exception while encoding. The caller owns the returned
@@ -47,7 +48,8 @@ auto oauth_pkce_verifier() -> std::array<char, 43> {
   const SecureStringScope entropy_scope{entropy};
   random_bytes(
       std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(entropy.data()),
-                              entropy.size()}); // NOLINT
+                              entropy.size()}, // NOLINT
+      generator);
   SecureString encoded;
   base64url_encode(entropy, encoded);
 

@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_OAUTH_PKCE_H_
 
 #ifndef SOURCEMETA_CORE_OAUTH_EXPORT
+#include <sourcemeta/core/crypto_random.h>
 #include <sourcemeta/core/oauth_export.h>
 #endif
 
@@ -106,7 +107,8 @@ auto to_oauth_pkce_method(const std::string_view value) noexcept
 /// assert(view.size() == 43);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_pkce_verifier() -> std::array<char, 43>;
+auto oauth_pkce_verifier(const RandomGenerator &generator =
+                             system_random_generator) -> std::array<char, 43>;
 
 /// @ingroup oauth
 /// Derive the S256 code challenge for a code verifier, the base64url encoding

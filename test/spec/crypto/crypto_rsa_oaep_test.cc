@@ -116,7 +116,8 @@ TEST(rsa_oaep_round_trips_with_sha256) {
       sourcemeta::core::derive_public_key(private_key.value())};
   EXPECT_TRUE(public_key.has_value());
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, plaintext)};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, plaintext,
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(wrapped.has_value());
   const auto unwrapped{sourcemeta::core::rsa_oaep_decrypt(
       private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
@@ -133,7 +134,8 @@ TEST(rsa_oaep_round_trips_with_sha1) {
       sourcemeta::core::derive_public_key(private_key.value())};
   EXPECT_TRUE(public_key.has_value());
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA1, plaintext)};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA1, plaintext,
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(wrapped.has_value());
   const auto unwrapped{sourcemeta::core::rsa_oaep_decrypt(
       private_key.value(), sourcemeta::core::RSAOAEPHash::SHA1,
@@ -147,7 +149,8 @@ TEST(rsa_oaep_ciphertext_matches_the_modulus_size) {
   const auto public_key{
       sourcemeta::core::derive_public_key(private_key.value())};
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "short")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "short",
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(wrapped.has_value());
   EXPECT_EQ(wrapped.value().size(), std::string::size_type{256});
 }
@@ -157,9 +160,11 @@ TEST(rsa_oaep_encrypt_is_randomized) {
   const auto public_key{
       sourcemeta::core::derive_public_key(private_key.value())};
   const auto first{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "identical")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "identical",
+      sourcemeta::core::system_random_generator)};
   const auto second{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "identical")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "identical",
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   EXPECT_TRUE(second.has_value());
   EXPECT_NE(first.value(), second.value());
@@ -169,10 +174,10 @@ TEST(rsa_oaep_decrypt_rejects_a_tampered_ciphertext) {
   const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
   const auto public_key{
       sourcemeta::core::derive_public_key(private_key.value())};
-  auto wrapped{
-      sourcemeta::core::rsa_oaep_encrypt(
-          public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")
-          .value()};
+  auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
+                   public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+                   "hello", sourcemeta::core::system_random_generator)
+                   .value()};
   wrapped.back() = static_cast<char>(wrapped.back() ^ 0x01);
   EXPECT_FALSE(
       sourcemeta::core::rsa_oaep_decrypt(
@@ -185,7 +190,8 @@ TEST(rsa_oaep_decrypt_rejects_the_wrong_hash) {
   const auto public_key{
       sourcemeta::core::derive_public_key(private_key.value())};
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello",
+      sourcemeta::core::system_random_generator)};
   EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
                    private_key.value(), sourcemeta::core::RSAOAEPHash::SHA1,
                    wrapped.value())
@@ -198,10 +204,10 @@ TEST(rsa_oaep_encrypt_rejects_a_too_long_plaintext) {
       sourcemeta::core::derive_public_key(private_key.value())};
   // The limit for SHA-256 over a 2048-bit modulus is 190 bytes
   const std::string plaintext(200, 'x');
-  EXPECT_FALSE(
-      sourcemeta::core::rsa_oaep_encrypt(
-          public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, plaintext)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_encrypt(
+                   public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+                   plaintext, sourcemeta::core::system_random_generator)
+                   .has_value());
 }
 
 TEST(rsa_oaep_decrypt_rejects_a_ciphertext_of_the_wrong_length) {
@@ -211,7 +217,8 @@ TEST(rsa_oaep_decrypt_rejects_a_ciphertext_of_the_wrong_length) {
       sourcemeta::core::derive_public_key(private_key.value())};
   EXPECT_TRUE(public_key.has_value());
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello",
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(wrapped.has_value());
 
   const std::string appended{wrapped.value() + '\x00'};
@@ -264,7 +271,8 @@ TEST(rsa_oaep_decrypt_rejects_a_zero_padded_ciphertext) {
       sourcemeta::core::derive_public_key(private_key.value())};
   EXPECT_TRUE(public_key.has_value());
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello",
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(wrapped.has_value());
 
   const std::string padded{std::string(1, '\x00') + wrapped.value()};
@@ -292,7 +300,8 @@ TEST(rsa_oaep_decrypt_refuses_a_pss_restricted_key) {
       sourcemeta::core::derive_public_key(private_key.value())};
   EXPECT_TRUE(public_key.has_value());
   const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
-      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello",
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(wrapped.has_value());
   EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
                    private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
@@ -303,7 +312,8 @@ TEST(rsa_oaep_decrypt_refuses_a_pss_restricted_key) {
 TEST(rsa_oaep_encrypt_rejects_a_key_that_holds_nothing) {
   const sourcemeta::core::PublicKey key{nullptr};
   EXPECT_FALSE(sourcemeta::core::rsa_oaep_encrypt(
-                   key, sourcemeta::core::RSAOAEPHash::SHA256, "secret")
+                   key, sourcemeta::core::RSAOAEPHash::SHA256, "secret",
+                   sourcemeta::core::system_random_generator)
                    .has_value());
 }
 
@@ -321,10 +331,10 @@ TEST(rsa_oaep_encrypt_rejects_a_modulus_too_small_for_two_digests) {
   const auto public_key{
       sourcemeta::core::derive_public_key(private_key.value())};
   EXPECT_TRUE(public_key.has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::rsa_oaep_encrypt(
-          public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "secret")
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_encrypt(
+                   public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+                   "secret", sourcemeta::core::system_random_generator)
+                   .has_value());
 }
 
 TEST(rsa_oaep_decrypt_rejects_a_modulus_too_small_for_two_digests) {
@@ -346,7 +356,8 @@ TEST(rsa_oaep_encrypt_rejects_an_elliptic_curve_key) {
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::rsa_oaep_encrypt(
                    key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
-                   "a content encryption key")
+                   "a content encryption key",
+                   sourcemeta::core::system_random_generator)
                    .has_value());
 }
 

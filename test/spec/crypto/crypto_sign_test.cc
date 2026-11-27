@@ -656,8 +656,8 @@ auto ecdsa_signature_verifies(
     return false;
   }
 
-  const auto signature{
-      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
+  const auto signature{sourcemeta::core::ecdsa_sign(
+      key.value(), hash, MESSAGE, sourcemeta::core::system_random_generator)};
   const auto public_key{sourcemeta::core::make_ec_public_key(
       curve, coordinate_x.value(), coordinate_y.value())};
   return signature.has_value() && public_key.has_value() &&
@@ -670,14 +670,15 @@ auto ecdsa_signature_verifies(
 auto generated_key_signs_and_verifies(
     const sourcemeta::core::EllipticCurve curve,
     const sourcemeta::core::SignatureHashFunction hash) -> bool {
-  const auto key{sourcemeta::core::generate_ec_private_key(curve)};
+  const auto key{sourcemeta::core::generate_ec_private_key(
+      curve, sourcemeta::core::system_random_generator)};
   if (!key.has_value()) {
     return false;
   }
 
   const auto public_key{sourcemeta::core::derive_public_key(key.value())};
-  const auto signature{
-      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
+  const auto signature{sourcemeta::core::ecdsa_sign(
+      key.value(), hash, MESSAGE, sourcemeta::core::system_random_generator)};
   return public_key.has_value() && signature.has_value() &&
          sourcemeta::core::ecdsa_verify(public_key.value(), hash, MESSAGE,
                                         signature.value());
@@ -714,8 +715,8 @@ auto parsed_key_signature_verifies(
     return false;
   }
 
-  const auto signature{
-      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
+  const auto signature{sourcemeta::core::ecdsa_sign(
+      key.value(), hash, MESSAGE, sourcemeta::core::system_random_generator)};
   const auto public_key{sourcemeta::core::make_ec_public_key(
       curve, sourcemeta::core::hex_to_bytes(coordinate_x_hex).value(),
       sourcemeta::core::hex_to_bytes(coordinate_y_hex).value())};
@@ -883,7 +884,8 @@ TEST(rsassa_pss_sign_accepts_pss_restricted_key) {
       sourcemeta::core::make_private_key(PSS_RESTRICTED_PRIVATE_KEY)};
   EXPECT_TRUE(key.has_value());
   const auto signature{sourcemeta::core::rsassa_pss_sign(
-      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE,
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(signature.has_value());
 }
 
@@ -983,7 +985,8 @@ TEST(rsassa_pss_sha256_signature_verifies) {
   const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
   // The salt is random, so the signature is not a fixed known answer
   const auto signature{sourcemeta::core::rsassa_pss_sign(
-      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE,
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(signature.has_value());
   const auto public_key{sourcemeta::core::make_rsa_public_key(
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
@@ -1034,9 +1037,11 @@ TEST(generate_ec_private_key_produces_a_functional_p521_key) {
 
 TEST(generate_ec_private_key_is_randomized) {
   const auto first{sourcemeta::core::generate_ec_private_key(
-      sourcemeta::core::EllipticCurve::P256)};
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::system_random_generator)};
   const auto second{sourcemeta::core::generate_ec_private_key(
-      sourcemeta::core::EllipticCurve::P256)};
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   EXPECT_TRUE(second.has_value());
   const auto first_public{sourcemeta::core::derive_public_key(first.value())};
@@ -1061,10 +1066,10 @@ TEST(ecdsa_deterministic_nonce_matches_rfc6979_known_answer) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_MESSAGE)};
+      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_MESSAGE)};
+      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   // A backend that derives the nonce deterministically (RFC 6979) produces the
   // same signature twice, and only then is the published known answer
@@ -1084,10 +1089,10 @@ TEST(ecdsa_p384_deterministic_nonce_matches_rfc6979_known_answer) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_MESSAGE)};
+      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_MESSAGE)};
+      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   // A backend that derives the nonce deterministically (RFC 6979) produces the
   // same signature twice, and only then is the published known answer
@@ -1107,10 +1112,10 @@ TEST(ecdsa_p256_deterministic_nonce_matches_rfc6979_second_message) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_TEST_MESSAGE)};
+      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_TEST_MESSAGE)};
+      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   if (first.has_value() && first == second) {
     EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
@@ -1127,10 +1132,10 @@ TEST(ecdsa_p384_deterministic_nonce_matches_rfc6979_second_message) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_TEST_MESSAGE)};
+      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_TEST_MESSAGE)};
+      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(first.has_value());
   if (first.has_value() && first == second) {
     EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
@@ -1165,10 +1170,10 @@ TEST(ed448_matches_known_answer) {
 
 TEST(ecdsa_sign_rejects_rsa_key) {
   const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
-  EXPECT_FALSE(
-      sourcemeta::core::ecdsa_sign(
-          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::ecdsa_sign(
+                   key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+                   MESSAGE, sourcemeta::core::system_random_generator)
+                   .has_value());
 }
 
 TEST(eddsa_sign_rejects_rsa_key) {
@@ -1551,10 +1556,10 @@ TEST(rsassa_pkcs1_v15_sign_accepts_a_digest_the_modulus_still_holds) {
 TEST(rsassa_pss_sign_refuses_a_salted_digest_wider_than_the_modulus) {
   const auto key{sourcemeta::core::make_private_key(RSA_512_PRIVATE_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::rsassa_pss_sign(
-          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::rsassa_pss_sign(
+                   key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+                   MESSAGE, sourcemeta::core::system_random_generator)
+                   .has_value());
 }
 
 TEST(rsassa_pkcs1_v15_sign_rejects_an_elliptic_curve_key) {
@@ -1569,10 +1574,10 @@ TEST(rsassa_pkcs1_v15_sign_rejects_an_elliptic_curve_key) {
 TEST(rsassa_pss_sign_rejects_an_elliptic_curve_key) {
   const auto key{sourcemeta::core::make_private_key(P384_PKCS8_KEY)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_FALSE(
-      sourcemeta::core::rsassa_pss_sign(
-          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::rsassa_pss_sign(
+                   key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+                   MESSAGE, sourcemeta::core::system_random_generator)
+                   .has_value());
 }
 
 TEST(make_private_key_rejects_an_elliptic_curve_key_that_is_not_a_sequence) {
@@ -1629,10 +1634,10 @@ TEST(rsassa_pkcs1_v15_sign_rejects_a_key_that_holds_nothing) {
 
 TEST(rsassa_pss_sign_rejects_a_key_that_holds_nothing) {
   const sourcemeta::core::PrivateKey key{nullptr};
-  EXPECT_FALSE(
-      sourcemeta::core::rsassa_pss_sign(
-          key, sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
-          .has_value());
+  EXPECT_FALSE(sourcemeta::core::rsassa_pss_sign(
+                   key, sourcemeta::core::SignatureHashFunction::SHA256,
+                   MESSAGE, sourcemeta::core::system_random_generator)
+                   .has_value());
 }
 
 TEST(make_private_key_rejects_a_modulus_with_no_content_octets) {

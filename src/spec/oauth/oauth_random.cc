@@ -9,11 +9,12 @@
 
 namespace sourcemeta::core {
 
-auto oauth_random_token() -> std::array<char, 43> {
+auto oauth_random_token(const RandomGenerator &generator)
+    -> std::array<char, 43> {
   // The token is not secret, so unlike the PKCE verifier the entropy needs no
   // wiping storage, matching the state and nonce classification of the design
   std::array<std::uint8_t, 32> entropy{};
-  random_bytes(entropy);
+  random_bytes(entropy, generator);
   const auto encoded{base64url_encode(
       std::string_view{reinterpret_cast<const char *>(entropy.data()), // NOLINT
                        entropy.size()})};

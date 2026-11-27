@@ -28,6 +28,7 @@
 #include <sourcemeta/core/crypto_hmac_sha256.h>
 #include <sourcemeta/core/crypto_hmac_sha384.h>
 #include <sourcemeta/core/crypto_hmac_sha512.h>
+#include <sourcemeta/core/crypto_random.h>
 #include <sourcemeta/core/crypto_rsa_oaep.h>
 #include <sourcemeta/core/crypto_secure.h>
 #include <sourcemeta/core/crypto_sha1.h>
@@ -40,45 +41,12 @@
 
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
+#include <functional>  // std::function
 #include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
-
-/// @ingroup crypto
-/// Fill a buffer with random bytes drawn from the operating system's
-/// cryptographically secure provider. The bytes are only cryptographically
-/// secure when the library is built against a system provider (OpenSSL, the
-/// Apple Security framework, or Windows CNG). The reference backend used when
-/// no system provider is available falls back to a non-cryptographic generator.
-/// For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/crypto.h>
-/// #include <array>
-/// #include <cstdint>
-///
-/// std::array<std::uint8_t, 16> buffer{};
-/// sourcemeta::core::random_bytes(buffer);
-/// ```
-auto SOURCEMETA_CORE_CRYPTO_EXPORT random_bytes(std::span<std::uint8_t> buffer)
-    -> void;
-
-/// @ingroup crypto
-/// Return the given number of random bytes as a string, drawn from the
-/// operating system's cryptographically secure provider. The same backend
-/// caveat as the buffer-filling overload applies. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/crypto.h>
-/// #include <cassert>
-///
-/// const auto bytes{sourcemeta::core::random_bytes(32)};
-/// assert(bytes.size() == 32);
-/// ```
-auto SOURCEMETA_CORE_CRYPTO_EXPORT random_bytes(const std::size_t length)
-    -> std::string;
 
 /// @ingroup crypto
 /// Compare two byte sequences for equality in constant time when their lengths

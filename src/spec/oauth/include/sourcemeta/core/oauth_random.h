@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_OAUTH_RANDOM_H_
 
 #ifndef SOURCEMETA_CORE_OAUTH_EXPORT
+#include <sourcemeta/core/crypto_random.h>
 #include <sourcemeta/core/oauth_export.h>
 #endif
 
@@ -26,7 +27,8 @@ namespace sourcemeta::core {
 /// assert(view.size() == 43);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_random_token() -> std::array<char, 43>;
+auto oauth_random_token(const RandomGenerator &generator =
+                            system_random_generator) -> std::array<char, 43>;
 
 } // namespace sourcemeta::core
 

@@ -242,7 +242,8 @@ auto oauth_make_device_authorization_response(
   return response;
 }
 
-auto oauth_device_user_code() -> std::array<char, 8> {
+auto oauth_device_user_code(const RandomGenerator &generator)
+    -> std::array<char, 8> {
   std::array<char, 8> result{};
   const auto alphabet{static_cast<std::uint8_t>(USER_CODE_ALPHABET.size())};
   // Reject bytes in the biased tail so each character is drawn uniformly from
@@ -251,7 +252,7 @@ auto oauth_device_user_code() -> std::array<char, 8> {
   std::size_t filled{0};
   while (filled < result.size()) {
     std::array<std::uint8_t, 8> entropy{};
-    random_bytes(entropy);
+    random_bytes(entropy, generator);
     for (const auto byte : entropy) {
       if (byte >= limit) {
         continue;

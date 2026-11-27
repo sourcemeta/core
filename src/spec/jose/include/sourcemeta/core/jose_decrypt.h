@@ -5,6 +5,8 @@
 #include <sourcemeta/core/jose_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_random.h>
+
 #include <sourcemeta/core/jose_jwe.h>
 #include <sourcemeta/core/jose_jwk_private.h>
 
@@ -32,7 +34,8 @@ namespace sourcemeta::core {
 /// assert(plaintext.has_value());
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
-auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key)
+auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key,
+                 const RandomGenerator &generator = system_random_generator)
     -> std::optional<std::string>;
 
 } // namespace sourcemeta::core

@@ -11,8 +11,8 @@
 namespace sourcemeta::core {
 
 auto jws_sign(const JWSAlgorithm algorithm,
-              const std::string_view signing_input, const JWKPrivate &key)
-    -> std::optional<std::string> {
+              const std::string_view signing_input, const JWKPrivate &key,
+              const RandomGenerator &generator) -> std::optional<std::string> {
   // A key that names an algorithm must not contradict the one in use (RFC 7517
   // Section 4.4)
   if (key.algorithm().has_value() && key.algorithm().value() != algorithm) {
@@ -42,7 +42,7 @@ auto jws_sign(const JWSAlgorithm algorithm,
       }
 
       return rsassa_pss_sign(*private_key, jws_hash_for(algorithm),
-                             signing_input);
+                             signing_input, generator);
     // Each ECDSA algorithm is pinned to exactly one curve (RFC 7518 Section
     // 3.4). The raw signature width is twice the curve field width, so it pins
     // the key's curve to the algorithm, including for a key parsed from PEM
@@ -55,8 +55,8 @@ auto jws_sign(const JWSAlgorithm algorithm,
         return std::nullopt;
       }
 
-      auto signature{
-          ecdsa_sign(*private_key, jws_hash_for(algorithm), signing_input)};
+      auto signature{ecdsa_sign(*private_key, jws_hash_for(algorithm),
+                                signing_input, generator)};
       if (!signature.has_value() ||
           signature.value().size() != jws_ecdsa_signature_bytes(algorithm)) {
         return std::nullopt;

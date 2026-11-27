@@ -244,7 +244,8 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
           make_ec_public_key(jwk_to_elliptic_curve(result.curve_),
                              result.coordinate_x_, result.coordinate_y_)};
       const auto signature{ecdsa_sign(result.private_key_.value(),
-                                      SignatureHashFunction::SHA256, probe)};
+                                      SignatureHashFunction::SHA256, probe,
+                                      system_random_generator)};
       consistent =
           public_key.has_value() && signature.has_value() &&
           ecdsa_verify(public_key.value(), SignatureHashFunction::SHA256, probe,

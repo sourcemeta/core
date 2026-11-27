@@ -1,7 +1,7 @@
 #include <sourcemeta/core/crypto_aes_gcm.h>
 
 #include "crypto_aes.h"
-#include "crypto_random.h"
+#include "crypto_fill_random.h"
 
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
@@ -56,7 +56,8 @@ auto aes_gcm_decrypt(const std::string_view key, const std::string_view iv,
 }
 
 auto aes_256_gcm_seal(const std::string_view key,
-                      const std::string_view plaintext)
+                      const std::string_view plaintext,
+                      const RandomGenerator &generator)
     -> std::optional<std::string> {
   if (key.size() != SEAL_KEY_BYTES) {
     return std::nullopt;
@@ -64,7 +65,7 @@ auto aes_256_gcm_seal(const std::string_view key,
 
   std::string nonce(IV_BYTES, '\x00');
   try {
-    fill_random_bytes(std::span<std::uint8_t>{
+    generator(std::span<std::uint8_t>{
         reinterpret_cast<std::uint8_t *>(nonce.data()), IV_BYTES});
   } catch (const std::exception &) {
     return std::nullopt;
