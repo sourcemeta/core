@@ -211,6 +211,22 @@ else()
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
     crypto_pkcs8.h crypto_other.h crypto_rsa_other.h)
 
+  # This build has no system provider of its own, so the generator a caller
+  # hands in is the one every draw is taken from, including the draws a key
+  # generation makes. Where a provider does generate keys itself it draws its
+  # own bytes and cannot be pointed somewhere else, which is what the fallback
+  # naming on those parameters is about
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_DRAWS_FROM_FALLBACK)
+
+  # Building an elliptic curve private key on this backend recomputes the
+  # public point from the scalar and compares it, which holds the two halves of
+  # the pair together more tightly than a signature can. A layer above that
+  # would otherwise sign a probe and verify it can leave that to the
+  # construction wherever this is defined
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_BINDS_EC_KEY_PAIR)
+
   if(WIN32)
     # Even here the entropy comes from the system, as no portable source is
     # guaranteed to be a cryptographic one

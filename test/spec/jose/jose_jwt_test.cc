@@ -376,3 +376,57 @@ TEST(owns_decoded_data) {
   EXPECT_EQ(token.value().issuer().value(), "acme");
   EXPECT_EQ(token.value().signature(), "sig");
 }
+
+// RFC 7519 Section 5.1 prepends "application/" only to a type that carries no
+// slash of its own, so a type that already names a subtype under it is
+// compared whole
+TEST(has_type_keeps_a_type_that_carries_a_further_slash) {
+  const auto token{sourcemeta::core::JWT::from(
+      "eyJhbGciOiJSUzI1NiIsInR5cCI6ImFwcGxpY2F0aW9uL2Zvby9iYXIifQ."
+      "eyJpc3MiOiJhY21lIn0.c2lnbmF0dXJl")};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().has_type("application/foo/bar"));
+  EXPECT_FALSE(token.value().has_type("foo/bar"));
+}
+
+// A type long enough to carry the prefix but not opening with it is compared
+// whole as well
+TEST(has_type_keeps_a_type_that_does_not_open_with_the_prefix) {
+  const auto token{sourcemeta::core::JWT::from(
+      "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhY21lIn0.c2lnbmF0dXJl")};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(token.value().has_type("somethingelse/plain"));
+  EXPECT_TRUE(token.value().has_type("JWT"));
+}
+
+// Each segment is read on its own, so a payload that is not base64url is
+// refused even where the header is
+TEST(from_rejects_a_payload_that_is_not_base64url) {
+  EXPECT_FALSE(sourcemeta::core::JWT::from(
+                   "eyJhbGciOiJSUzI1NiJ9.not!base64url.c2lnbmF0dXJl")
+                   .has_value());
+}
+
+// A segment that decodes to something other than a JSON object is refused,
+// from either side of the token
+TEST(from_rejects_a_header_that_is_not_json) {
+  EXPECT_FALSE(
+      sourcemeta::core::JWT::from("bm90IGpzb24.eyJpc3MiOiAiYSJ9.c2lnbmF0dXJl")
+          .has_value());
+}
+
+TEST(from_rejects_a_payload_that_is_not_json) {
+  EXPECT_FALSE(sourcemeta::core::JWT::from(
+                   "eyJhbGciOiJSUzI1NiJ9.bm90IGpzb24.c2lnbmF0dXJl")
+                   .has_value());
+}
+
+// RFC 7519 Section 4.1.3 has the audience be a string or an array of strings,
+// so a claim of any other shape names no audience at all
+TEST(has_audience_refuses_a_claim_that_is_neither_a_string_nor_an_array) {
+  const auto token{sourcemeta::core::JWT::from(
+      "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhY21lIiwiYXVkIjo0Mn0.c2lnbmF0dXJl")};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(token.value().has_audience("acme"));
+  EXPECT_FALSE(token.value().has_audience("42"));
+}

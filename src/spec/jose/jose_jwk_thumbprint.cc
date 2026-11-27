@@ -1,6 +1,8 @@
 #include <sourcemeta/core/jose_jwk.h>
 #include <sourcemeta/core/jose_jwk_private.h>
 
+#include "jose_key.h"
+
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 
@@ -66,43 +68,50 @@ auto build_public_jwk(const std::string_view curve,
 // RFC 7638 Section 3: the hash input is a JSON object of the required members
 // only, in lexicographic member order, with no whitespace, the values being
 // the base64url component strings, which contain no character JSON must escape
-auto build_thumbprint(
-    const std::string_view curve, const std::string_view modulus,
-    const std::string_view exponent, const std::string_view coordinate_x,
-    const std::string_view coordinate_y, const std::string_view point,
-    const std::string_view secret) -> std::optional<std::string> {
+auto build_thumbprint(const sourcemeta::core::JWKKind kind,
+                      const std::string_view curve,
+                      const std::string_view modulus,
+                      const std::string_view exponent,
+                      const std::string_view coordinate_x,
+                      const std::string_view coordinate_y,
+                      const std::string_view point,
+                      const std::string_view secret) -> std::string {
   using sourcemeta::core::base64url_encode;
   // The canonical form embeds the secret for a symmetric key, so it is held in
   // wiping storage that clears itself on every growth and on the way out
   sourcemeta::core::SecureString canonical;
-  if (!modulus.empty()) {
+  switch (kind) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(sourcemeta::core::JWKKind::RSA)
     canonical.append(R"({"e":")");
     canonical.append(base64url_encode(minimal(exponent)));
     canonical.append(R"(","kty":"RSA","n":")");
     canonical.append(base64url_encode(minimal(modulus)));
     canonical.append(R"("})");
-  } else if (!coordinate_x.empty()) {
-    canonical.append(R"({"crv":")");
-    canonical.append(curve);
-    canonical.append(R"(","kty":"EC","x":")");
-    canonical.append(base64url_encode(coordinate_x));
-    canonical.append(R"(","y":")");
-    canonical.append(base64url_encode(coordinate_y));
-    canonical.append(R"("})");
-  } else if (!point.empty()) {
-    canonical.append(R"({"crv":")");
-    canonical.append(curve);
-    canonical.append(R"(","kty":"OKP","x":")");
-    canonical.append(base64url_encode(point));
-    canonical.append(R"("})");
-  } else if (!secret.empty()) {
-    // RFC 7638 Section 3.2.1: the octet sequence thumbprint is over the secret,
-    // encoded straight into the wiping buffer so it leaves no intermediate copy
-    canonical.append(R"({"k":")");
-    base64url_encode(secret, canonical);
-    canonical.append(R"(","kty":"oct"})");
-  } else {
-    return std::nullopt;
+    break;
+    case sourcemeta::core::JWKKind::EllipticCurve:
+      canonical.append(R"({"crv":")");
+      canonical.append(curve);
+      canonical.append(R"(","kty":"EC","x":")");
+      canonical.append(base64url_encode(coordinate_x));
+      canonical.append(R"(","y":")");
+      canonical.append(base64url_encode(coordinate_y));
+      canonical.append(R"("})");
+      break;
+    case sourcemeta::core::JWKKind::OctetKeyPair:
+      canonical.append(R"({"crv":")");
+      canonical.append(curve);
+      canonical.append(R"(","kty":"OKP","x":")");
+      canonical.append(base64url_encode(point));
+      canonical.append(R"("})");
+      break;
+    case sourcemeta::core::JWKKind::Octet:
+      // RFC 7638 Section 3.2.1: the octet sequence thumbprint is over the
+      // secret, encoded straight into the wiping buffer so it leaves no
+      // intermediate copy
+      canonical.append(R"({"k":")");
+      base64url_encode(secret, canonical);
+      canonical.append(R"(","kty":"oct"})");
+      break;
   }
 
   const auto digest{sourcemeta::core::sha256_digest(canonical)};
@@ -122,9 +131,10 @@ auto JWK::public_jwk() const -> std::optional<JSON> {
 }
 
 auto JWK::thumbprint() const -> std::optional<std::string> {
-  return build_thumbprint(this->curve_, this->modulus_, this->exponent_,
-                          this->coordinate_x_, this->coordinate_y_,
-                          this->public_point_, this->secret_);
+  return build_thumbprint(to_jwk_kind(this->type_), this->curve_,
+                          this->modulus_, this->exponent_, this->coordinate_x_,
+                          this->coordinate_y_, this->public_point_,
+                          this->secret_);
 }
 
 auto JWKPrivate::public_jwk() const -> std::optional<JSON> {
@@ -134,9 +144,10 @@ auto JWKPrivate::public_jwk() const -> std::optional<JSON> {
 }
 
 auto JWKPrivate::thumbprint() const -> std::optional<std::string> {
-  return build_thumbprint(this->curve_, this->modulus_, this->exponent_,
-                          this->coordinate_x_, this->coordinate_y_,
-                          this->public_point_, this->secret_);
+  return build_thumbprint(to_jwk_kind(this->type_), this->curve_,
+                          this->modulus_, this->exponent_, this->coordinate_x_,
+                          this->coordinate_y_, this->public_point_,
+                          this->secret_);
 }
 
 } // namespace sourcemeta::core

@@ -3,6 +3,7 @@
 #include <sourcemeta/core/crypto.h>
 
 #include "jose_key.h"
+#include "jose_switch.h"
 
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -46,22 +47,6 @@ auto required_base64url(const sourcemeta::core::JSON &value,
   }
 
   return decoded;
-}
-
-auto to_jwk_kind(const sourcemeta::core::JWKPrivate::Type type) noexcept
-    -> sourcemeta::core::JWKKind {
-  switch (type) {
-    case sourcemeta::core::JWKPrivate::Type::RSA:
-      return sourcemeta::core::JWKKind::RSA;
-    case sourcemeta::core::JWKPrivate::Type::EllipticCurve:
-      return sourcemeta::core::JWKKind::EllipticCurve;
-    case sourcemeta::core::JWKPrivate::Type::OctetKeyPair:
-      return sourcemeta::core::JWKKind::OctetKeyPair;
-    case sourcemeta::core::JWKPrivate::Type::Octet:
-      break;
-  }
-
-  return sourcemeta::core::JWKKind::Octet;
 }
 
 } // namespace
@@ -232,14 +217,33 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
   // stays null and fails to sign
   if (result.type_ == Type::EllipticCurve ||
       result.type_ == Type::OctetKeyPair) {
+    // Material the construction refused to pair leaves no key behind, which is
+    // what turns it into a refusal here
     if (!result.private_key_.has_value()) {
       return false;
     }
 
     using namespace std::string_view_literals;
     const auto probe{"sourcemeta core JWK keypair consistency probe"sv};
-    bool consistent{false};
-    if (result.type_ == Type::EllipticCurve) {
+    bool consistent{true};
+    if (result.type_ == Type::OctetKeyPair) {
+      // A point of the width the curve fixes always forms a key, which the
+      // read above held it to, and signing turns away only a key of another
+      // kind, which this one is not. Either giving way is the memory running
+      // out rather than anything about the pair, and answering that the pair
+      // disagrees would be the wrong thing to say about it
+      const auto public_key{
+          make_eddsa_public_key(jwk_to_edwards_curve(result.curve_),
+                                result.public_point_)
+              .value()};
+      const auto signature{
+          eddsa_sign(result.private_key_.value(), probe).value()};
+      consistent = eddsa_verify(public_key, probe, signature);
+    }
+#if !defined(SOURCEMETA_CORE_CRYPTO_BINDS_EC_KEY_PAIR)
+    // Where the construction does not recompute the point from the scalar, a
+    // signature the one makes and the other checks is what pairs them
+    else {
       const auto public_key{
           make_ec_public_key(jwk_to_elliptic_curve(result.curve_),
                              result.coordinate_x_, result.coordinate_y_)};
@@ -249,13 +253,8 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
           public_key.has_value() && signature.has_value() &&
           ecdsa_verify(public_key.value(), SignatureHashFunction::SHA256, probe,
                        signature.value());
-    } else {
-      const auto public_key{make_eddsa_public_key(
-          jwk_to_edwards_curve(result.curve_), result.public_point_)};
-      const auto signature{eddsa_sign(result.private_key_.value(), probe)};
-      consistent = public_key.has_value() && signature.has_value() &&
-                   eddsa_verify(public_key.value(), probe, signature.value());
     }
+#endif
 
     if (!consistent) {
       return false;
@@ -294,9 +293,9 @@ auto JWKPrivate::from_pem(const std::string_view pem)
 
   JWKPrivate result;
   switch (parsed_key.value().type()) {
-    case PrivateKey::Type::RSA:
-      result.type_ = Type::RSA;
-      break;
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(PrivateKey::Type::RSA)
+    result.type_ = Type::RSA;
+    break;
     case PrivateKey::Type::EllipticCurve:
       result.type_ = Type::EllipticCurve;
       break;
@@ -309,38 +308,27 @@ auto JWKPrivate::from_pem(const std::string_view pem)
 
   // A PEM document carries no encoded public members, so recover them from the
   // parsed key to support public serialization and thumbprints
-  const auto public_key{derive_public_key(result.private_key_.value())};
-  if (public_key.has_value()) {
-    switch (public_key.value().type()) {
-      case PublicKey::Type::RSA: {
-        const auto components{rsa_public_components(public_key.value())};
-        if (components.has_value()) {
-          result.modulus_ = components.value().modulus;
-          result.exponent_ = components.value().exponent;
-        }
-
-        break;
-      }
-      case PublicKey::Type::EllipticCurve: {
-        const auto components{ec_public_components(public_key.value())};
-        if (components.has_value()) {
-          result.curve_ = elliptic_curve_to_jwk(components.value().curve);
-          result.coordinate_x_ = components.value().x;
-          result.coordinate_y_ = components.value().y;
-        }
-
-        break;
-      }
-      case PublicKey::Type::Edwards: {
-        const auto components{edwards_public_components(public_key.value())};
-        if (components.has_value()) {
-          result.curve_ = edwards_curve_to_jwk(components.value().curve);
-          result.public_point_ = components.value().point;
-        }
-
-        break;
-      }
+  // The public half of a key that was built follows from it, and its
+  // components read back whichever flavour it is
+  const auto public_key{derive_public_key(result.private_key_.value()).value()};
+  switch (public_key.type()) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(PublicKey::Type::RSA) {
+      const auto components{rsa_public_components(public_key).value()};
+      result.modulus_ = components.modulus;
+      result.exponent_ = components.exponent;
     }
+    break;
+    case PublicKey::Type::EllipticCurve: {
+      const auto components{ec_public_components(public_key).value()};
+      result.curve_ = elliptic_curve_to_jwk(components.curve);
+      result.coordinate_x_ = components.x;
+      result.coordinate_y_ = components.y;
+    } break;
+    case PublicKey::Type::Edwards: {
+      const auto components{edwards_public_components(public_key).value()};
+      result.curve_ = edwards_curve_to_jwk(components.curve);
+      result.public_point_ = components.point;
+    } break;
   }
 
   return result;

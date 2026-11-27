@@ -59,6 +59,23 @@ constexpr std::string_view RSA_JWK_MATCHING_ALGORITHM{
     R"JSON({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256" })JSON"};
 // A P-384 public key, so that a curve the algorithm does not name can be told
 // apart from a key type it does not name
+// Material that parses as a key yet forms none. A public exponent must be odd
+// and at or above three (RFC 8017 Section 3.1), the point at the origin lies on
+// no prime curve, and a coordinate at or above the field prime is not a point
+// at all (RFC 8032 Section 5.1.3). Every backend refuses each of them, so the
+// key is built with nothing behind it and simply fails to verify
+constexpr std::string_view RSA_EVEN_EXPONENT_JWK{
+    R"JSON({ "kty": "RSA", "n": "qp63b87vkztqtUnT7TvIhst4O0QraUSHOPKep5EjRM5EVGOcu56-24usR2wz7_d6UVOgjzcXNQbgzTtcN_mNQRzi3WC_pGT2N5Z1eYUyUCmHMxANntSMmgpAxoKw2jfpt6P0Fc5L4B08JKaXeS8vnpeKjOeX3UkzR9ub66Mp3EGnFRL15D1h9l4ohFmHDm4GPX5NwV5XMw_0ha_BZihp6wtsUBwIcrM1ipGbiOQtHB1sXsUc_pPKLNeR-HzC8PmVtWDOqGSJFsiF6SvxBsgqKpNyov8sYTj_AM3JB57BUrHSZFoNYAcRmWu__EwU1awt9oXbcHyAbJLI85rlxtP6hw", "e": "Ag" })JSON"};
+constexpr std::string_view OKP_NO_SUCH_POINT_JWK{
+    R"JSON({ "kty": "OKP", "crv": "Ed25519", "x": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" })JSON"};
+constexpr std::string_view EC_P256_ORIGIN_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-256", "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" })JSON"};
+constexpr std::string_view EC_P384_ORIGIN_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-384", "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" })JSON"};
+constexpr std::string_view EC_P521_ORIGIN_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-521", "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" })JSON"};
+constexpr std::string_view EC_P521_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-521", "x": "ASTBdxhoeBK4-OqrpidcXbsz_Gsd-TRgqkZGD9ROv7r_kBHW1_is2HDctAOVBWC3ywSUS5MZJIl17xJuYCyZA-Rg", "y": "AOQCwwmrhHkVTm9BgloMWDc7T3hw5yQM5Z-YhVumpCYyFIGuyrziD5iqsH8uQvsNXGqnMKhOJ26X8ADhvP20RIAW" })JSON"};
 constexpr std::string_view EC_P384_JWK{
     R"JSON({ "kty": "EC", "crv": "P-384", "x": "2vNb4tkbgqO0zEAs2uZ7sfAud-yiG24vhu8f_n7t1bGuAk6Ri1cGMIqUv8vcaDFf", "y": "Y1aaM4Jna_mH2L_KgEA5SIrhaq5XbASmay0UnPTw2F3-znyZ-fZ8yCwtj3aPGUGv" })JSON"};
 // Secrets below what RFC 7518 Section 3.2 requires of each MAC, which asks for
@@ -427,5 +444,133 @@ TEST(rs256_accepts_a_key_whose_algorithm_hint_matches) {
   EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// A key with nothing behind it refuses before the primitive is reached, for
+// every family that carries platform key material
+TEST(rs256_rejects_a_key_that_formed_no_platform_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(RSA_EVEN_EXPONENT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(es256_rejects_a_key_that_formed_no_platform_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(EC_P256_ORIGIN_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES256, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(es384_rejects_a_key_that_formed_no_platform_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(EC_P384_ORIGIN_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES384, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(es512_rejects_a_key_that_formed_no_platform_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(EC_P521_ORIGIN_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES512, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// The symmetric algorithms each refuse a key that is not a secret, whichever
+// hash they recompute the tag with
+TEST(hs384_rejects_an_rsa_key) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS384, RS256_SIGNING_INPUT, "signature",
+      key.value()));
+}
+
+TEST(hs512_rejects_an_rsa_key) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS512, RS256_SIGNING_INPUT, "signature",
+      key.value()));
+}
+
+// A signature of the width the curve asks for, over a key that stands on that
+// curve, so the refusal comes from the primitive rather than from any of the
+// checks ahead of it
+TEST(es384_rejects_a_signature_the_primitive_turns_down) {
+  const auto signature{sourcemeta::core::base64url_decode(
+      "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v"
+      "MDEyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5f")};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_P384_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_NE(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES384, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(es512_rejects_a_signature_the_primitive_turns_down) {
+  const auto signature{sourcemeta::core::base64url_decode(
+      "AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4_wYNFBsiKTA3PkVM"
+      "U1phaG92fYSLkpmgp661vMPK0djf5u30-"
+      "wIJEBceJSwzOkFIT1ZdZGtyeYCHjpWco6qxuL_GzdTb4unw9_4FDBMaISgvNj1ES"
+      "1JZYGdudXyDipGY")};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_P521_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_NE(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::ES512, ES256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(ps256_rejects_a_key_that_formed_no_platform_key) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(RSA_EVEN_EXPONENT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::PS256, RS256_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+// A coordinate whose companion cannot be recovered names no point of the
+// Edwards curve (RFC 8032 Section 5.1.3), which the primitive turns down
+TEST(eddsa_rejects_a_coordinate_that_names_no_point) {
+  const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
+  EXPECT_TRUE(signature.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(OKP_NO_SUCH_POINT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::EdDSA, ES256_SIGNING_INPUT,
       signature.value(), key.value()));
 }

@@ -1,5 +1,7 @@
 #include <sourcemeta/core/jose_verify.h>
 
+#include "jose_switch.h"
+
 #include <algorithm>   // std::ranges::find
 #include <chrono>      // std::chrono::seconds, std::chrono::system_clock
 #include <optional>    // std::optional, std::nullopt
@@ -13,8 +15,8 @@ auto to_verification_error(const sourcemeta::core::JWTClaimError error)
   using sourcemeta::core::JWTClaimError;
   using sourcemeta::core::JWTVerificationError;
   switch (error) {
-    case JWTClaimError::Issuer:
-      return JWTVerificationError::Issuer;
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWTClaimError::Issuer)
+    return JWTVerificationError::Issuer;
     case JWTClaimError::Subject:
       return JWTVerificationError::Subject;
     case JWTClaimError::Audience:

@@ -5,6 +5,7 @@
 
 #include "jose_jwe_internal.h"
 #include "jose_key.h"
+#include "jose_switch.h"
 
 #include <optional>    // std::optional, std::nullopt
 #include <sstream>     // std::ostringstream
@@ -83,22 +84,29 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
   std::string content_key;
   std::string encrypted_key;
 
+  // Asked of every algorithm, since the absence of a length is what tells an
+  // algorithm that wraps a fresh content key from one that does not
+  const auto key_wrap_bytes{jwe_key_wrap_bytes(algorithm.value())};
+
   switch (algorithm.value()) {
-    case JWEAlgorithm::RSA_OAEP:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWEAlgorithm::RSA_OAEP)
     case JWEAlgorithm::RSA_OAEP_256: {
       if (key.type() != JWK::Type::RSA || key.public_key() == nullptr) {
         return std::nullopt;
       }
 
+      // The two RSA algorithms differ only in the OAEP hash (RFC 7518
+      // Section 4.3)
+      const auto oaep_hash{algorithm.value() == JWEAlgorithm::RSA_OAEP
+                               ? RSAOAEPHash::SHA1
+                               : RSAOAEPHash::SHA256};
       content_key = random_bytes(content_key_bytes, generator);
-      auto wrapped{rsa_oaep_encrypt(*key.public_key(),
-                                    jwe_rsa_oaep_hash(algorithm.value()),
-                                    content_key, generator)};
-      if (!wrapped.has_value()) {
-        return std::nullopt;
-      }
-
-      encrypted_key = std::move(wrapped).value();
+      // A content key is at most sixty four octets while the smallest modulus
+      // this module accepts is two hundred and fifty six, so the padding
+      // always has the room RFC 8017 Section 7.1.1 asks of it
+      encrypted_key =
+          rsa_oaep_encrypt(*key.public_key(), oaep_hash, content_key, generator)
+              .value();
       break;
     }
     case JWEAlgorithm::A128KW:
@@ -106,19 +114,16 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
     case JWEAlgorithm::A256KW: {
       // The shared secret is the key-encryption key, of the exact AES Key Wrap
       // size (RFC 7518 Section 4.4)
-      const auto key_wrap_bytes{jwe_key_wrap_bytes(algorithm.value()).value()};
       if (key.type() != JWK::Type::Octet ||
-          key.secret().size() != key_wrap_bytes) {
+          key.secret().size() != key_wrap_bytes.value()) {
         return std::nullopt;
       }
 
       content_key = random_bytes(content_key_bytes, generator);
-      auto wrapped{aes_key_wrap(key.secret(), content_key)};
-      if (!wrapped.has_value()) {
-        return std::nullopt;
-      }
-
-      encrypted_key = std::move(wrapped).value();
+      // The key-encryption key was held to an AES width just above and a
+      // content key is a whole number of semiblocks of at least two, which is
+      // everything RFC 3394 Section 2 asks of the pair
+      encrypted_key = aes_key_wrap(key.secret(), content_key).value();
       break;
     }
     case JWEAlgorithm::DIR: {
@@ -140,33 +145,24 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
         return std::nullopt;
       }
 
-      const auto recipient{ec_public_components(*key.public_key())};
-      if (!recipient.has_value()) {
-        return std::nullopt;
-      }
+      // The key was held to its curve when it was built, so its components
+      // read back
+      const auto recipient{ec_public_components(*key.public_key()).value()};
 
       // A fresh ephemeral key on the recipient curve (RFC 7518 Section 4.6.1)
-      const auto ephemeral{
-          generate_ec_private_key(recipient.value().curve, generator)};
+      const auto ephemeral{generate_ec_private_key(recipient.curve, generator)};
       if (!ephemeral.has_value()) {
         return std::nullopt;
       }
 
-      const auto ephemeral_public{derive_public_key(ephemeral.value())};
-      if (!ephemeral_public.has_value()) {
-        return std::nullopt;
-      }
-
+      // The public half of a key just built follows from it, its components
+      // read back the same way the recipient's do, and the agreement pairs two
+      // keys of the one curve, which is the only thing it turns away
+      const auto ephemeral_public{derive_public_key(ephemeral.value()).value()};
       const auto ephemeral_components{
-          ec_public_components(ephemeral_public.value())};
-      if (!ephemeral_components.has_value()) {
-        return std::nullopt;
-      }
-
-      const auto shared{ecdh_derive(ephemeral.value(), *key.public_key())};
-      if (!shared.has_value()) {
-        return std::nullopt;
-      }
+          ec_public_components(ephemeral_public).value()};
+      const auto shared{
+          ecdh_derive(ephemeral.value(), *key.public_key()).value()};
 
       std::string party_u;
       std::string party_v;
@@ -175,48 +171,39 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
         return std::nullopt;
       }
 
-      if (algorithm.value() == JWEAlgorithm::ECDH_ES) {
+      if (!key_wrap_bytes.has_value()) {
         // Direct Key Agreement: AlgorithmID is the "enc" value and the derived
         // key is the CEK (RFC 7518 Section 4.6.2)
-        auto derived{kdf_concat(shared.value(),
-                                jwe_encryption_name(encryption.value()),
-                                party_u, party_v, content_key_bytes)};
-        if (!derived.has_value()) {
-          return std::nullopt;
-        }
-
-        content_key = std::move(derived).value();
+        // Each length the derivation encodes is a field of thirty two bits,
+        // and an identifier, party information and key width of that size are
+        // all far beyond what a header carries (RFC 7518 Section 4.6.2)
+        content_key =
+            kdf_concat(shared, jwe_encryption_name(encryption.value()), party_u,
+                       party_v, content_key_bytes)
+                .value();
       } else {
         // Key Agreement with Key Wrapping: AlgorithmID is the "alg" value and
         // the derived key wraps a fresh CEK (RFC 7518 Section 4.6.2)
-        const auto key_wrap_bytes{
-            jwe_key_wrap_bytes(algorithm.value()).value()};
-        auto key_encryption_key{
-            kdf_concat(shared.value(), jwe_algorithm_name(algorithm.value()),
-                       party_u, party_v, key_wrap_bytes)};
-        if (!key_encryption_key.has_value()) {
-          return std::nullopt;
-        }
-
+        // As above, and the wrapping is handed a key of the width it asked
+        // for alongside a content key of whole semiblocks
+        const auto key_encryption_key{
+            kdf_concat(shared, jwe_algorithm_name(algorithm.value()), party_u,
+                       party_v, key_wrap_bytes.value())
+                .value()};
         content_key = random_bytes(content_key_bytes, generator);
-        auto wrapped{aes_key_wrap(key_encryption_key.value(), content_key)};
-        if (!wrapped.has_value()) {
-          return std::nullopt;
-        }
-
-        encrypted_key = std::move(wrapped).value();
+        encrypted_key = aes_key_wrap(key_encryption_key, content_key).value();
       }
 
       // The ephemeral public key is a fresh object with known-unique members,
       // so each is inserted with its precomputed hash and no duplicate check
       auto ephemeral_key{JSON::make_object()};
       ephemeral_key.assign_if_nonempty("kty", HASH_KTY, "EC");
+      ephemeral_key.assign_if_nonempty("crv", HASH_CRV,
+                                       elliptic_curve_to_jwk(recipient.curve));
       ephemeral_key.assign_if_nonempty(
-          "crv", HASH_CRV, elliptic_curve_to_jwk(recipient.value().curve));
+          "x", HASH_X, base64url_encode(ephemeral_components.x));
       ephemeral_key.assign_if_nonempty(
-          "x", HASH_X, base64url_encode(ephemeral_components.value().x));
-      ephemeral_key.assign_if_nonempty(
-          "y", HASH_Y, base64url_encode(ephemeral_components.value().y));
+          "y", HASH_Y, base64url_encode(ephemeral_components.y));
       ecdh_header = header;
       ecdh_header.assign("epk", std::move(ephemeral_key));
       emitted_header = &ecdh_header;
@@ -233,16 +220,13 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
   const auto content{jwe_content_encrypt(encryption.value(), content_key,
                                          initialization_vector, encoded_header,
                                          plaintext)};
-  if (!content.has_value()) {
-    return std::nullopt;
-  }
 
   // Assemble the five compact segments (RFC 7516 Section 7.1), reserving the
   // exact length so the growing result never reallocates
   const auto encoded_key{base64url_encode(encrypted_key)};
   const auto encoded_iv{base64url_encode(initialization_vector)};
-  const auto encoded_ciphertext{base64url_encode(content.value().ciphertext())};
-  const auto encoded_tag{base64url_encode(content.value().tag())};
+  const auto encoded_ciphertext{base64url_encode(content.ciphertext())};
+  const auto encoded_tag{base64url_encode(content.tag())};
 
   std::string result;
   result.reserve(encoded_header.size() + encoded_key.size() +

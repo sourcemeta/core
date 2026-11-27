@@ -593,3 +593,51 @@ TEST(jwk_private_from_json_rejects_okp_with_a_short_seed) {
   document.assign("d", sourcemeta::core::JSON{"dB7D"});
   EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
 }
+
+// A required member is read as a string of base64url, so a member of another
+// type is refused rather than coerced
+TEST(jwk_private_from_json_rejects_a_private_parameter_of_another_type) {
+  const auto key{
+      sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(
+          R"({"kty":"EC","crv":"P-256",)"
+          R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
+          R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ",)"
+          R"("d":5})"))};
+  EXPECT_FALSE(key.has_value());
+}
+
+// An empty member decodes to nothing, which is no scalar at all
+TEST(jwk_private_from_json_rejects_an_empty_private_parameter) {
+  const auto key{
+      sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(
+          R"({"kty":"EC","crv":"P-256",)"
+          R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
+          R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ",)"
+          R"("d":""})"))};
+  EXPECT_FALSE(key.has_value());
+}
+
+// The scalar and the point are checked against each other by signing a probe
+// and verifying it, so a pair that does not belong together is refused even
+// though each half parses on its own
+TEST(jwk_private_from_json_rejects_a_scalar_that_does_not_match_the_point) {
+  const auto key{
+      sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(
+          R"({"kty":"EC","crv":"P-256",)"
+          R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
+          R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ",)"
+          R"("d":"ttepxcp-OwXCj4-v4sGcxRxQRXA8D5Svu02yhcHvbd1"})"))};
+  EXPECT_FALSE(key.has_value());
+}
+
+// The point at the origin lies on no prime curve, so it forms no public key to
+// check the scalar against
+TEST(jwk_private_from_json_rejects_a_point_that_is_not_on_the_curve) {
+  const auto key{
+      sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(
+          R"({"kty":"EC","crv":"P-256",)"
+          R"("x":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",)"
+          R"("y":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",)"
+          R"("d":"ttepxcp-OwXCj4-v4sGcxRxQRXA8D5Svu02yhcHvbd0"})"))};
+  EXPECT_FALSE(key.has_value());
+}

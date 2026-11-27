@@ -821,3 +821,117 @@ TEST(decrypt_rejects_an_unknown_encryption_with_a_supported_key_algorithm) {
                                        std::string(16, 'k')))
                    .has_value());
 }
+
+// Key unwrapping and direct decryption each take a secret, so a key of another
+// kind is refused before the ciphertext is touched
+TEST(decrypt_refuses_a_key_wrap_key_that_is_not_a_secret) {
+  const auto object{encrypt_symmetric(std::string(32, 'k'))};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(std::string{JWE_RSA_PRIVATE_JWK}))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(parsed.value(), key.value()).has_value());
+}
+
+TEST(decrypt_refuses_a_direct_key_that_is_not_a_secret) {
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("dir", "A128GCM"), PLAINTEXT,
+      sourcemeta::core::JWK::from_octets(std::string(16, 'k')))};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(std::string{JWE_RSA_PRIVATE_JWK}))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(parsed.value(), key.value()).has_value());
+}
+
+// A key agreement needs an elliptic curve key, so an octet secret is refused
+TEST(decrypt_refuses_an_agreement_key_that_is_not_elliptic) {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_decrypt(
+                   parsed.value(), sourcemeta::core::JWKPrivate::from_octets(
+                                       std::string(32, 'k')))
+                   .has_value());
+}
+
+// The ephemeral key travels in the header and is built through the same key
+// machinery, so a point that lies on no curve forms nothing to agree with. The
+// replaced header breaks the tag as well, so this asserts only the refusal
+TEST(ecdh_es_decrypt_rejects_an_ephemeral_point_off_the_curve) {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  const auto private_key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PRIVATE_JWK}))};
+  EXPECT_TRUE(private_key.has_value());
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("ECDH-ES", "A128GCM"), PLAINTEXT, public_key.value())};
+  EXPECT_TRUE(object.has_value());
+  const auto dot{object.value().find('.')};
+  std::string tampered{sourcemeta::core::base64url_encode(
+      R"({"alg":"ECDH-ES","enc":"A128GCM","epk":{"kty":"EC","crv":"P-256",)"
+      R"("x":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",)"
+      R"("y":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}})")};
+  tampered.append(object.value().substr(dot));
+  const auto parsed{sourcemeta::core::JWE::from(tampered)};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(parsed.value(), private_key.value())
+          .has_value());
+}
+
+// RFC 7518 Section 4.5 ties the secret of a direct encryption to the width the
+// content encryption asks for, and RFC 7516 Section 11.5 has a recipient give
+// nothing away about which part was wrong, so a secret of another width fails
+// at the tag rather than before it
+TEST(direct_decrypt_rejects_a_secret_of_another_width) {
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("dir", "A128GCM"), PLAINTEXT,
+      sourcemeta::core::JWK::from_octets(std::string(16, 'k')))};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_decrypt(
+                   parsed.value(), sourcemeta::core::JWKPrivate::from_octets(
+                                       std::string(32, 'k')))
+                   .has_value());
+}
+
+// RFC 7518 Section 6.3.2 has a private RSA JWK carry its public members too,
+// and the parse deliberately leaves their correspondence unchecked, so a
+// document whose public exponent is outside the range RFC 8017 Section 3.1
+// allows still parses while forming no platform key. Decryption refuses it
+// rather than reaching the primitive
+TEST(decrypt_refuses_an_rsa_key_that_formed_no_platform_key) {
+  const auto public_key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_RSA_PUBLIC_JWK}))};
+  EXPECT_TRUE(public_key.has_value());
+  const auto object{sourcemeta::core::jwe_encrypt(
+      header_for("RSA-OAEP", "A128GCM"), PLAINTEXT, public_key.value())};
+  EXPECT_TRUE(object.has_value());
+  const auto parsed{sourcemeta::core::JWE::from(object.value())};
+  EXPECT_TRUE(parsed.has_value());
+
+  std::string document{JWE_RSA_PRIVATE_JWK};
+  const auto exponent{document.find(R"("e":"AQAB")")};
+  EXPECT_NE(exponent, std::string::npos);
+  document.replace(exponent, 10, R"("e":"Ag"  )");
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(document))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().private_key(), nullptr);
+  EXPECT_FALSE(
+      sourcemeta::core::jwe_decrypt(parsed.value(), key.value()).has_value());
+}

@@ -13,3 +13,22 @@
 # through it, and one that is missing a test can be given one. Exhaust those
 # before reaching for this file, because an entry here is a measurement this
 # project no longer takes.
+
+# The octets of an elliptic curve signature, with none where the backend
+# declined to make one. Every call runs, and the refusal it answers for is one
+# this suite cannot bring about. A backend with no system provider derives its
+# nonce from the key and the message (RFC 6979 Section 3.2) rather than drawing
+# one, so it declines only where the key is of the wrong kind, which the caller
+# settles before the call, or where two hundred and fifty six successive
+# derived nonces all fall outside the curve order. The derivation runs the
+# message through HMAC, so arranging that second case means choosing a key and
+# a message whose derived nonces land in a window of two to the minus thirty
+# two, two hundred and fifty six times over, which no input can be built to do
+# without inverting the hash. The refusal is real on a backend that draws its
+# nonce, which is why the check stays. It is held in a function of its own so
+# that the width check beside it, which this suite does reach, stays measured.
+#
+# Named once per standard library, as the report gives the mangled name and the
+# two spell the parameter differently
+jose_jws_sign.cc jose_jws_sign.cc:_ZN12_GLOBAL__N_122ecdsa_signature_octetsERKNSt3__18optionalINS0_12basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEEEE
+jose_jws_sign.cc jose_jws_sign.cc:_ZN12_GLOBAL__N_122ecdsa_signature_octetsERKSt8optionalINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEE
