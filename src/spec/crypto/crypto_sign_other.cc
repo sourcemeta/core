@@ -650,12 +650,15 @@ auto generate_ec_private_key(const EllipticCurve curve,
   const auto excess_bits{(width * 8u) - order_bits};
 
   // Rejection sampling into [1, order). Masking the surplus high bits keeps the
-  // retry rate low even for P-521, whose order fills only 521 of its 528 bits
+  // retry rate low even for P-521, whose order fills only 521 of its 528 bits.
+  // The draws are bounded because the generator is the caller's, and one that
+  // never lands in range would otherwise never let go
   std::string scalar(width, '\x00');
   const SecureStringScope scalar_scope{scalar};
   CurveBignum scalar_number;
   const SecureBignumScope scalar_number_scope{scalar_number};
-  do {
+  bool in_range{false};
+  for (std::size_t attempt = 0; attempt < 256 && !in_range; ++attempt) {
     try {
       random_generator_fallback(std::span<std::uint8_t>{
           reinterpret_cast<std::uint8_t *>(scalar.data()), width});
@@ -667,8 +670,13 @@ auto generate_ec_private_key(const EllipticCurve curve,
         static_cast<char>(static_cast<std::uint8_t>(scalar[0]) &
                           static_cast<std::uint8_t>(0xffu >> excess_bits));
     scalar_number = bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(scalar);
-  } while (bignum_is_zero(scalar_number) ||
-           bignum_compare(scalar_number, parameters.order) >= 0);
+    in_range = !bignum_is_zero(scalar_number) &&
+               bignum_compare(scalar_number, parameters.order) < 0;
+  }
+
+  if (!in_range) {
+    return std::nullopt;
+  }
 
   const auto point{ec_public_from_scalar(curve, scalar)};
   return PrivateKey{
@@ -757,8 +765,7 @@ auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
 }
 
 auto ecdsa_sign(const PrivateKey &key, const SignatureHashFunction hash,
-                const std::string_view message, const RandomGenerator &)
-    -> std::optional<std::string> {
+                const std::string_view message) -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr ||
       internal->kind != PrivateKey::Type::EllipticCurve) {

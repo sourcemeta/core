@@ -232,8 +232,7 @@ TEST(jwk_private_ec_private_key_signs_and_verifies) {
   const std::string_view message{"jwk private key signing input"};
   const auto signature{sourcemeta::core::ecdsa_sign(
       *key.value().private_key(),
-      sourcemeta::core::SignatureHashFunction::SHA256, message,
-      sourcemeta::core::system_random_generator)};
+      sourcemeta::core::SignatureHashFunction::SHA256, message)};
   EXPECT_TRUE(signature.has_value());
   const auto public_key{sourcemeta::core::make_ec_public_key(
       sourcemeta::core::EllipticCurve::P256,

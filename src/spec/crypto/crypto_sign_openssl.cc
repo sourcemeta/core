@@ -416,8 +416,7 @@ auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
 }
 
 auto ecdsa_sign(const PrivateKey &key, const SignatureHashFunction hash,
-                const std::string_view message, const RandomGenerator &)
-    -> std::optional<std::string> {
+                const std::string_view message) -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr ||
       internal->kind != PrivateKey::Type::EllipticCurve) {

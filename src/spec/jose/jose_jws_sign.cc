@@ -55,8 +55,8 @@ auto jws_sign(const JWSAlgorithm algorithm,
         return std::nullopt;
       }
 
-      auto signature{ecdsa_sign(*private_key, jws_hash_for(algorithm),
-                                signing_input, generator)};
+      auto signature{
+          ecdsa_sign(*private_key, jws_hash_for(algorithm), signing_input)};
       if (!signature.has_value() ||
           signature.value().size() != jws_ecdsa_signature_bytes(algorithm)) {
         return std::nullopt;

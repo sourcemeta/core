@@ -82,6 +82,9 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT aes_gcm_decrypt(
 /// integrity are both protected when the library is built against a system
 /// cryptography provider. Returns no value when the key is not 256 bits, the
 /// plaintext is too large to process, or the random nonce could not be drawn.
+/// The nonce comes from the given generator, which must never hand back a
+/// nonce it has given before under the same key, as a repeat of one costs both
+/// the confidentiality and the integrity of every message under that key.
 /// For example:
 ///
 /// ```cpp

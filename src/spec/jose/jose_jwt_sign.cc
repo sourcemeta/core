@@ -24,8 +24,8 @@ auto compact(const sourcemeta::core::JSON &document) -> std::string {
 
 namespace sourcemeta::core {
 
-auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key)
-    -> std::optional<std::string> {
+auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key,
+              const RandomGenerator &generator) -> std::optional<std::string> {
   // Header parameter names and claim names must each be unique, so a producer
   // does not emit an object carrying duplicates (RFC 7515 Section 4 "The Header
   // Parameter names within the JOSE Header MUST be unique" and RFC 7519 Section
@@ -59,7 +59,7 @@ auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key)
   signing_input.push_back('.');
   signing_input.append(base64url_encode(compact(payload)));
 
-  const auto signature{jws_sign(parsed.value(), signing_input, key)};
+  const auto signature{jws_sign(parsed.value(), signing_input, key, generator)};
   if (!signature.has_value()) {
     return std::nullopt;
   }

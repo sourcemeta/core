@@ -16,9 +16,12 @@ namespace sourcemeta::core {
 /// @ingroup crypto
 ///
 /// Every function here that needs random bytes is handed the generator to draw
-/// them from, rather than reaching for one of its own. A generator fills the
-/// whole of the buffer it is given, and reports a refusal by throwing, as there
-/// is no shorter answer it could give.
+/// them from, rather than reaching for one of its own. Key generation and
+/// RSA-OAEP encryption are the exception on a build with a system provider, as
+/// the provider draws those bytes itself and cannot be pointed at another
+/// source, which is what the fallback naming on those parameters marks. A
+/// generator fills the whole of the buffer it is given, and reports a refusal
+/// by throwing, as there is no shorter answer it could give.
 ///
 /// For convenience, we provide the following default generator:
 ///

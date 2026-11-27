@@ -656,8 +656,8 @@ auto ecdsa_signature_verifies(
     return false;
   }
 
-  const auto signature{sourcemeta::core::ecdsa_sign(
-      key.value(), hash, MESSAGE, sourcemeta::core::system_random_generator)};
+  const auto signature{
+      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
   const auto public_key{sourcemeta::core::make_ec_public_key(
       curve, coordinate_x.value(), coordinate_y.value())};
   return signature.has_value() && public_key.has_value() &&
@@ -677,8 +677,8 @@ auto generated_key_signs_and_verifies(
   }
 
   const auto public_key{sourcemeta::core::derive_public_key(key.value())};
-  const auto signature{sourcemeta::core::ecdsa_sign(
-      key.value(), hash, MESSAGE, sourcemeta::core::system_random_generator)};
+  const auto signature{
+      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
   return public_key.has_value() && signature.has_value() &&
          sourcemeta::core::ecdsa_verify(public_key.value(), hash, MESSAGE,
                                         signature.value());
@@ -715,8 +715,8 @@ auto parsed_key_signature_verifies(
     return false;
   }
 
-  const auto signature{sourcemeta::core::ecdsa_sign(
-      key.value(), hash, MESSAGE, sourcemeta::core::system_random_generator)};
+  const auto signature{
+      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
   const auto public_key{sourcemeta::core::make_ec_public_key(
       curve, sourcemeta::core::hex_to_bytes(coordinate_x_hex).value(),
       sourcemeta::core::hex_to_bytes(coordinate_y_hex).value())};
@@ -1066,10 +1066,10 @@ TEST(ecdsa_deterministic_nonce_matches_rfc6979_known_answer) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_MESSAGE)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_MESSAGE)};
   EXPECT_TRUE(first.has_value());
   // A backend that derives the nonce deterministically (RFC 6979) produces the
   // same signature twice, and only then is the published known answer
@@ -1089,10 +1089,10 @@ TEST(ecdsa_p384_deterministic_nonce_matches_rfc6979_known_answer) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_MESSAGE)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_MESSAGE)};
   EXPECT_TRUE(first.has_value());
   // A backend that derives the nonce deterministically (RFC 6979) produces the
   // same signature twice, and only then is the published known answer
@@ -1112,10 +1112,10 @@ TEST(ecdsa_p256_deterministic_nonce_matches_rfc6979_second_message) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_TEST_MESSAGE)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_TEST_MESSAGE)};
   EXPECT_TRUE(first.has_value());
   if (first.has_value() && first == second) {
     EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
@@ -1132,10 +1132,10 @@ TEST(ecdsa_p384_deterministic_nonce_matches_rfc6979_second_message) {
   EXPECT_TRUE(key.has_value());
   const auto first{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_TEST_MESSAGE)};
   const auto second{sourcemeta::core::ecdsa_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
-      RFC6979_TEST_MESSAGE, sourcemeta::core::system_random_generator)};
+      RFC6979_TEST_MESSAGE)};
   EXPECT_TRUE(first.has_value());
   if (first.has_value() && first == second) {
     EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
@@ -1170,10 +1170,10 @@ TEST(ed448_matches_known_answer) {
 
 TEST(ecdsa_sign_rejects_rsa_key) {
   const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
-  EXPECT_FALSE(sourcemeta::core::ecdsa_sign(
-                   key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-                   MESSAGE, sourcemeta::core::system_random_generator)
-                   .has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::ecdsa_sign(
+          key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)
+          .has_value());
 }
 
 TEST(eddsa_sign_rejects_rsa_key) {

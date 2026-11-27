@@ -157,7 +157,7 @@ TEST(derive_public_key_from_ec_pem_produces_a_verifying_public_key) {
   const std::string message{"public key derivation verification message"};
   const auto signature{sourcemeta::core::ecdsa_sign(
       private_key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
-      message, sourcemeta::core::system_random_generator)};
+      message)};
   EXPECT_TRUE(signature.has_value());
   EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
       rebuilt.value(), sourcemeta::core::SignatureHashFunction::SHA256, message,

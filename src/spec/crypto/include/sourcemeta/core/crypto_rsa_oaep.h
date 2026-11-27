@@ -42,9 +42,9 @@ enum class RSAOAEPHash : std::uint8_t {
 ///     sourcemeta::core::system_random_generator)};
 /// assert(wrapped.has_value());
 /// ```
-/// The generator is drawn from only where this build has no system provider
-/// that draws its own bytes for this, as a provider cannot be pointed
-/// somewhere else to draw from.
+/// On OpenSSL, Apple and Windows builds this generator is ignored, as the
+/// provider draws the seed itself and cannot be pointed at another source.
+/// Only a build without a system provider draws the seed from it.
 auto SOURCEMETA_CORE_CRYPTO_EXPORT
 rsa_oaep_encrypt(const PublicKey &key, const RSAOAEPHash hash,
                  const std::string_view plaintext,

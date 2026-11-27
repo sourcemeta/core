@@ -33,6 +33,9 @@ namespace sourcemeta::core {
 /// const auto plaintext{sourcemeta::core::jwe_decrypt(object.value(), key)};
 /// assert(plaintext.has_value());
 /// ```
+/// The given generator is drawn from only to substitute a content key that
+/// failed to unwrap, which is what denies a key-unwrap oracle. A refusal from
+/// the generator is raised rather than reported as no value.
 SOURCEMETA_CORE_JOSE_EXPORT
 auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key,
                  const RandomGenerator &generator = system_random_generator)

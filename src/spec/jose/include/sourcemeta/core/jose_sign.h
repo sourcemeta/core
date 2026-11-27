@@ -63,7 +63,8 @@ auto jws_sign(const JWSAlgorithm algorithm,
 /// assert(token.has_value());
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
-auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key)
+auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key,
+              const RandomGenerator &generator = system_random_generator)
     -> std::optional<std::string>;
 
 } // namespace sourcemeta::core
