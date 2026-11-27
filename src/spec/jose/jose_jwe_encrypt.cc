@@ -37,7 +37,8 @@ auto compact(const sourcemeta::core::JSON &document) -> std::string {
 namespace sourcemeta::core {
 
 auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
-                 const JWK &key) -> std::optional<std::string> {
+                 const JWK &key, const RandomGenerator &generator)
+    -> std::optional<std::string> {
   if (!header.is_object() || !header.unique_keys()) {
     return std::nullopt;
   }
@@ -89,10 +90,10 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
         return std::nullopt;
       }
 
-      content_key = random_bytes(content_key_bytes);
+      content_key = random_bytes(content_key_bytes, generator);
       auto wrapped{rsa_oaep_encrypt(*key.public_key(),
                                     jwe_rsa_oaep_hash(algorithm.value()),
-                                    content_key)};
+                                    content_key, generator)};
       if (!wrapped.has_value()) {
         return std::nullopt;
       }
@@ -111,7 +112,7 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
         return std::nullopt;
       }
 
-      content_key = random_bytes(content_key_bytes);
+      content_key = random_bytes(content_key_bytes, generator);
       auto wrapped{aes_key_wrap(key.secret(), content_key)};
       if (!wrapped.has_value()) {
         return std::nullopt;
@@ -145,7 +146,8 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
       }
 
       // A fresh ephemeral key on the recipient curve (RFC 7518 Section 4.6.1)
-      const auto ephemeral{generate_ec_private_key(recipient.value().curve)};
+      const auto ephemeral{
+          generate_ec_private_key(recipient.value().curve, generator)};
       if (!ephemeral.has_value()) {
         return std::nullopt;
       }
@@ -196,7 +198,7 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
           return std::nullopt;
         }
 
-        content_key = random_bytes(content_key_bytes);
+        content_key = random_bytes(content_key_bytes, generator);
         auto wrapped{aes_key_wrap(key_encryption_key.value(), content_key)};
         if (!wrapped.has_value()) {
           return std::nullopt;
@@ -227,7 +229,7 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
   const auto encoded_header{base64url_encode(compact(*emitted_header))};
 
   const auto initialization_vector{
-      random_bytes(jwe_encryption_iv_bytes(encryption.value()))};
+      random_bytes(jwe_encryption_iv_bytes(encryption.value()), generator)};
   const auto content{jwe_content_encrypt(encryption.value(), content_key,
                                          initialization_vector, encoded_header,
                                          plaintext)};

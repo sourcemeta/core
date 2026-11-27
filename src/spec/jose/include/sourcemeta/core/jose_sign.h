@@ -8,6 +8,7 @@
 #include <sourcemeta/core/jose_algorithm.h>
 #include <sourcemeta/core/jose_jwk_private.h>
 
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 
 #include <optional>    // std::optional
@@ -36,7 +37,8 @@ namespace sourcemeta::core {
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
 auto jws_sign(const JWSAlgorithm algorithm,
-              const std::string_view signing_input, const JWKPrivate &key)
+              const std::string_view signing_input, const JWKPrivate &key,
+              const RandomGenerator &generator = system_random_generator)
     -> std::optional<std::string>;
 
 /// @ingroup jose
@@ -61,7 +63,8 @@ auto jws_sign(const JWSAlgorithm algorithm,
 /// assert(token.has_value());
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
-auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key)
+auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key,
+              const RandomGenerator &generator = system_random_generator)
     -> std::optional<std::string>;
 
 } // namespace sourcemeta::core

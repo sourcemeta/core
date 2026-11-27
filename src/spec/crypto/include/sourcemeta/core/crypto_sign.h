@@ -5,6 +5,7 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_random.h>
 #include <sourcemeta/core/crypto_verify.h>
 
 #include <cstdint>     // std::uint8_t
@@ -87,18 +88,25 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT make_ec_private_key(
 
 /// @ingroup crypto
 /// Generate a new random elliptic curve private key on the given curve,
-/// returning no value when the platform cannot produce one. For example:
+/// returning no value when the platform cannot produce one. The generator is
+/// ignored on OpenSSL, Apple and Windows builds, as the provider generates the
+/// key itself and cannot be pointed at another source. Only a build without a
+/// system provider draws the scalar from it, and it answers with no value where
+/// two hundred and fifty six draws all fall outside the curve order. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
 /// #include <cassert>
 ///
 /// const auto key{sourcemeta::core::generate_ec_private_key(
-///     sourcemeta::core::EllipticCurve::P256)};
+///     sourcemeta::core::EllipticCurve::P256,
+///     sourcemeta::core::system_random_generator)};
 /// assert(key.has_value());
 /// ```
-auto SOURCEMETA_CORE_CRYPTO_EXPORT
-generate_ec_private_key(const EllipticCurve curve) -> std::optional<PrivateKey>;
+auto SOURCEMETA_CORE_CRYPTO_EXPORT generate_ec_private_key(
+    const EllipticCurve curve, const RandomGenerator &random_generator_fallback)
+    -> std::optional<PrivateKey>;
 
 /// @ingroup crypto
 /// Parse an Edwards-curve private key from its raw seed, returning no value
@@ -169,12 +177,18 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT rsassa_pkcs1_v15_sign(
 /// const auto key{sourcemeta::core::make_private_key(pem)};
 /// assert(key.has_value());
 /// const auto signature{sourcemeta::core::rsassa_pss_sign(
-///     key.value(), sourcemeta::core::SignatureHashFunction::SHA256, message)};
+///     key.value(), sourcemeta::core::SignatureHashFunction::SHA256, message,
+///     sourcemeta::core::system_random_generator)};
 /// assert(signature.has_value());
 /// ```
+/// On OpenSSL, Apple and Windows builds this generator is ignored, as the
+/// provider draws the salt itself and cannot be pointed at another source.
+/// Only a build without a system provider draws the salt from it.
 auto SOURCEMETA_CORE_CRYPTO_EXPORT
 rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
-                const std::string_view message) -> std::optional<std::string>;
+                const std::string_view message,
+                const RandomGenerator &random_generator_fallback)
+    -> std::optional<std::string>;
 
 /// @ingroup crypto
 /// Produce an ECDSA signature (FIPS 186-4 Section 6.4) over a message. The
@@ -193,6 +207,9 @@ rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
 ///     key.value(), sourcemeta::core::SignatureHashFunction::SHA256, message)};
 /// assert(signature.has_value());
 /// ```
+/// This takes no generator, as a build with a system provider has it draw the
+/// nonce, and a build without one derives the nonce from the key and the
+/// message (RFC 6979 Section 3.2) rather than drawing it at all.
 auto SOURCEMETA_CORE_CRYPTO_EXPORT ecdsa_sign(const PrivateKey &key,
                                               const SignatureHashFunction hash,
                                               const std::string_view message)

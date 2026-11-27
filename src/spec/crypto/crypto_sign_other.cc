@@ -5,10 +5,10 @@
 #include "crypto_der.h"
 #include "crypto_ecc.h"
 #include "crypto_eddsa.h"
+#include "crypto_fill_random.h"
 #include "crypto_helpers.h"
 #include "crypto_other.h"
 #include "crypto_pkcs8.h"
-#include "crypto_random.h"
 #include "crypto_rsa_other.h"
 
 #include <array>       // std::array
@@ -96,7 +96,8 @@ auto mask_generation(const SignatureHashFunction hash,
 
 // EMSA-PSS encoding (RFC 8017 Section 9.1.1), with the salt length fixed to the
 // hash function output as RFC 7518 Section 3.5 requires
-auto emsa_pss_encode(const SignatureHashFunction hash,
+auto emsa_pss_encode(const RandomGenerator &generator,
+                     const SignatureHashFunction hash,
                      const std::string_view message,
                      const std::size_t encoded_bits)
     -> std::optional<std::string> {
@@ -108,7 +109,7 @@ auto emsa_pss_encode(const SignatureHashFunction hash,
     return std::nullopt;
   }
 
-  const auto salt{random_bytes(salt_length)};
+  const auto salt{random_bytes(salt_length, generator)};
   std::string primed(8, '\x00');
   primed.append(message_digest);
   primed.append(salt);
@@ -640,7 +641,8 @@ auto make_ec_private_key(const EllipticCurve curve,
                                .coordinate_y = expected.second}};
 }
 
-auto generate_ec_private_key(const EllipticCurve curve)
+auto generate_ec_private_key(const EllipticCurve curve,
+                             const RandomGenerator &random_generator_fallback)
     -> std::optional<PrivateKey> {
   const auto parameters{to_curve_parameters(curve)};
   const auto order_bits{bignum_bit_length(parameters.order)};
@@ -648,14 +650,17 @@ auto generate_ec_private_key(const EllipticCurve curve)
   const auto excess_bits{(width * 8u) - order_bits};
 
   // Rejection sampling into [1, order). Masking the surplus high bits keeps the
-  // retry rate low even for P-521, whose order fills only 521 of its 528 bits
+  // retry rate low even for P-521, whose order fills only 521 of its 528 bits.
+  // The draws are bounded because the generator is the caller's, and one that
+  // never lands in range would otherwise never let go
   std::string scalar(width, '\x00');
   const SecureStringScope scalar_scope{scalar};
   CurveBignum scalar_number;
   const SecureBignumScope scalar_number_scope{scalar_number};
-  do {
+  bool in_range{false};
+  for (std::size_t attempt = 0; attempt < 256 && !in_range; ++attempt) {
     try {
-      fill_random_bytes(std::span<std::uint8_t>{
+      random_generator_fallback(std::span<std::uint8_t>{
           reinterpret_cast<std::uint8_t *>(scalar.data()), width});
     } catch (const std::exception &) {
       return std::nullopt;
@@ -665,8 +670,13 @@ auto generate_ec_private_key(const EllipticCurve curve)
         static_cast<char>(static_cast<std::uint8_t>(scalar[0]) &
                           static_cast<std::uint8_t>(0xffu >> excess_bits));
     scalar_number = bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(scalar);
-  } while (bignum_is_zero(scalar_number) ||
-           bignum_compare(scalar_number, parameters.order) >= 0);
+    in_range = !bignum_is_zero(scalar_number) &&
+               bignum_compare(scalar_number, parameters.order) < 0;
+  }
+
+  if (!in_range) {
+    return std::nullopt;
+  }
 
   const auto point{ec_public_from_scalar(curve, scalar)};
   return PrivateKey{
@@ -735,7 +745,8 @@ auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
 }
 
 auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
-                     const std::string_view message)
+                     const std::string_view message,
+                     const RandomGenerator &random_generator_fallback)
     -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
@@ -744,7 +755,8 @@ auto rsassa_pss_sign(const PrivateKey &key, const SignatureHashFunction hash,
 
   const auto encoded_bits{
       bignum_bit_length(bignum_from_bytes(internal->modulus)) - 1};
-  const auto encoded{emsa_pss_encode(hash, message, encoded_bits)};
+  const auto encoded{
+      emsa_pss_encode(random_generator_fallback, hash, message, encoded_bits)};
   if (!encoded.has_value()) {
     return std::nullopt;
   }

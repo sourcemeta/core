@@ -2,10 +2,22 @@
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/test.h>
 
-#include <array>  // std::array
-#include <chrono> // std::chrono::seconds
-#include <limits> // std::numeric_limits
-#include <string> // std::string
+#include <algorithm> // std::ranges::fill
+#include <array>     // std::array
+#include <chrono>    // std::chrono::seconds
+#include <cstdint>   // std::uint8_t
+#include <limits>    // std::numeric_limits
+#include <span>      // std::span
+#include <string>    // std::string
+
+namespace {
+// Every byte of this lands in the biased tail the minting rejects, as the
+// alphabet is twenty characters and so the acceptable bytes stop at two
+// hundred and forty
+auto saturated_generator(const std::span<std::uint8_t> buffer) -> void {
+  std::ranges::fill(buffer, std::uint8_t{0xff});
+}
+} // namespace
 
 TEST(build_device_authorization_request_emits_client_id_and_scope) {
   std::string body;
@@ -161,6 +173,23 @@ TEST(make_device_authorization_response_emits_the_members) {
   EXPECT_EQ(response.value().at("expires_in").to_integer(), 1800);
   EXPECT_FALSE(response.value().defines("interval"));
   EXPECT_FALSE(response.value().defines("verification_uri_complete"));
+}
+
+// A generator that never lands outside the rejected tail leaves the minting
+// with nothing to answer, which it reports rather than spinning on the draw or
+// filling the code from the tail it set out to reject
+TEST(device_user_code_reports_a_generator_it_cannot_mint_from) {
+  bool raised{false};
+  try {
+    [[maybe_unused]] const auto code{
+        sourcemeta::core::oauth_device_user_code(saturated_generator)};
+  } catch (const sourcemeta::core::OAuthEntropyError &error) {
+    raised = true;
+    EXPECT_STREQ(error.what(),
+                 "Could not draw a user code from the given generator");
+  }
+
+  EXPECT_TRUE(raised);
 }
 
 TEST(device_user_code_mints_from_the_alphabet) {

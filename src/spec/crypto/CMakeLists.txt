@@ -2,7 +2,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
   PRIVATE_HEADERS sha256.h hmac_sha256.h hmac_sha384.h hmac_sha512.h sha384.h
     sha512.h sha1.h
     fnv128.h
-    uuid.h crc32.h base64.h secure.h verify.h sign.h aes_gcm.h aes_cbc_hmac.h
+    uuid.h crc32.h base64.h secure.h verify.h sign.h random.h aes_gcm.h
+    aes_cbc_hmac.h
     aes_kw.h rsa_oaep.h ecdh.h hkdf.h error.h
   SOURCES crypto_sha256.cc crypto_hmac_sha256.cc crypto_hmac_sha384.cc
     crypto_hmac_sha512.cc
@@ -11,7 +12,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_uuid.cc crypto_fnv128.cc crypto_crc32.cc crypto_base64.cc
     crypto_random.cc crypto_sign_rsa.cc crypto_aes_gcm.cc crypto_aes_cbc_hmac.cc
     crypto_aes_kw.cc crypto_ecdh.cc crypto_hkdf.cc
-    crypto_sha2_64.h crypto_sha256_other.h crypto_random.h crypto_helpers.h
+    crypto_sha2_64.h crypto_sha256_other.h crypto_fill_random.h
+    crypto_helpers.h
     crypto_der.h crypto_aes.h crypto_kdf.h crypto_hkdf_loop.h)
 
 target_link_libraries(sourcemeta_core_crypto

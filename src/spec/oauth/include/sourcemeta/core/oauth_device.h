@@ -231,7 +231,8 @@ auto oauth_make_device_authorization_response(
 /// assert(code.size() == 8);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_device_user_code() -> std::array<char, 8>;
+auto oauth_device_user_code(const RandomGenerator &generator =
+                                system_random_generator) -> std::array<char, 8>;
 
 /// @ingroup oauth
 /// Whether a user code the end user typed matches a stored one, comparing after

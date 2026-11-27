@@ -2,9 +2,9 @@
 #include <sourcemeta/core/crypto_sha256.h>
 
 #include "crypto_bignum.h"
+#include "crypto_fill_random.h"
 #include "crypto_helpers.h"
 #include "crypto_other.h"
-#include "crypto_random.h"
 #include "crypto_rsa_other.h"
 #include "crypto_sha1_other.h"
 
@@ -79,7 +79,8 @@ auto exclusive_or(const std::string_view left, const std::string_view right)
 } // namespace
 
 auto rsa_oaep_encrypt(const PublicKey &key, const RSAOAEPHash hash,
-                      const std::string_view plaintext)
+                      const std::string_view plaintext,
+                      const RandomGenerator &random_generator_fallback)
     -> std::optional<std::string> {
   const auto *const internal{key.internal()};
   if (internal == nullptr || internal->kind != PublicKey::Type::RSA) {
@@ -103,7 +104,7 @@ auto rsa_oaep_encrypt(const PublicKey &key, const RSAOAEPHash hash,
 
   std::string seed(digest_length, '\x00');
   try {
-    fill_random_bytes(std::span<std::uint8_t>{
+    random_generator_fallback(std::span<std::uint8_t>{
         reinterpret_cast<std::uint8_t *>(seed.data()), digest_length});
   } catch (const std::exception &) {
     return std::nullopt;

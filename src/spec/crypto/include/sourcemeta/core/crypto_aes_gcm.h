@@ -5,6 +5,8 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_random.h>
+
 #include <cassert>     // assert
 #include <optional>    // std::optional
 #include <string>      // std::string
@@ -80,18 +82,22 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT aes_gcm_decrypt(
 /// integrity are both protected when the library is built against a system
 /// cryptography provider. Returns no value when the key is not 256 bits, the
 /// plaintext is too large to process, or the random nonce could not be drawn.
+/// The nonce comes from the given generator, which must never hand back a
+/// nonce it has given before under the same key, as a repeat of one costs both
+/// the confidentiality and the integrity of every message under that key.
 /// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
 /// #include <cassert>
 ///
-/// const auto sealed{sourcemeta::core::aes_256_gcm_seal(key, "hello")};
+/// const auto sealed{sourcemeta::core::aes_256_gcm_seal(
+///     key, "hello", sourcemeta::core::system_random_generator)};
 /// assert(sealed.has_value());
 /// ```
-auto SOURCEMETA_CORE_CRYPTO_EXPORT
-aes_256_gcm_seal(const std::string_view key, const std::string_view plaintext)
-    -> std::optional<std::string>;
+auto SOURCEMETA_CORE_CRYPTO_EXPORT aes_256_gcm_seal(
+    const std::string_view key, const std::string_view plaintext,
+    const RandomGenerator &generator) -> std::optional<std::string>;
 
 /// @ingroup crypto
 /// Open a message sealed with aes_256_gcm_seal under the same 256-bit key,

@@ -283,6 +283,14 @@ auto oauth_bearer_error_status(const OAuthBearerError error) noexcept
 SOURCEMETA_CORE_ERROR_WARNINGS_PUSH
 
 /// @ingroup oauth
+/// An error raised when no user code could be drawn from the given generator.
+class SOURCEMETA_CORE_OAUTH_EXPORT OAuthEntropyError : public Error {
+public:
+  OAuthEntropyError() noexcept
+      : Error{"Could not draw a user code from the given generator"} {}
+};
+
+/// @ingroup oauth
 /// An error that occurs when parsing an invalid authorization server or
 /// protected resource metadata document.
 class SOURCEMETA_CORE_OAUTH_EXPORT OAuthMetadataParseError : public Error {

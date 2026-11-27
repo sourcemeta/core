@@ -5,6 +5,8 @@
 #include <sourcemeta/core/oauth_export.h>
 #endif
 
+#include <sourcemeta/core/crypto.h>
+
 #include <array> // std::array
 
 namespace sourcemeta::core {
@@ -26,7 +28,8 @@ namespace sourcemeta::core {
 /// assert(view.size() == 43);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_random_token() -> std::array<char, 43>;
+auto oauth_random_token(const RandomGenerator &generator =
+                            system_random_generator) -> std::array<char, 43>;
 
 } // namespace sourcemeta::core
 

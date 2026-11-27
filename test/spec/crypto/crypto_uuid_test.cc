@@ -2,6 +2,33 @@
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/test.h>
 
+#include <algorithm> // std::ranges::fill
+#include <cstdint>   // std::uint8_t
+#include <span>      // std::span
+
+namespace {
+auto zeroed_generator(const std::span<std::uint8_t> buffer) -> void {
+  std::ranges::fill(buffer, std::uint8_t{0x00});
+}
+
+auto saturated_generator(const std::span<std::uint8_t> buffer) -> void {
+  std::ranges::fill(buffer, std::uint8_t{0xff});
+}
+} // namespace
+
+// Drawing from a generator that answers the same way every time is what fixes
+// the whole identifier, so the version and variant the format reserves can be
+// read off it (RFC 9562 Section 5.4)
+TEST(every_bit_clear) {
+  EXPECT_EQ(sourcemeta::core::uuidv4(zeroed_generator),
+            "00000000-0000-4000-8000-000000000000");
+}
+
+TEST(every_bit_set) {
+  EXPECT_EQ(sourcemeta::core::uuidv4(saturated_generator),
+            "ffffffff-ffff-4fff-bfff-ffffffffffff");
+}
+
 TEST(regex) {
   const auto uuid{sourcemeta::core::uuidv4()};
   EXPECT_TRUE(sourcemeta::core::matches_if_valid(

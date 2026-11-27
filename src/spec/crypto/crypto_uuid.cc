@@ -1,7 +1,7 @@
 #include <sourcemeta/core/crypto_uuid.h>
 #include <sourcemeta/core/text.h>
 
-#include "crypto_random.h"
+#include "crypto_fill_random.h"
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
@@ -14,7 +14,7 @@ namespace sourcemeta::core {
 // See RFC 9562 Section 5.4
 // Format: xxxxxxxx-xxxx-4xxx-Nxxx-xxxxxxxxxxxx
 // where 4 is the version and N is the variant (8, 9, a, or b)
-auto uuidv4() -> std::string {
+auto uuidv4(const RandomGenerator &generator) -> std::string {
   static constexpr std::string_view DIGITS = "0123456789abcdef";
   static constexpr std::string_view VARIANT_DIGITS = "89ab";
   static constexpr std::array<bool, 16> DASH = {
@@ -22,7 +22,7 @@ auto uuidv4() -> std::string {
        false, false, false, false, false}};
 
   std::array<std::uint8_t, 16> bytes{};
-  fill_random_bytes(bytes);
+  generator(bytes);
 
   std::string result;
   result.reserve(36);

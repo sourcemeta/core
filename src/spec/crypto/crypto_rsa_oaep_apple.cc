@@ -38,7 +38,7 @@ auto to_oaep_algorithm(const RSAOAEPHash hash) -> SecKeyAlgorithm {
 } // namespace
 
 auto rsa_oaep_encrypt(const PublicKey &key, const RSAOAEPHash hash,
-                      const std::string_view plaintext)
+                      const std::string_view plaintext, const RandomGenerator &)
     -> std::optional<std::string> {
   const auto *const internal{key.internal()};
   if (internal == nullptr || internal->kind != PublicKey::Type::RSA) {

@@ -91,7 +91,8 @@ auto ecdh_content_key(const sourcemeta::core::JWE &jwe,
 
 namespace sourcemeta::core {
 
-auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key)
+auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key,
+                 const RandomGenerator &generator)
     -> std::optional<std::string> {
   const auto algorithm{jwe.algorithm()};
   const auto encryption{jwe.encryption()};
@@ -161,7 +162,7 @@ auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key)
   std::string effective_key{
       content_key.has_value() && content_key.value().size() == content_key_bytes
           ? std::move(content_key).value()
-          : random_bytes(content_key_bytes)};
+          : random_bytes(content_key_bytes, generator)};
 
   return jwe_content_decrypt(
       encryption.value(), effective_key, jwe.initialization_vector(),

@@ -5,6 +5,8 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_random.h>
+
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -21,7 +23,9 @@ namespace sourcemeta::core {
 /// ```
 ///
 /// See https://www.rfc-editor.org/rfc/rfc9562#name-uuid-version-4
-SOURCEMETA_CORE_CRYPTO_EXPORT auto uuidv4() -> std::string;
+SOURCEMETA_CORE_CRYPTO_EXPORT auto
+uuidv4(const RandomGenerator &generator = system_random_generator)
+    -> std::string;
 
 /// @ingroup crypto
 /// Check whether the given string is shaped like a UUID: exactly 36

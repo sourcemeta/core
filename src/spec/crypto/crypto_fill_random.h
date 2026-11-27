@@ -1,5 +1,5 @@
-#ifndef SOURCEMETA_CORE_CRYPTO_RANDOM_H_
-#define SOURCEMETA_CORE_CRYPTO_RANDOM_H_
+#ifndef SOURCEMETA_CORE_CRYPTO_FILL_RANDOM_H_
+#define SOURCEMETA_CORE_CRYPTO_FILL_RANDOM_H_
 
 #include <cstdint> // std::uint8_t
 #include <span>    // std::span

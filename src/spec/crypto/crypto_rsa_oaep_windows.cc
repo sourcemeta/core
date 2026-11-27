@@ -38,7 +38,7 @@ auto as_buffer(const std::string_view value) -> PUCHAR {
 } // namespace
 
 auto rsa_oaep_encrypt(const PublicKey &key, const RSAOAEPHash hash,
-                      const std::string_view plaintext)
+                      const std::string_view plaintext, const RandomGenerator &)
     -> std::optional<std::string> {
   const auto *const internal{key.internal()};
   if (internal == nullptr || internal->kind != PublicKey::Type::RSA) {

@@ -7,6 +7,7 @@
 
 #include <sourcemeta/core/jose_jwk.h>
 
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 
 #include <optional>    // std::optional
@@ -42,9 +43,16 @@ namespace sourcemeta::core {
 ///     "secret message", recipient)};
 /// assert(object.has_value());
 /// ```
+/// The content key and the initialization vector are drawn from the given
+/// generator. On a build with a system provider the ephemeral key agreement
+/// and the RSA-OAEP seed are drawn by the provider instead, so output is not
+/// reproducible from the generator alone. A refusal from the generator is
+/// raised rather than reported as no value.
 SOURCEMETA_CORE_JOSE_EXPORT
 auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
-                 const JWK &key) -> std::optional<std::string>;
+                 const JWK &key,
+                 const RandomGenerator &generator = system_random_generator)
+    -> std::optional<std::string>;
 
 } // namespace sourcemeta::core
 

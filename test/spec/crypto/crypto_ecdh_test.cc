@@ -172,9 +172,11 @@ TEST(ecdh_derive_rejects_a_mismatched_curve) {
 
 TEST(ecdh_es_round_trips_with_generated_keys) {
   const auto alice{sourcemeta::core::generate_ec_private_key(
-      sourcemeta::core::EllipticCurve::P256)};
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::system_random_generator)};
   const auto bob{sourcemeta::core::generate_ec_private_key(
-      sourcemeta::core::EllipticCurve::P256)};
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::system_random_generator)};
   EXPECT_TRUE(alice.has_value());
   EXPECT_TRUE(bob.has_value());
   const auto alice_public{sourcemeta::core::derive_public_key(alice.value())};

@@ -242,16 +242,22 @@ auto oauth_make_device_authorization_response(
   return response;
 }
 
-auto oauth_device_user_code() -> std::array<char, 8> {
+auto oauth_device_user_code(const RandomGenerator &generator)
+    -> std::array<char, 8> {
   std::array<char, 8> result{};
   const auto alphabet{static_cast<std::uint8_t>(USER_CODE_ALPHABET.size())};
   // Reject bytes in the biased tail so each character is drawn uniformly from
   // the alphabet, preserving the RFC 8628 Section 6.1 entropy of the code
   const auto limit{static_cast<std::uint8_t>(256U / alphabet * alphabet)};
   std::size_t filled{0};
-  while (filled < result.size()) {
+  // The draws are bounded because the generator is the caller's, and one that
+  // only ever lands in the tail the loop rejects would otherwise never let go.
+  // A code is reported missing rather than filled from the biased tail, as the
+  // whole point of the rejection is the entropy the format asks for
+  for (std::size_t attempt{0}; attempt < 64 && filled < result.size();
+       ++attempt) {
     std::array<std::uint8_t, 8> entropy{};
-    random_bytes(entropy);
+    random_bytes(entropy, generator);
     for (const auto byte : entropy) {
       if (byte >= limit) {
         continue;
@@ -263,6 +269,10 @@ auto oauth_device_user_code() -> std::array<char, 8> {
         break;
       }
     }
+  }
+
+  if (filled < result.size()) {
+    throw OAuthEntropyError{};
   }
 
   return result;
