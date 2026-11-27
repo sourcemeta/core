@@ -44,8 +44,8 @@ static constexpr std::string_view P521_SIG{
     "03f3165be805564f612a5e228207b3007258023bbfe33014bbe759aaef96f28c"
     "56018df4"};
 
-// A coordinate of every bit set, which is above the field prime of every curve
-// this is defined over
+// A coordinate of every bit set, which is above the field prime of P-256 and
+// below the primes of the larger curves
 static constexpr std::string_view COORDINATE_ABOVE_PRIME{
     "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
 

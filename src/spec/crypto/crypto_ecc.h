@@ -794,10 +794,18 @@ inline auto point_affine_x_constant_time(const JacobianPoint &point,
   return result;
 }
 
-// Whether the affine point satisfies y^2 = x^3 + a*x + b (mod p)
+// Whether the coordinates are a point of the curve, each below the field prime
+// and together satisfying y^2 = x^3 + a*x + b (mod p). A coordinate the prime
+// does not bound names no point of the curve, so the two are one question, and
+// asking it this way is also what keeps the arithmetic below off a coordinate
+// the field does not hold
 inline auto point_on_curve(const CurveBignum &x, const CurveBignum &y,
                            const EllipticCurveParameters &curve) -> bool {
   const auto &prime{curve.prime};
+  if (bignum_compare(x, prime) >= 0 || bignum_compare(y, prime) >= 0) {
+    return false;
+  }
+
   const auto left{field_square(y, curve)};
   const auto x_cubed{field_mod_multiply(field_square(x, curve), x, curve)};
   const auto right{bignum_mod_add(
