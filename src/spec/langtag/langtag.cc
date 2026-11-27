@@ -96,16 +96,15 @@ auto seen_variant(const std::string_view value, const std::size_t begin,
     -> bool {
   std::size_t cursor{begin};
   while (cursor < end) {
-    auto stop{cursor};
-    while (stop < end && value[stop] != '-') {
-      stop += 1;
-    }
-    if (sourcemeta::core::equals_ignore_case(
-            value.substr(cursor, stop - cursor), candidate)) {
+    const auto region{value.substr(cursor, end - cursor)};
+    const auto subtag{region.substr(0, region.find('-'))};
+    if (sourcemeta::core::equals_ignore_case(subtag, candidate)) {
       return true;
     }
-    cursor = stop + 1;
+
+    cursor += subtag.size() + 1;
   }
+
   return false;
 }
 

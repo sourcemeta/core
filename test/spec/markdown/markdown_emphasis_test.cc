@@ -413,3 +413,18 @@ TEST(closer_left_over_by_an_earlier_one_opens_nothing) {
   const auto result{sourcemeta::core::markdown_to_html("*a** b*")};
   EXPECT_EQ(result, "<p><em>a</em>* b*</p>\n");
 }
+
+// The whitespace of GFM section 2.1 includes the form feed, so a run it
+// flanks opens and closes emphasis the way a space would
+TEST(italic_flanked_by_form_feeds) {
+  const auto result{sourcemeta::core::markdown_to_html("a\f*italic*\fb")};
+  EXPECT_EQ(result, "<p>a\f<em>italic</em>\fb</p>\n");
+}
+
+// The punctuation of GFM section 2.1 includes the connector punctuation above
+// the ASCII range, here the fullwidth low line of U+FF3F
+TEST(italic_flanked_by_connector_punctuation) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("\xEF\xBC\xBF*italic*\xEF\xBC\xBF")};
+  EXPECT_EQ(result, "<p>\xEF\xBC\xBF<em>italic</em>\xEF\xBC\xBF</p>\n");
+}

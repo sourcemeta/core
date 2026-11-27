@@ -21,6 +21,20 @@
 #include <utility>       // std::move, std::unreachable
 #include <vector>        // std::vector
 
+// Clang keeps an arm for the value that never arrives and counts it as one
+// that nothing took, so the last enumerator of each switch below is written as
+// the default there, while the compilers reading a case label are the ones
+// holding those switches to naming them all. The directives stay out of the
+// functions because one standing after a return or a break inside them reads
+// as a line that never ran
+#if defined(__clang__)
+#define SOURCEMETA_CORE_YAML_KEEPS_THE_TRAILING_LINES default:
+#define SOURCEMETA_CORE_YAML_FOLDS_THE_SCALAR default:
+#else
+#define SOURCEMETA_CORE_YAML_KEEPS_THE_TRAILING_LINES case BlockChomping::Keep:
+#define SOURCEMETA_CORE_YAML_FOLDS_THE_SCALAR case ScalarStyle::Folded:
+#endif
+
 namespace sourcemeta::core::yaml {
 
 struct CallbackRecord {
@@ -46,15 +60,7 @@ inline auto to_roundtrip_chomping(const BlockChomping chomping)
       return YAMLRoundTrip::Chomping::Clip;
     case BlockChomping::Strip:
       return YAMLRoundTrip::Chomping::Strip;
-      // Clang keeps an arm for the value that never arrives and counts it as
-      // one that nothing took, so the last enumerator is written as the
-      // default there, while the compilers reading a case label are the ones
-      // holding this switch to naming them all
-#if defined(__clang__)
-    default:
-#else
-    case BlockChomping::Keep:
-#endif
+      SOURCEMETA_CORE_YAML_KEEPS_THE_TRAILING_LINES
       return YAMLRoundTrip::Chomping::Keep;
   }
 
@@ -2809,15 +2815,7 @@ private:
       case ScalarStyle::Literal:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Literal;
         break;
-        // Clang keeps an arm for the value that never arrives and counts it as
-        // one that nothing took, so the last enumerator is written as the
-        // default there, while the compilers reading a case label are the ones
-        // holding this switch to naming them all
-#if defined(__clang__)
-      default:
-#else
-      case ScalarStyle::Folded:
-#endif
+        SOURCEMETA_CORE_YAML_FOLDS_THE_SCALAR
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Folded;
         break;
     }
@@ -2881,15 +2879,7 @@ private:
       // written with together, and writing it back without all three carries a
       // different key than the one that was read
       case ScalarStyle::Literal:
-        // Clang keeps an arm for the value that never arrives and counts it as
-        // one that nothing took, so the last enumerator is written as the
-        // default there, while the compilers reading a case label are the ones
-        // holding this switch to naming them all
-#if defined(__clang__)
-      default:
-#else
-      case ScalarStyle::Folded:
-#endif
+        SOURCEMETA_CORE_YAML_FOLDS_THE_SCALAR
         break;
     }
     // A key is written back without the indicator that can open an explicit
