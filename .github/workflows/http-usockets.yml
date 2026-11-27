@@ -1,0 +1,69 @@
+name: Experimental HTTP over uSockets
+
+on:
+  pull_request:
+    paths:
+      - 'contrib/http-usockets/**'
+      - 'src/spec/http/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/http-usockets.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'contrib/http-usockets/**'
+      - 'src/spec/http/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/http-usockets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  loopback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: release
+            build_type: Release
+          - mode: sanitizers
+            build_type: Debug
+    env:
+      CC: gcc
+      CXX: g++
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build pinned uSockets without TLS
+        shell: bash
+        run: |
+          git init "$RUNNER_TEMP/usockets"
+          git -C "$RUNNER_TEMP/usockets" remote add origin https://github.com/uNetworking/uSockets.git
+          git -C "$RUNNER_TEMP/usockets" fetch --depth 1 origin 166a04810c9fa970fc22096a7b35b792378364fb
+          git -C "$RUNNER_TEMP/usockets" checkout --detach FETCH_HEAD
+          flags=()
+          if [ '${{ matrix.mode }}' = sanitizers ]; then
+            flags+=(CFLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer -g')
+          fi
+          make -C "$RUNNER_TEMP/usockets" WITH_LTO=0 "${flags[@]}"
+      - name: Configure the standalone experiment
+        shell: bash
+        run: |
+          flags=()
+          if [ '${{ matrix.mode }}' = sanitizers ]; then
+            flags+=('-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -g')
+            flags+=('-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined')
+          fi
+          cmake -S contrib/http-usockets -B build-http-usockets \
+            -DUSOCKETS_ROOT="$RUNNER_TEMP/usockets" \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DSOURCEMETA_CORE_USE_SYSTEM_ALLOCATOR=ON \
+            -DSOURCEMETA_CORE_CLANG_TIDY=OFF \
+            "${flags[@]}"
+      - run: cmake --build build-http-usockets --target core_http_usockets --parallel 4
+      - run: ctest --test-dir build-http-usockets --no-tests=error --output-on-failure --repeat until-fail:3
