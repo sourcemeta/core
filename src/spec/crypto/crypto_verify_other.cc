@@ -400,6 +400,20 @@ auto make_ec_public_key(const EllipticCurve curve,
     return std::nullopt;
   }
 
+  // A pair of coordinates is a key only where it is a point of the curve, with
+  // both of them below the field prime and the two satisfying the curve
+  // equation. The operations turn one away on their own, so refusing it here
+  // is what makes a key that was built mean the same thing whichever backend
+  // built it
+  const auto parameters{to_curve_parameters(curve)};
+  const auto point_x{bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(stripped_x)};
+  const auto point_y{bignum_from_bytes<CURVE_BIGNUM_CAPACITY>(stripped_y)};
+  if (bignum_compare(point_x, parameters.prime) >= 0 ||
+      bignum_compare(point_y, parameters.prime) >= 0 ||
+      !point_on_curve(point_x, point_y, parameters)) {
+    return std::nullopt;
+  }
+
   return PublicKey{
       new PublicKey::Internal{.kind = PublicKey::Type::EllipticCurve,
                               .modulus = {},

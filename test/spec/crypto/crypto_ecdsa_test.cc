@@ -44,6 +44,11 @@ static constexpr std::string_view P521_SIG{
     "03f3165be805564f612a5e228207b3007258023bbfe33014bbe759aaef96f28c"
     "56018df4"};
 
+// A coordinate of every bit set, which is above the field prime of every curve
+// this is defined over
+static constexpr std::string_view COORDINATE_ABOVE_PRIME{
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+
 // A small RSA public key, for showing that a scheme turns down a key of a type
 // it is not defined over
 static constexpr std::string_view OTHER_TYPE_MODULUS{
@@ -165,6 +170,46 @@ TEST(verify_rejects_point_not_on_curve) {
                             sourcemeta::core::hex_to_bytes(P256_QX).value(),
                             coordinate_y, MESSAGE,
                             sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+}
+
+// A coordinate pair is a key only where it is a point of the curve. The
+// operations turn one away on their own, so these ask the construction
+// directly, which is what makes a key that was built mean the same thing
+// whichever backend built it
+TEST(make_ec_public_key_accepts_a_point_of_the_curve) {
+  EXPECT_TRUE(sourcemeta::core::make_ec_public_key(
+                  sourcemeta::core::EllipticCurve::P256,
+                  sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                  sourcemeta::core::hex_to_bytes(P256_QY).value())
+                  .has_value());
+}
+
+TEST(make_ec_public_key_rejects_point_not_on_curve) {
+  auto coordinate_y{sourcemeta::core::hex_to_bytes(P256_QY).value()};
+  coordinate_y.back() = static_cast<char>(coordinate_y.back() ^ 0x01);
+  EXPECT_FALSE(sourcemeta::core::make_ec_public_key(
+                   sourcemeta::core::EllipticCurve::P256,
+                   sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                   coordinate_y)
+                   .has_value());
+}
+
+TEST(make_ec_public_key_rejects_x_above_the_field_prime) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_ec_public_key(
+          sourcemeta::core::EllipticCurve::P256,
+          sourcemeta::core::hex_to_bytes(COORDINATE_ABOVE_PRIME).value(),
+          sourcemeta::core::hex_to_bytes(P256_QY).value())
+          .has_value());
+}
+
+TEST(make_ec_public_key_rejects_y_above_the_field_prime) {
+  EXPECT_FALSE(
+      sourcemeta::core::make_ec_public_key(
+          sourcemeta::core::EllipticCurve::P256,
+          sourcemeta::core::hex_to_bytes(P256_QX).value(),
+          sourcemeta::core::hex_to_bytes(COORDINATE_ABOVE_PRIME).value())
+          .has_value());
 }
 
 TEST(verify_rejects_empty_signature) {
