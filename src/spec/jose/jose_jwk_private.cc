@@ -240,9 +240,12 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
           eddsa_sign(result.private_key_.value(), probe).value()};
       consistent = eddsa_verify(public_key, probe, signature);
     }
-#if !defined(SOURCEMETA_CORE_CRYPTO_BINDS_EC_KEY_PAIR)
-    // Where the construction does not recompute the point from the scalar, a
-    // signature the one makes and the other checks is what pairs them
+#if !defined(SOURCEMETA_CORE_CRYPTO_BACKEND_REFERENCE)
+    // The backend with no system provider recomputes the point from the scalar
+    // when it builds an elliptic curve key, which holds the two halves of the
+    // pair together more tightly than a signature can, so there is nothing
+    // left to ask there. Everywhere else a signature the one makes and the
+    // other checks is what pairs them
     else {
       const auto public_key{
           make_ec_public_key(jwk_to_elliptic_curve(result.curve_),

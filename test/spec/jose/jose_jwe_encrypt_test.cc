@@ -493,11 +493,12 @@ TEST(aes_key_wrap_refuses_a_secret_of_another_width) {
                    .has_value());
 }
 
-// Where this build draws from the generator it is handed rather than from a
-// provider of its own, a generator that refuses is how the refusal of the
-// system one is watched. A build whose provider generates its own keys cannot
-// be pointed at this generator for them, so there is nothing to watch there
-#if defined(SOURCEMETA_CORE_CRYPTO_DRAWS_FROM_FALLBACK)
+// The backend with no system provider draws every byte from the generator it
+// is handed, including the draws a key generation makes, so a generator that
+// refuses is how the refusal of the system one is watched. A provider that
+// generates its own keys cannot be pointed at this generator for them, so
+// there is nothing to watch there
+#if defined(SOURCEMETA_CORE_CRYPTO_BACKEND_REFERENCE)
 TEST(ecdh_es_refuses_where_the_generator_refuses) {
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
