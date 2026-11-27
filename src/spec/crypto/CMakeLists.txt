@@ -22,6 +22,9 @@ target_link_libraries(sourcemeta_core_crypto
   PRIVATE sourcemeta::core::text sourcemeta::core::numeric)
 
 if(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "apple")
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_BACKEND_APPLE)
+
   enable_language(OBJCXX)
 
   # Ed25519 is verified through CryptoKit (Swift), reached from Objective-C++.
@@ -149,6 +152,9 @@ if(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "apple")
     "-Wl,-L${CRYPTOKIT_RUNTIME_LIB}"
     "-Wl,-rpath,/usr/lib/swift")
 elseif(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "windows")
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_BACKEND_WINDOWS)
+
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_windows.cc crypto_sha256_windows.cc
     crypto_hmac_sha256_windows.cc crypto_hmac_sha384_windows.cc
@@ -172,6 +178,9 @@ elseif(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "windows")
 
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
 elseif(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "openssl")
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_BACKEND_OPENSSL)
+
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_openssl.cc crypto_sha256_openssl.cc
     crypto_hmac_sha256_openssl.cc crypto_hmac_sha384_openssl.cc
@@ -187,6 +196,9 @@ elseif(SOURCEMETA_CORE_CRYPTO_BACKEND STREQUAL "openssl")
 else()
   message(WARNING "Building the reference cryptography backend instead of a "
     "system provided production one")
+  target_compile_definitions(sourcemeta_core_crypto
+    PUBLIC SOURCEMETA_CORE_CRYPTO_BACKEND_REFERENCE)
+
   target_sources(sourcemeta_core_crypto PRIVATE
     crypto_sha1_other.cc crypto_sha256_other.cc crypto_hmac_sha256_other.cc
     crypto_hmac_sha384_other.cc crypto_hmac_sha512_other.cc
