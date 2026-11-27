@@ -2,7 +2,6 @@
 #define SOURCEMETA_CORE_OAUTH_PKCE_H_
 
 #ifndef SOURCEMETA_CORE_OAUTH_EXPORT
-#include <sourcemeta/core/crypto_random.h>
 #include <sourcemeta/core/oauth_export.h>
 #endif
 
