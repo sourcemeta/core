@@ -69,11 +69,14 @@ if(NOT Mimalloc_FOUND)
   target_compile_definitions(mimalloc PRIVATE
     MI_MALLOC_OVERRIDE MI_NO_MALLOC_OVERRIDE_ENTRYPOINTS)
 
-  # This project compiles its optimised debuggable configuration without
-  # disabling assertions, which this library would otherwise read as a
-  # request for its own assertions and statistics collection
-  target_compile_definitions(mimalloc PRIVATE
-    $<$<NOT:$<CONFIG:Debug>>:MI_BUILD_RELEASE>)
+  # A build that does not disable assertions is otherwise read by this library
+  # as a request for its own assertions, encoded free lists, block padding and
+  # fine grained statistics, each of which adds work to every allocation and
+  # every deallocation. What they catch at deallocation time is what an address
+  # sanitizer build catches better, and such builds leave this library out
+  # altogether, while the question of whether a pointer handed back is ours is
+  # asked separately below
+  target_compile_definitions(mimalloc PRIVATE MI_BUILD_RELEASE)
 
   if(SOURCEMETA_OS_MACOS)
     # The only two ways into this platform's allocation path, one of which
