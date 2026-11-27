@@ -3,6 +3,7 @@
 #include <sourcemeta/core/crypto.h>
 
 #include "jose_key.h"
+#include "jose_switch.h"
 
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
@@ -27,22 +28,6 @@ constexpr auto HASH_DQ{sourcemeta::core::JSON::Object::hash("dq"sv)};
 constexpr auto HASH_QI{sourcemeta::core::JSON::Object::hash("qi"sv)};
 constexpr auto HASH_OTH{sourcemeta::core::JSON::Object::hash("oth"sv)};
 constexpr auto HASH_K{sourcemeta::core::JSON::Object::hash("k"sv)};
-
-auto to_jwk_kind(const sourcemeta::core::JWK::Type type) noexcept
-    -> sourcemeta::core::JWKKind {
-  switch (type) {
-    case sourcemeta::core::JWK::Type::RSA:
-      return sourcemeta::core::JWKKind::RSA;
-    case sourcemeta::core::JWK::Type::EllipticCurve:
-      return sourcemeta::core::JWKKind::EllipticCurve;
-    case sourcemeta::core::JWK::Type::OctetKeyPair:
-      return sourcemeta::core::JWKKind::OctetKeyPair;
-    case sourcemeta::core::JWK::Type::Octet:
-      break;
-  }
-
-  return sourcemeta::core::JWKKind::Octet;
-}
 
 } // namespace
 

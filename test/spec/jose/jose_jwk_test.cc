@@ -792,3 +792,87 @@ TEST(rejects_short_ec_coordinate_y) {
   document.assign("y", sourcemeta::core::JSON{"AA"});
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
+
+// Each RSA algorithm an advisory hint may name is matched against the key type
+// it asks for (RFC 7517 Section 4.4), so each of them is honored in turn
+TEST(honors_rs512_on_an_rsa_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS512" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::RS512);
+}
+
+// Each RSA algorithm an advisory hint may name is matched against the key type
+// it asks for (RFC 7517 Section 4.4), so each of them is honored in turn
+TEST(honors_ps256_on_an_rsa_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "PS256" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::PS256);
+}
+
+// Each RSA algorithm an advisory hint may name is matched against the key type
+// it asks for (RFC 7517 Section 4.4), so each of them is honored in turn
+TEST(honors_ps384_on_an_rsa_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "PS384" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::PS384);
+}
+
+// Each RSA algorithm an advisory hint may name is matched against the key type
+// it asks for (RFC 7517 Section 4.4), so each of them is honored in turn
+TEST(honors_ps512_on_an_rsa_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "PS512" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::PS512);
+}
+
+// The secret is sixty four octets, which clears the forty eight that the
+// middle HMAC algorithm asks of it (RFC 7518 Section 3.2)
+TEST(honors_hs384_on_an_octet_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
+      R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow","alg":"HS384"})")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::HS384);
+}
+
+// The public point is read as base64url of the width the curve fixes, so a
+// spelling that is not base64url at all is refused before the width is weighed
+TEST(rejects_an_octet_key_pair_point_that_is_not_base64url) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"OKP","crv":"Ed25519","x":"not!base64url"})")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+// An algorithm hint this module does not recognize is dropped rather than
+// taken as a reason to refuse the key (RFC 7517 Section 4.4)
+TEST(ignores_an_algorithm_hint_that_names_nothing_known) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RSA-PSS-SHA3-512" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(key.value().algorithm().has_value());
+}

@@ -1,5 +1,7 @@
 #include <sourcemeta/core/jose_decrypt.h>
 
+#include "jose_switch.h"
+
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose_jwk.h>
 #include <sourcemeta/core/json.h>
@@ -59,7 +61,8 @@ auto ecdh_content_key(const sourcemeta::core::JWE &jwe,
     return std::nullopt;
   }
 
-  if (algorithm == sourcemeta::core::JWEAlgorithm::ECDH_ES) {
+  const auto key_wrap_bytes{sourcemeta::core::jwe_key_wrap_bytes(algorithm)};
+  if (!key_wrap_bytes.has_value()) {
     // Direct Key Agreement carries no wrapped key, so the Encrypted Key must be
     // empty (RFC 7516 Section 5.2 step 10)
     if (!jwe.encrypted_key().empty()) {
@@ -74,16 +77,14 @@ auto ecdh_content_key(const sourcemeta::core::JWE &jwe,
 
   // Key Agreement with Key Wrapping: the derived key unwraps the CEK, over the
   // "alg" value (RFC 7518 Section 4.6.2)
-  const auto key_wrap_bytes{
-      sourcemeta::core::jwe_key_wrap_bytes(algorithm).value()};
-  const auto key_encryption_key{sourcemeta::core::kdf_concat(
-      shared.value(), sourcemeta::core::jwe_algorithm_name(algorithm), party_u,
-      party_v, key_wrap_bytes)};
-  if (!key_encryption_key.has_value()) {
-    return std::nullopt;
-  }
-
-  return sourcemeta::core::aes_key_unwrap(key_encryption_key.value(),
+  // Each length the derivation encodes is a field of thirty two bits, which
+  // nothing a header carries comes close to filling
+  const auto key_encryption_key{
+      sourcemeta::core::kdf_concat(
+          shared.value(), sourcemeta::core::jwe_algorithm_name(algorithm),
+          party_u, party_v, key_wrap_bytes.value())
+          .value()};
+  return sourcemeta::core::aes_key_unwrap(key_encryption_key,
                                           jwe.encrypted_key());
 }
 
@@ -106,23 +107,29 @@ auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key,
   // since it depends on the key rather than the ciphertext and blocks algorithm
   // confusion (RFC 7516 Section 11.4)
   std::optional<std::string> content_key;
+
+  // Asked of every algorithm, since the absence of a length is what tells an
+  // algorithm that wraps a content key from one that does not
+  const auto key_wrap_bytes{jwe_key_wrap_bytes(algorithm.value())};
+
   switch (algorithm.value()) {
-    case JWEAlgorithm::RSA_OAEP:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWEAlgorithm::RSA_OAEP)
     case JWEAlgorithm::RSA_OAEP_256:
       if (key.type() != JWKPrivate::Type::RSA || key.private_key() == nullptr) {
         return std::nullopt;
       }
 
       content_key = rsa_oaep_decrypt(*key.private_key(),
-                                     jwe_rsa_oaep_hash(algorithm.value()),
+                                     algorithm.value() == JWEAlgorithm::RSA_OAEP
+                                         ? RSAOAEPHash::SHA1
+                                         : RSAOAEPHash::SHA256,
                                      jwe.encrypted_key());
       break;
     case JWEAlgorithm::A128KW:
     case JWEAlgorithm::A192KW:
     case JWEAlgorithm::A256KW: {
-      const auto key_wrap_bytes{jwe_key_wrap_bytes(algorithm.value()).value()};
       if (key.type() != JWKPrivate::Type::Octet ||
-          key.secret().size() != key_wrap_bytes) {
+          key.secret().size() != key_wrap_bytes.value()) {
         return std::nullopt;
       }
 
@@ -144,8 +151,9 @@ auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key,
     case JWEAlgorithm::ECDH_ES_A128KW:
     case JWEAlgorithm::ECDH_ES_A192KW:
     case JWEAlgorithm::ECDH_ES_A256KW:
-      if (key.type() != JWKPrivate::Type::EllipticCurve ||
-          key.private_key() == nullptr) {
+      // A curve key that formed none is refused where it is read, by either
+      // entry point, which is what an RSA key is deliberately not held to
+      if (key.type() != JWKPrivate::Type::EllipticCurve) {
         return std::nullopt;
       }
 
@@ -159,10 +167,13 @@ auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key,
   // the section strongly recommends, for a missing or wrong-length one makes
   // decryption always proceed to the authentication tag check and fail there,
   // denying a key-unwrap oracle
-  std::string effective_key{
-      content_key.has_value() && content_key.value().size() == content_key_bytes
-          ? std::move(content_key).value()
-          : random_bytes(content_key_bytes, generator)};
+  std::string effective_key;
+  if (content_key.has_value() &&
+      content_key.value().size() == content_key_bytes) {
+    effective_key = std::move(content_key).value();
+  } else {
+    effective_key = random_bytes(content_key_bytes, generator);
+  }
 
   return jwe_content_decrypt(
       encryption.value(), effective_key, jwe.initialization_vector(),

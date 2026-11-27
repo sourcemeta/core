@@ -3,6 +3,7 @@
 #include <sourcemeta/core/crypto.h>
 
 #include "jose_key.h"
+#include "jose_switch.h"
 
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
@@ -26,23 +27,26 @@ auto jws_verify_signature(const std::optional<JWSAlgorithm> algorithm,
 
   const auto *public_key{key.public_key()};
 
+  // Asked of every algorithm, since the absence of a hash is what marks the
+  // one that computes its own
+  const auto hash{jws_hash_for(algorithm.value())};
+
   switch (algorithm.value()) {
     // The asymmetric key material is parsed into a reusable platform key when
     // the key is constructed, so an absent one is material that never formed a
     // valid key
-    case JWSAlgorithm::RS256:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::RS256)
     case JWSAlgorithm::RS384:
     case JWSAlgorithm::RS512:
       return public_key != nullptr && key.type() == JWK::Type::RSA &&
-             rsassa_pkcs1_v15_verify(*public_key,
-                                     jws_hash_for(algorithm.value()),
-                                     signing_input, signature);
+             rsassa_pkcs1_v15_verify(*public_key, hash.value(), signing_input,
+                                     signature);
     case JWSAlgorithm::PS256:
     case JWSAlgorithm::PS384:
     case JWSAlgorithm::PS512:
       return public_key != nullptr && key.type() == JWK::Type::RSA &&
-             rsassa_pss_verify(*public_key, jws_hash_for(algorithm.value()),
-                               signing_input, signature);
+             rsassa_pss_verify(*public_key, hash.value(), signing_input,
+                               signature);
     // Each ECDSA algorithm is pinned to exactly one curve (RFC 7518 Section
     // 3.4), so the key's curve is checked independently of any algorithm it
     // declares
@@ -65,15 +69,16 @@ auto jws_verify_signature(const std::optional<JWSAlgorithm> algorithm,
     // rather than the algorithm (RFC 8037 Section 3.1), and the key fixes the
     // curve when it is parsed
     case JWSAlgorithm::EdDSA:
-      return public_key != nullptr && key.type() == JWK::Type::OctetKeyPair &&
+      // A point of the width the curve fixes always forms a key, so an octet
+      // key pair always carries one
+      return key.type() == JWK::Type::OctetKeyPair &&
              eddsa_verify(*public_key, signing_input, signature);
     // The symmetric algorithms recompute the tag and compare it in constant
     // time (RFC 7518 Section 3.2), and the secret must be at least as large as
     // the hash output
     case JWSAlgorithm::HS256: {
       if (key.type() != JWK::Type::Octet ||
-          key.secret().size() <
-              jws_hmac_minimum_secret_bytes(algorithm.value())) {
+          key.secret().size() < jws_hmac_minimum_secret_bytes(hash.value())) {
         return false;
       }
 
@@ -84,8 +89,7 @@ auto jws_verify_signature(const std::optional<JWSAlgorithm> algorithm,
     }
     case JWSAlgorithm::HS384: {
       if (key.type() != JWK::Type::Octet ||
-          key.secret().size() <
-              jws_hmac_minimum_secret_bytes(algorithm.value())) {
+          key.secret().size() < jws_hmac_minimum_secret_bytes(hash.value())) {
         return false;
       }
 
@@ -99,7 +103,7 @@ auto jws_verify_signature(const std::optional<JWSAlgorithm> algorithm,
   }
 
   if (key.type() != JWK::Type::Octet ||
-      key.secret().size() < jws_hmac_minimum_secret_bytes(algorithm.value())) {
+      key.secret().size() < jws_hmac_minimum_secret_bytes(hash.value())) {
     return false;
   }
 

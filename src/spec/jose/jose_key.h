@@ -4,8 +4,12 @@
 // Curve and algorithm mappings shared by the public JWK and the private
 // JWKPrivate parsing paths
 
+#include "jose_switch.h"
+
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose_algorithm.h>
+#include <sourcemeta/core/jose_jwk.h>
+#include <sourcemeta/core/jose_jwk_private.h>
 
 #include <bit>         // std::countl_zero
 #include <cstddef>     // std::size_t
@@ -19,6 +23,38 @@ namespace sourcemeta::core {
 // The kind of key, shared by the public and private parsing paths so that the
 // algorithm matching does not need to be written twice
 enum class JWKKind : std::uint8_t { RSA, EllipticCurve, OctetKeyPair, Octet };
+
+// The kind a key of either flavour stands for, so that what depends on the
+// kind alone is written once rather than per flavour
+inline auto to_jwk_kind(const JWK::Type type) noexcept -> JWKKind {
+  switch (type) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWK::Type::RSA)
+    return JWKKind::RSA;
+    case JWK::Type::EllipticCurve:
+      return JWKKind::EllipticCurve;
+    case JWK::Type::OctetKeyPair:
+      return JWKKind::OctetKeyPair;
+    case JWK::Type::Octet:
+      return JWKKind::Octet;
+  }
+
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
+}
+
+inline auto to_jwk_kind(const JWKPrivate::Type type) noexcept -> JWKKind {
+  switch (type) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWKPrivate::Type::RSA)
+    return JWKKind::RSA;
+    case JWKPrivate::Type::EllipticCurve:
+      return JWKKind::EllipticCurve;
+    case JWKPrivate::Type::OctetKeyPair:
+      return JWKKind::OctetKeyPair;
+    case JWKPrivate::Type::Octet:
+      return JWKKind::Octet;
+  }
+
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
+}
 
 // RFC 7518 Section 3.3: "A key of size 2048 bits or larger MUST be used with"
 // the RSASSA algorithms, so a smaller modulus is refused before a key is built
@@ -96,15 +132,15 @@ inline auto jwk_to_edwards_curve(const std::string_view curve) noexcept
 inline auto elliptic_curve_to_jwk(const EllipticCurve curve) noexcept
     -> std::string_view {
   switch (curve) {
-    case EllipticCurve::P256:
-      return "P-256";
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(EllipticCurve::P256)
+    return "P-256";
     case EllipticCurve::P384:
       return "P-384";
     case EllipticCurve::P521:
-      break;
+      return "P-521";
   }
 
-  return "P-521";
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
 }
 
 // The JWK curve name each Edwards curve carries (RFC 8037 Section 2), the
@@ -112,13 +148,13 @@ inline auto elliptic_curve_to_jwk(const EllipticCurve curve) noexcept
 inline auto edwards_curve_to_jwk(const EdwardsCurve curve) noexcept
     -> std::string_view {
   switch (curve) {
-    case EdwardsCurve::Ed25519:
-      return "Ed25519";
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(EdwardsCurve::Ed25519)
+    return "Ed25519";
     case EdwardsCurve::Ed448:
-      break;
+      return "Ed448";
   }
 
-  return "Ed448";
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
 }
 
 // The RSA algorithms only require an RSA key, each ECDSA algorithm is tied to a
@@ -128,7 +164,7 @@ inline auto jwk_algorithm_matches_key(const JWSAlgorithm algorithm,
                                       const JWKKind kind,
                                       const std::string_view curve) -> bool {
   switch (algorithm) {
-    case JWSAlgorithm::RS256:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::RS256)
     case JWSAlgorithm::RS384:
     case JWSAlgorithm::RS512:
     case JWSAlgorithm::PS256:
@@ -152,88 +188,97 @@ inline auto jwk_algorithm_matches_key(const JWSAlgorithm algorithm,
   return kind == JWKKind::Octet;
 }
 
-// The hash function each RSA and ECDSA algorithm computes over the signing
-// input (RFC 7518 Section 3.1). The Edwards-curve algorithm fixes its own hash,
-// so it never reaches here
-inline auto jws_hash_for(const JWSAlgorithm algorithm)
-    -> SignatureHashFunction {
+// The hash an algorithm names over the signing input (RFC 7518 Sections 3.1
+// and 3.2). The Edwards-curve algorithm computes its own internally (RFC 8032
+// Sections 5.1.6 and 5.2.6) and so names none, which is what asking every
+// algorithm here reports rather than leaving to a caller to know
+inline auto jws_hash_for(const JWSAlgorithm algorithm) noexcept
+    -> std::optional<SignatureHashFunction> {
   switch (algorithm) {
-    case JWSAlgorithm::RS256:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::RS256)
     case JWSAlgorithm::PS256:
     case JWSAlgorithm::ES256:
+    case JWSAlgorithm::HS256:
       return SignatureHashFunction::SHA256;
     case JWSAlgorithm::RS384:
     case JWSAlgorithm::PS384:
     case JWSAlgorithm::ES384:
+    case JWSAlgorithm::HS384:
       return SignatureHashFunction::SHA384;
     case JWSAlgorithm::RS512:
     case JWSAlgorithm::PS512:
     case JWSAlgorithm::ES512:
+    case JWSAlgorithm::HS512:
       return SignatureHashFunction::SHA512;
     case JWSAlgorithm::EdDSA:
+      return std::nullopt;
+  }
+
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
+}
+
+// The curve each ECDSA algorithm is pinned to (RFC 7518 Section 3.4). Every
+// other algorithm names none, which is what separates the ECDSA family from
+// the rest without a second question being asked of it
+inline auto jws_curve_for(const JWSAlgorithm algorithm) noexcept
+    -> std::optional<EllipticCurve> {
+  switch (algorithm) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::ES256)
+    return EllipticCurve::P256;
+    case JWSAlgorithm::ES384:
+      return EllipticCurve::P384;
+    case JWSAlgorithm::ES512:
+      return EllipticCurve::P521;
+    case JWSAlgorithm::RS256:
+    case JWSAlgorithm::RS384:
+    case JWSAlgorithm::RS512:
+    case JWSAlgorithm::PS256:
+    case JWSAlgorithm::PS384:
+    case JWSAlgorithm::PS512:
+    case JWSAlgorithm::EdDSA:
     case JWSAlgorithm::HS256:
     case JWSAlgorithm::HS384:
     case JWSAlgorithm::HS512:
-      break;
+      return std::nullopt;
   }
 
-  std::unreachable();
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
 }
 
-// RFC 7518 Section 3.2: "A key of the same size as the hash output (for
-// instance, 256 bits for HS256) or larger MUST be used with this algorithm"
-inline auto jws_hmac_minimum_secret_bytes(const JWSAlgorithm algorithm)
+// RFC 7518 Section 3.2 states the bound in terms of the hash rather than the
+// algorithm: "A key of the same size as the hash output (for instance, 256
+// bits for HS256) or larger MUST be used with this algorithm". Taking the hash
+// is what lets every size it names be asked for, since an algorithm carries
+// one of three hashes and the caller already knows which
+inline auto jws_hmac_minimum_secret_bytes(const SignatureHashFunction hash)
     -> std::size_t {
-  switch (algorithm) {
-    case JWSAlgorithm::HS256:
-      return 32;
-    case JWSAlgorithm::HS384:
+  switch (hash) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(SignatureHashFunction::SHA256)
+    return 32;
+    case SignatureHashFunction::SHA384:
       return 48;
-    case JWSAlgorithm::HS512:
+    case SignatureHashFunction::SHA512:
       return 64;
-    case JWSAlgorithm::RS256:
-    case JWSAlgorithm::RS384:
-    case JWSAlgorithm::RS512:
-    case JWSAlgorithm::PS256:
-    case JWSAlgorithm::PS384:
-    case JWSAlgorithm::PS512:
-    case JWSAlgorithm::ES256:
-    case JWSAlgorithm::ES384:
-    case JWSAlgorithm::ES512:
-    case JWSAlgorithm::EdDSA:
-      break;
   }
 
-  std::unreachable();
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
 }
 
-// The raw ECDSA signature length for each algorithm, twice the curve field
-// width (RFC 7518 Section 3.4). Since each algorithm is pinned to one curve,
-// this length identifies the curve the key must use, which the other
-// algorithms do not need
-inline auto jws_ecdsa_signature_bytes(const JWSAlgorithm algorithm)
+// The raw ECDSA signature is twice the curve field width (RFC 7518 Section
+// 3.4), so the curve is what the width is asked of. An algorithm is pinned to
+// exactly one curve, which the caller names alongside the hash
+inline auto jws_ecdsa_signature_bytes(const EllipticCurve curve)
     -> std::size_t {
-  switch (algorithm) {
-    case JWSAlgorithm::ES256:
-      return 64;
-    case JWSAlgorithm::ES384:
+  switch (curve) {
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(EllipticCurve::P256)
+    return 64;
+    case EllipticCurve::P384:
       return 96;
-    case JWSAlgorithm::ES512:
+    case EllipticCurve::P521:
       return 132;
-    case JWSAlgorithm::RS256:
-    case JWSAlgorithm::RS384:
-    case JWSAlgorithm::RS512:
-    case JWSAlgorithm::PS256:
-    case JWSAlgorithm::PS384:
-    case JWSAlgorithm::PS512:
-    case JWSAlgorithm::EdDSA:
-    case JWSAlgorithm::HS256:
-    case JWSAlgorithm::HS384:
-    case JWSAlgorithm::HS512:
-      break;
   }
 
-  std::unreachable();
+  SOURCEMETA_CORE_JOSE_NO_OTHER_VALUE
 }
 
 } // namespace sourcemeta::core

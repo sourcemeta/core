@@ -1,5 +1,7 @@
 #include <sourcemeta/core/jose_algorithm.h>
 
+#include "jose_switch.h"
+
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint16_t
 #include <optional>    // std::optional, std::nullopt
@@ -54,8 +56,8 @@ auto to_jws_algorithm(const std::string_view value) noexcept
 auto jws_algorithm_name(const JWSAlgorithm algorithm) noexcept
     -> std::string_view {
   switch (algorithm) {
-    case JWSAlgorithm::RS256:
-      return "RS256";
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::RS256)
+    return "RS256";
     case JWSAlgorithm::RS384:
       return "RS384";
     case JWSAlgorithm::RS512:
@@ -88,7 +90,7 @@ auto jws_algorithm_name(const JWSAlgorithm algorithm) noexcept
 auto jws_algorithm_is_asymmetric(const JWSAlgorithm algorithm) noexcept
     -> bool {
   switch (algorithm) {
-    case JWSAlgorithm::RS256:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::RS256)
     case JWSAlgorithm::RS384:
     case JWSAlgorithm::RS512:
     case JWSAlgorithm::PS256:
@@ -111,7 +113,7 @@ auto jws_algorithm_is_asymmetric(const JWSAlgorithm algorithm) noexcept
 auto jws_algorithm_digest_bits(const JWSAlgorithm algorithm) noexcept
     -> std::uint16_t {
   switch (algorithm) {
-    case JWSAlgorithm::RS256:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWSAlgorithm::RS256)
     case JWSAlgorithm::PS256:
     case JWSAlgorithm::ES256:
     case JWSAlgorithm::HS256:
@@ -170,8 +172,8 @@ auto to_jwe_algorithm(const std::string_view value) noexcept
 auto jwe_algorithm_name(const JWEAlgorithm algorithm) noexcept
     -> std::string_view {
   switch (algorithm) {
-    case JWEAlgorithm::RSA_OAEP:
-      return "RSA-OAEP";
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWEAlgorithm::RSA_OAEP)
+    return "RSA-OAEP";
     case JWEAlgorithm::RSA_OAEP_256:
       return "RSA-OAEP-256";
     case JWEAlgorithm::ECDH_ES:
@@ -221,8 +223,8 @@ auto to_jwe_encryption(const std::string_view value) noexcept
 auto jwe_encryption_name(const JWEEncryption encryption) noexcept
     -> std::string_view {
   switch (encryption) {
-    case JWEEncryption::A128GCM:
-      return "A128GCM";
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWEEncryption::A128GCM)
+    return "A128GCM";
     case JWEEncryption::A192GCM:
       return "A192GCM";
     case JWEEncryption::A256GCM:
@@ -241,7 +243,7 @@ auto jwe_encryption_name(const JWEEncryption encryption) noexcept
 auto jwe_algorithm_is_asymmetric(const JWEAlgorithm algorithm) noexcept
     -> bool {
   switch (algorithm) {
-    case JWEAlgorithm::RSA_OAEP:
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWEAlgorithm::RSA_OAEP)
     case JWEAlgorithm::RSA_OAEP_256:
     case JWEAlgorithm::ECDH_ES:
     case JWEAlgorithm::ECDH_ES_A128KW:
@@ -261,8 +263,8 @@ auto jwe_algorithm_is_asymmetric(const JWEAlgorithm algorithm) noexcept
 auto jwe_encryption_key_bytes(const JWEEncryption encryption) noexcept
     -> std::size_t {
   switch (encryption) {
-    case JWEEncryption::A128GCM:
-      return 16;
+    SOURCEMETA_CORE_JOSE_FIRST_CASE(JWEEncryption::A128GCM)
+    return 16;
     case JWEEncryption::A192GCM:
       return 24;
     // A GCM key is used directly, while a CBC-HMAC key of the same length is

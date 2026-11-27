@@ -4,11 +4,25 @@
 
 #include "jose_jwe_test_keys.h"
 
+#include <sourcemeta/core/crypto.h>
+
+#include <cstdint>     // std::uint8_t
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
 static constexpr std::string_view PLAINTEXT{
     "The true sign of intelligence is not knowledge but imagination."};
+
+// Material that parses as a key yet forms none: an even public exponent is
+// outside the range RFC 8017 Section 3.1 allows, and the point at the origin
+// lies on no prime curve
+static constexpr std::string_view RSA_EVEN_EXPONENT_JWK{
+    R"JSON({ "kty": "RSA", "n": "qp63b87vkztqtUnT7TvIhst4O0QraUSHOPKep5EjRM5EVGOcu56-24usR2wz7_d6UVOgjzcXNQbgzTtcN_mNQRzi3WC_pGT2N5Z1eYUyUCmHMxANntSMmgpAxoKw2jfpt6P0Fc5L4B08JKaXeS8vnpeKjOeX3UkzR9ub66Mp3EGnFRL15D1h9l4ohFmHDm4GPX5NwV5XMw_0ha_BZihp6wtsUBwIcrM1ipGbiOQtHB1sXsUc_pPKLNeR-HzC8PmVtWDOqGSJFsiF6SvxBsgqKpNyov8sYTj_AM3JB57BUrHSZFoNYAcRmWu__EwU1awt9oXbcHyAbJLI85rlxtP6hw", "e": "Ag" })JSON"};
+static constexpr std::string_view EC_ORIGIN_JWK{
+    R"JSON({ "kty": "EC", "crv": "P-256", "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" })JSON"};
+static constexpr std::string_view OCT_128_JWK{
+    R"JSON({"kty":"oct","k":"GawgguFyGrWKav7AX4VKUg"})JSON"};
 
 static auto header_for(const std::string_view algorithm,
                        const std::string_view encryption)
@@ -425,3 +439,76 @@ TEST(encrypt_rejects_unknown_encryption_header) {
                    PLAINTEXT, key)
                    .has_value());
 }
+
+// A key with nothing behind it refuses before the wrapping runs, for each
+// family that carries platform key material
+TEST(rsa_oaep_refuses_a_key_that_formed_no_platform_key) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(RSA_EVEN_EXPONENT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(header_for("RSA-OAEP", "A128GCM"),
+                                             PLAINTEXT, key.value())
+                   .has_value());
+}
+
+TEST(ecdh_es_refuses_a_key_that_formed_no_platform_key) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_ORIGIN_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().public_key(), nullptr);
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(header_for("ECDH-ES", "A128GCM"),
+                                             PLAINTEXT, key.value())
+                   .has_value());
+}
+
+// Key wrapping and direct encryption each take a secret, so a key of another
+// kind is refused whatever its material
+TEST(aes_key_wrap_refuses_a_key_that_is_not_a_secret) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(header_for("A128KW", "A128GCM"),
+                                             PLAINTEXT, key.value())
+                   .has_value());
+}
+
+TEST(direct_encryption_refuses_a_key_that_is_not_a_secret) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(JWE_RSA_PUBLIC_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(header_for("dir", "A128GCM"),
+                                             PLAINTEXT, key.value())
+                   .has_value());
+}
+
+// The secret has to be exactly the width the wrapping asks of it (RFC 7518
+// Section 4.4), so one sized for another variant is refused
+TEST(aes_key_wrap_refuses_a_secret_of_another_width) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_128_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(header_for("A256KW", "A128GCM"),
+                                             PLAINTEXT, key.value())
+                   .has_value());
+}
+
+// The backend with no system provider draws every byte from the generator it
+// is handed, including the draws a key generation makes, so a generator that
+// refuses is how the refusal of the system one is watched. A provider that
+// generates its own keys cannot be pointed at this generator for them, so
+// there is nothing to watch there
+#if defined(SOURCEMETA_CORE_CRYPTO_BACKEND_REFERENCE)
+TEST(ecdh_es_refuses_where_the_generator_refuses) {
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(std::string{JWE_EC_PUBLIC_JWK}))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jwe_encrypt(
+                   header_for("ECDH-ES", "A128GCM"), PLAINTEXT, key.value(),
+                   [](const std::span<std::uint8_t>) {
+                     throw sourcemeta::core::CryptoError{
+                         "Refusing to draw random bytes"};
+                   })
+                   .has_value());
+}
+#endif
